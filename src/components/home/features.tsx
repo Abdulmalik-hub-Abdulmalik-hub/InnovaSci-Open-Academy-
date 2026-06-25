@@ -35,8 +35,8 @@ const features = [
   },
   {
     icon: Users,
-    title: "Expert Instructors",
-    description: "Learn from leading scientists and researchers in their fields.",
+    title: "Expert-Led Content",
+    description: "Learn from world-class scientists and researchers in their fields.",
     color: "text-pink-500",
     bg: "bg-pink-500/10",
   },

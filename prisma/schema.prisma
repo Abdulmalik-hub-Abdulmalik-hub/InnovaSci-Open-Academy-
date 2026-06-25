@@ -8,43 +8,36 @@ datasource db {
 }
 
 // ============================================
-// 1. USERS (authentication level - uses snake_case from original schema)
+// 1. USERS - Only Admin and Student roles
 // ============================================
 
-// User Account (using original snake_case naming)
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
-  passwordHash   String?
-  role          String   @default("student")
-  status        String   @default("ACTIVE")
-  emailVerified  DateTime?
+  passwordHash  String?
+  role          String    @default("STUDENT")  // Only: ADMIN, STUDENT
+  status        String    @default("ACTIVE")   // ACTIVE, INACTIVE, SUSPENDED
+  emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // SSO Providers (optional - add if needed)
-  // ssoAccounts   SsoAccount[]
-  
-  // Profile (one-to-one with Profile)
-  profile       Profile?
-  
-  // Sessions
-  // sessions      Session[]
-  
-  // Audit
-  auditLogs     AuditLog[]
-  
-  // User roles
-  userRoles     UserRole[]
+  // Relations
+  profile      Profile?
+  enrollments  Enrollment[]
+  certificates Certificate[]
+  payments     Payment[]
+  notifications Notification[]
+  wishlists    Wishlist[]
+  subscriptions Subscription[]
+  auditLogs    AuditLog[]
   
   @@map("users")
 }
 
 // ============================================
-// 2. PROFILES & USER EXTENSION (using snake_case)
+// 2. PROFILES - User details
 // ============================================
 
-// Profile (user details level - uses snake_case from original schema)
 model Profile {
   id          String   @id @default(uuid())
   userId      String   @unique
@@ -52,86 +45,36 @@ model Profile {
   username    String?  @unique
   phone       String?
   country     String?
-  state       String?
   city        String?
   gender      String?
   bio         String?
   avatarUrl   String?
-  role        String   @default("student")
   status      String   @default("active")
-  twoFactorEnabled Boolean @default(false)
   preferences Json?    @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   // Relations
-  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  courses       Course[]         @relation("InstructorCourses")
-  enrollments   Enrollment[]
-  lectureProgress UserLectureProgress[]
-  certificates  Certificate[]
-  subscriptions Subscription[]
-  payments      Payment[]
-  wishlists     Wishlist[]
-  notifications Notification[]
+  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  enrollments         Enrollment[]
+  lectureProgress     UserLectureProgress[]
+  certificates        Certificate[]
+  payments            Payment[]
+  wishlists           Wishlist[]
+  notifications       Notification[]
   learningPathProgress LearningPathProgress[]
   
   @@map("profiles")
 }
 
-// 2. RBAC & Permissions
-model Role {
-  id          String   @id @default(uuid())
-  name        String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  
-  permissions RolePermission[]
-  userRoles   UserRole[]
-  
-  @@map("roles")
-}
+// ============================================
+// 3. COURSES - Content managed by Admin
+// ============================================
 
-model Permission {
-  id          String   @id @default(uuid())
-  key         String   @unique
-  description String?
-  createdAt   DateTime @default(now())
-  
-  roles RolePermission[]
-  
-  @@map("permissions")
-}
-
-model RolePermission {
-  roleId       String
-  permissionId String
-  createdAt    DateTime @default(now())
-  
-  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
-  
-  @@id([roleId, permissionId])
-  @@map("role_permissions")
-}
-
-model UserRole {
-  userId String
-  roleId String
-  createdAt DateTime @default(now())
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  role Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
-  
-  @@id([userId, roleId])
-  @@map("user_roles")
-}
-
-// 3. Course System
 model Course {
   id               String   @id @default(uuid())
   title            String
-  code             String?  @unique
+  slug             String   @unique
   category         String?
   subcategory      String?
   shortDescription String?
@@ -140,65 +83,53 @@ model Course {
   prerequisites    String?  @db.Text
   targetAudience   String?
   difficultyLevel  String?
-  language         String?
+  language         String   @default("English")
   durationHours    Int?
   thumbnailUrl     String?
-  promoVideoUrl   String?
+  promoVideoUrl    String?
   price            Decimal  @default(0)
   isFree           Boolean  @default(true)
-  status           String   @default("draft")
-  instructorId     String?
+  status           String   @default("draft")  // draft, published, archived
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
-  instructor  Profile?      @relation("InstructorCourses")
+  // Relations
   modules     Module[]
   lessons     Lesson[]
   enrollments Enrollment[]
-  progress    LearningProgress[]
   certificates Certificate[]
   wishlists   Wishlist[]
   
-  // Learning Paths this course belongs to
+  // Learning Paths
   learningPaths LearningPathCourse[]
   
   @@map("courses")
 }
 
-// 4. Enrollments & Progress
-model Enrollment {
-  id              String   @id @default(uuid())
-  userId          String
-  courseId        String
-  progressPercent Int      @default(0)
-  completed       Boolean  @default(false)
-  enrolledAt      DateTime @default(now())
+// ============================================
+// 4. MODULES - Course sections
+// ============================================
+
+model Module {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  description String?  @db.Text
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons Lesson[]
   
-  @@unique([userId, courseId])
-  @@map("enrollments")
+  @@unique([courseId, orderIndex])
+  @@map("modules")
 }
 
-model LearningProgress {
-  id         String   @id @default(uuid())
-  userId     String
-  courseId   String
-  lessonId   String
-  completed  Boolean  @default(false)
-  watchTime  Int      @default(0)
-  updatedAt  DateTime @updatedAt
-  
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lesson Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, lessonId])
-  @@map("learning_progress")
-}
+// ============================================
+// 5. LESSONS - Course content
+// ============================================
 
-// 5. Content, Materials, Videos
 model Lesson {
   id          String   @id @default(uuid())
   courseId    String
@@ -206,34 +137,45 @@ model Lesson {
   title       String
   description String?  @db.Text
   orderIndex  Int      @default(0)
-  lessonType  String   @default("video")  // 'video', 'quiz', 'lab', 'reading'
+  lessonType  String   @default("video")  // video, quiz, lab, reading
   duration    Int?     // Duration in seconds
+  videoUrl    String?
+  isPreview   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
-  course    Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  module    Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
-  materials Material[]
-  videos    Video[]
-  progress  LearningProgress[]
+  course     Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module     Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  materials  Material[]
+  videos     Video[]
+  progress   LearningProgress[]
+  lectureProgress UserLectureProgress[]
   
   @@map("lessons")
 }
 
+// ============================================
+// 6. MATERIALS - Lesson attachments
+// ============================================
+
 model Material {
-  id             String   @id @default(uuid())
-  lessonId       String
-  title          String
-  type           String?
-  fileUrl        String
-  visibility     String   @default("public")
-  downloadAllowed Boolean @default(true)
-  createdAt      DateTime @default(now())
+  id              String   @id @default(uuid())
+  lessonId        String
+  title           String
+  type            String?
+  fileUrl         String
+  visibility      String   @default("public")
+  downloadAllowed Boolean  @default(true)
+  createdAt       DateTime @default(now())
   
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   
   @@map("materials")
 }
+
+// ============================================
+// 7. VIDEOS - Lesson video content
+// ============================================
 
 model Video {
   id          String   @id @default(uuid())
@@ -251,137 +193,221 @@ model Video {
   @@map("videos")
 }
 
-// 6. Certificates Engine
-model Certificate {
-  id               String   @id @default(uuid())
-  userId           String
-  courseId         String
-  certificateUrl   String?
-  templateUrl      String?
-  verificationCode String   @unique
-  issuedAt         DateTime @default(now())
-  status           String   @default("issued")
+// ============================================
+// 8. ENROLLMENTS - Student course access
+// ============================================
+
+model Enrollment {
+  id              String   @id @default(uuid())
+  userId          String
+  courseId        String
+  progressPercent Int      @default(0)
+  completed       Boolean  @default(false)
+  enrolledAt      DateTime @default(now())
+  completedAt     DateTime?
   
   user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
+  @@unique([userId, courseId])
+  @@map("enrollments")
+}
+
+// ============================================
+// 9. LEARNING PROGRESS - Lesson completion
+// ============================================
+
+model LearningProgress {
+  id         String    @id @default(uuid())
+  userId     String
+  courseId   String
+  lessonId   String
+  completed  Boolean   @default(false)
+  watchTime  Int       @default(0)
+  completedAt DateTime?
+  updatedAt  DateTime  @updatedAt
+  
+  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, lessonId])
+  @@map("learning_progress")
+}
+
+// ============================================
+// 10. USER LECTURE PROGRESS - Detailed tracking
+// ============================================
+
+model UserLectureProgress {
+  id           String    @id @default(uuid())
+  userId       String
+  lessonId     String
+  courseId     String
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  watchTime    Int       @default(0)
+  lastPosition Int       @default(0)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  
+  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, lessonId])
+  @@index([userId, courseId])
+  @@map("user_lecture_progress")
+}
+
+// ============================================
+// 11. CERTIFICATES - Course completion certificates
+// ============================================
+
+model Certificate {
+  id               String   @id @default(uuid())
+  userId           String
+  courseId         String
+  certificateUrl    String?
+  verificationCode String   @unique
+  issuedAt         DateTime @default(now())
+  status           String   @default("issued")  // issued, revoked
+  
+  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
   @@map("certificates")
 }
 
-// 7. Subscriptions & Payments
-model Subscription {
-  id              String   @id @default(uuid())
-  userId          String
-  plan            String
-  status          String   @default("active")
-  startDate       DateTime @default(now())
-  endDate         DateTime?
-  recurringPrice  Decimal?
-  createdAt       DateTime @default(now())
-  
-  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("subscriptions")
-}
+// ============================================
+// 12. PAYMENTS - Transaction records
+// ============================================
 
 model Payment {
-  id              String   @id @default(uuid())
-  userId          String
-  amount          Decimal
-  currency        String   @default("NGN")  // Changed to Naira for Paystack
-  status          String   @default("pending")
-  paymentMethod   String?
-  transactionId   String?
-  metadata        Json?
-  createdAt       DateTime @default(now())
-  
-  // Paystack-specific fields
-  paystackReference String?   @map("paystack_reference")
-  paystackDomain   String?   @map("paystack_domain")
-  channel         String?   // Card, Bank, USSD, Mobile Money, etc.
-  authorizationCode String? @map("authorization_code")
+  id                String   @id @default(uuid())
+  userId            String
+  amount            Decimal
+  currency          String   @default("NGN")
+  status            String   @default("PENDING")  // PENDING, COMPLETED, FAILED, REFUNDED
+  paymentMethod     String?
+  transactionId     String?
+  paystackReference String?
+  channel           String?
+  authorizationCode String?
+  metadata          Json?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
   
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("payments")
 }
 
-// 8. Newsletters
-model Newsletter {
-  id          String   @id @default(uuid())
-  title       String
-  subject     String
-  content     String   @db.Text
-  status      String   @default("draft")
-  scheduledAt DateTime?
-  sentAt      DateTime?
-  createdAt   DateTime @default(now())
+// ============================================
+// 13. SUBSCRIPTIONS - Membership plans
+// ============================================
+
+model Subscription {
+  id             String    @id @default(uuid())
+  userId         String
+  plan           String    // FREE, PRO, TEAM
+  status         String    @default("active")  // active, cancelled, expired
+  startDate      DateTime  @default(now())
+  endDate        DateTime?
+  recurringPrice Decimal?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
   
-  logs NewsletterLog[]
+  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
   
-  @@map("newsletters")
+  @@map("subscriptions")
 }
 
-model NewsletterSubscriber {
-  id          String   @id @default(uuid())
-  email       String   @unique
-  name        String?
-  subscribed  Boolean  @default(true)
-  subscribedAt DateTime @default(now())
-  unsubscribedAt DateTime?
+// ============================================
+// 14. LEARNING PATHS - Course roadmaps
+// ============================================
+
+model LearningPath {
+  id           String   @id @default(uuid())
+  name         String
+  slug         String   @unique
+  description  String?  @db.Text
+  thumbnailUrl String?
+  isPublished  Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
   
-  logs NewsletterLog[]
+  pathCourses  LearningPathCourse[]
+  userProgress LearningPathProgress[]
   
-  @@map("newsletter_subscribers")
+  @@map("learning_paths")
 }
 
-model NewsletterLog {
+// ============================================
+// 15. LEARNING PATH COURSES - Junction table
+// ============================================
+
+model LearningPathCourse {
   id              String   @id @default(uuid())
-  newsletterId    String
-  subscriberId    String
-  sentAt          DateTime @default(now())
-  openedAt        DateTime?
-  clickedAt        DateTime?
-  bouncedAt        DateTime?
+  learningPathId  String
+  courseId        String
+  orderIndex      Int      @default(0)
+  isRequired      Boolean  @default(true)
+  createdAt       DateTime @default(now())
   
-  newsletter Newsletter         @relation(fields: [newsletterId], references: [id], onDelete: Cascade)
-  subscriber NewsletterSubscriber @relation(fields: [subscriberId], references: [id], onDelete: Cascade)
+  learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
-  @@map("newsletter_logs")
+  @@unique([learningPathId, courseId])
+  @@map("learning_path_courses")
 }
 
-// 9. Storage
-model StorageFile {
-  id          String   @id @default(uuid())
-  filename    String
-  path        String
-  size        Int?
-  mimeType    String?
-  storageType String   @default("supabase")
-  bucket      String?
-  createdAt   DateTime @default(now())
+// ============================================
+// 16. LEARNING PATH PROGRESS - User progress
+// ============================================
+
+model LearningPathProgress {
+  id              String    @id @default(uuid())
+  userId          String
+  learningPathId  String
+  enrolledAt      DateTime  @default(now())
+  completedAt     DateTime?
+  progressPercent Int       @default(0)
   
-  @@map("storage_files")
+  user         Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, learningPathId])
+  @@map("learning_path_progress")
 }
 
-// 10. Analytics
-model AnalyticsEvent {
-  id          String   @id @default(uuid())
-  eventType   String
-  userId      String?
-  metadata    Json?
-  createdAt   DateTime @default(now())
+// ============================================
+// 17. WISHLISTS - Saved courses
+// ============================================
+
+model Wishlist {
+  id       String   @id @default(uuid())
+  userId   String
+  courseId String
+  addedAt  DateTime @default(now())
   
-  @@map("analytics_events")
+  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, courseId])
+  @@map("wishlists")
 }
 
-// 11. Notifications
+// ============================================
+// 18. NOTIFICATIONS - User alerts
+// ============================================
+
 model Notification {
   id        String   @id @default(uuid())
   userId    String
   title     String
   message   String   @db.Text
-  type      String   @default("info")
+  type      String   @default("info")  // info, success, warning, error
   read      Boolean  @default(false)
   data      Json?
   createdAt DateTime @default(now())
@@ -391,7 +417,10 @@ model Notification {
   @@map("notifications")
 }
 
-// 12. Audit Logs
+// ============================================
+// 19. AUDIT LOGS - Activity tracking
+// ============================================
+
 model AuditLog {
   id        String   @id @default(uuid())
   userId    String?
@@ -406,203 +435,74 @@ model AuditLog {
   @@map("audit_logs")
 }
 
-// 13. Wishlists
-model Wishlist {
-  id        String   @id @default(uuid())
-  userId    String
-  courseId  String
-  addedAt   DateTime @default(now())
-  
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, courseId])
-  @@map("wishlists")
-}
-
 // ============================================
-// 14. LEARNING PATHS (Sequential Roadmaps)
-// ============================================
-
-model LearningPath {
-  id          String   @id @default(uuid())
-  name        String
-  slug        String   @unique
-  description String?  @db.Text
-  thumbnailUrl String?
-  isPublished Boolean  @default(false)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Courses in this path (with order)
-  pathCourses LearningPathCourse[]
-  
-  // User progress on this path
-  userProgress LearningPathProgress[]
-  
-  @@map("learning_paths")
-}
-
-// Junction table for Learning Path <-> Course (ordered)
-model LearningPathCourse {
-  id              String   @id @default(uuid())
-  learningPathId  String
-  courseId        String
-  orderIndex      Int      @default(0)  // Sequential order in the path
-  isRequired      Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  
-  learningPath    LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
-  course          Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
-  @@unique([learningPathId, courseId])
-  @@map("learning_path_courses")
-}
-
-// User Progress on Learning Paths
-model LearningPathProgress {
-  id              String    @id @default(uuid())
-  userId          String
-  learningPathId  String
-  enrolledAt      DateTime  @default(now())
-  completedAt     DateTime?
-  progressPercent Int       @default(0)
-  
-  user          Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  learningPath  LearningPath  @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, learningPathId])
-  @@map("learning_path_progress")
-}
-
-// ============================================
-// 15. GRANULAR PROGRESS TRACKING
-// ============================================
-
-// Fine-grained lecture progress (lesson-by-lesson tracking)
-model UserLectureProgress {
-  id            String    @id @default(uuid())
-  userId        String
-  lessonId      String
-  courseId      String    // Denormalized for easier queries
-  completed     Boolean   @default(false)
-  completedAt   DateTime?
-  watchTime     Int       @default(0)      // Watch time in seconds
-  lastPosition  Int       @default(0)      // Last video position in seconds
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
-  user          Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson        Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
-  @@unique([userId, lessonId])
-  @@index([userId, courseId])
-  @@map("user_lecture_progress")
-}
-
-// ============================================
-// 16. MODULE ORGANIZATION (for Course Curriculum)
-// ============================================
-
-model Module {
-  id          String   @id @default(uuid())
-  courseId    String
-  title       String
-  description String?  @db.Text
-  orderIndex  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lessons     Lesson[]
-  
-  @@unique([courseId, orderIndex])
-  @@map("modules")
-}
-
-// ============================================
-// 17. SUPPORT & TICKETING SYSTEM
+// 20. SUPPORT TICKETS - Help requests
 // ============================================
 
 model SupportTicket {
-  id          String   @id @default(uuid())
-  userId      String?
-  email       String
-  category    String   // 'billing', 'course-access', 'technical', 'business', 'partnership', 'other'
-  subject     String?
-  message     String   @db.Text
-  status      String   @default("open")   // 'open', 'in_progress', 'resolved', 'closed'
-  priority    String   @default("medium") // 'low', 'medium', 'high', 'urgent'
-  assignedTo  String?
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  resolvedAt  DateTime?
+  id         String    @id @default(uuid())
+  userId     String?
+  email      String
+  category   String    // billing, course-access, technical, business, partnership, other
+  subject    String?
+  message    String    @db.Text
+  status     String    @default("open")   // open, in_progress, resolved, closed
+  priority   String    @default("medium") // low, medium, high, urgent
+  assignedTo String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  resolvedAt DateTime?
   
-  user        Profile?  @relation(fields: [userId], references: [id], onDelete: SetNull)
-  comments    TicketComment[]
+  user     Profile?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  comments TicketComment[]
   
   @@map("support_tickets")
 }
 
+// ============================================
+// 21. TICKET COMMENTS - Support replies
+// ============================================
+
 model TicketComment {
-  id          String   @id @default(uuid())
-  ticketId    String
-  userId      String?
-  message     String   @db.Text
-  isInternal  Boolean  @default(false) // Internal notes not visible to user
-  createdAt   DateTime @default(now())
+  id         String   @id @default(uuid())
+  ticketId   String
+  userId     String?
+  message    String   @db.Text
+  isInternal Boolean  @default(false)
+  createdAt  DateTime @default(now())
   
-  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user        Profile?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user   Profile?      @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   @@map("ticket_comments")
 }
 
 // ============================================
-// 18. MEMBERSHIP & SUBSCRIPTION PLANS
+// 22. NEWSLETTER SUBSCRIBERS
 // ============================================
 
-model SubscriptionPlan {
-  id              String   @id @default(uuid())
-  name            String   @unique
-  slug            String   @unique
-  description     String?
-  billingCycle    String   // 'monthly', 'annual'
-  priceMonthly    Decimal  @default(0)
-  priceAnnual    Decimal  @default(0)
-  features        Json?    // JSON array of features
-  limits          Json?    // JSON object with usage limits
-  isActive        Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+model NewsletterSubscriber {
+  id           String    @id @default(uuid())
+  email        String    @unique
+  isActive     Boolean   @default(true)
+  subscribedAt DateTime  @default(now())
+  unsubscribedAt DateTime?
   
-  userSubscriptions UserSubscription[]
-  
-  @@map("subscription_plans")
+  @@map("newsletter_subscribers")
 }
 
-model UserSubscription {
-  id              String    @id @default(uuid())
-  userId          String
-  planId          String
-  billingCycle    String    // 'monthly', 'annual'
-  status          String    @default("active") // 'active', 'cancelled', 'expired', 'trial'
-  startDate       DateTime  @default(now())
-  endDate         DateTime?
-  cancelledAt     DateTime?
-  autoRenew       Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+// ============================================
+// 23. SYSTEM SETTINGS
+// ============================================
+
+model SystemSetting {
+  id        String   @id @default(uuid())
+  key       String   @unique
+  value     String   @db.Text
+  type      String   @default("string")
+  isPublic  Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
   
-  // Paystack-specific fields for subscriptions
-  paystackCustomerCode String? @map("paystack_customer_code")
-  paystackAuthorizationCode String? @map("paystack_authorization_code")
-  paystackSubscriptionCode String? @map("paystack_subscription_code")
-  paystackEmailToken String? @map("paystack_email_token")
-  
-  user            Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
-  plan            SubscriptionPlan @relation(fields: [planId], references: [id])
-  
-  @@unique([userId, planId])
-  @@map("user_subscriptions")
+  @@map("system_settings")
 }

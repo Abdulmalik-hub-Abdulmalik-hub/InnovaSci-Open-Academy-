@@ -12,18 +12,15 @@ import {
 
 // Mock users data
 const mockUsers = [
-  { id: "1", name: "Abdulmalik Musba", email: "abdulmalikmusba@gmail.com", role: "SYSTEM_ADMIN", status: "ACTIVE", country: "Nigeria", enrolled: 5, certificates: 2, joined: "2024-01-15" },
-  { id: "2", name: "Sarah Chen", email: "sarah.chen@example.com", role: "INSTRUCTOR", status: "ACTIVE", country: "USA", enrolled: 12, certificates: 0, joined: "2024-02-20" },
-  { id: "3", name: "Michael Torres", email: "mtorres@example.com", role: "STUDENT", status: "ACTIVE", country: "Brazil", enrolled: 8, certificates: 3, joined: "2024-03-10" },
-  { id: "4", name: "Emily Watson", email: "e.watson@example.com", role: "STUDENT", status: "SUSPENDED", country: "UK", enrolled: 3, certificates: 1, joined: "2024-04-05" },
-  { id: "5", name: "James Miller", email: "jmiller@example.com", role: "STUDENT", status: "ACTIVE", country: "Canada", enrolled: 15, certificates: 5, joined: "2024-01-25" },
+  { id: "1", name: "Abdulmalik Musba", email: "abdulmalikmusba@gmail.com", role: "ADMIN", status: "ACTIVE", country: "Nigeria", enrolled: 5, certificates: 2, joined: "2024-01-15" },
+  { id: "2", name: "Michael Torres", email: "mtorres@example.com", role: "STUDENT", status: "ACTIVE", country: "Brazil", enrolled: 8, certificates: 3, joined: "2024-03-10" },
+  { id: "3", name: "Emily Watson", email: "e.watson@example.com", role: "STUDENT", status: "SUSPENDED", country: "UK", enrolled: 3, certificates: 1, joined: "2024-04-05" },
+  { id: "4", name: "James Miller", email: "jmiller@example.com", role: "STUDENT", status: "ACTIVE", country: "Canada", enrolled: 15, certificates: 5, joined: "2024-01-25" },
 ]
 
 const roleColors: Record<string, string> = {
-  SYSTEM_ADMIN: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  INSTRUCTOR: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-400",
+  ADMIN: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
   STUDENT: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  GUEST: "bg-gray-100 text-gray-800 dark:bg-gray-900/30 dark:text-gray-400",
 }
 
 const statusColors: Record<string, string> = {
@@ -58,7 +55,7 @@ export default function UsersPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <Card className="bg-[#1a1a2e] border-white/10">
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-white">1,234</div>
@@ -68,13 +65,7 @@ export default function UsersPage() {
         <Card className="bg-[#1a1a2e] border-white/10">
           <CardContent className="p-4">
             <div className="text-2xl font-bold text-green-400">1,150</div>
-            <div className="text-sm text-white/60">Active Users</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-[#1a1a2e] border-white/10">
-          <CardContent className="p-4">
-            <div className="text-2xl font-bold text-blue-400">45</div>
-            <div className="text-sm text-white/60">Instructors</div>
+            <div className="text-sm text-white/60">Active Students</div>
           </CardContent>
         </Card>
         <Card className="bg-[#1a1a2e] border-white/10">
@@ -104,10 +95,8 @@ export default function UsersPage() {
               className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
             >
               <option value="all">All Roles</option>
-              <option value="SYSTEM_ADMIN">System Admin</option>
-              <option value="INSTRUCTOR">Instructor</option>
+              <option value="ADMIN">Admin</option>
               <option value="STUDENT">Student</option>
-              <option value="GUEST">Guest</option>
             </select>
           </div>
         </CardContent>

@@ -9,7 +9,7 @@ import { HeaderLogo, FooterBranding } from "./logo"
 import { 
   LayoutDashboard, Users, BookOpen, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
-  Shield, Headphones, FileText, X, ChevronDown
+  Headphones, FileText, X
 } from "lucide-react"
 
 // Menu items with icons
@@ -78,11 +78,6 @@ const menuItems = [
     title: "Audit Logs",
     href: "/admin/audit-logs",
     icon: ScrollText,
-  },
-  {
-    title: "Roles & Permissions",
-    href: "/admin/roles",
-    icon: Shield,
   },
   {
     title: "Support Center",

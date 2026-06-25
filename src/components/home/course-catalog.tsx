@@ -130,7 +130,7 @@ export function CourseCatalog() {
                     {course.title}
                   </h3>
                   <p className="text-sm text-muted-foreground">
-                    by {course.instructor}
+                    InnovaSci Academy
                   </p>
                 </CardHeader>
 

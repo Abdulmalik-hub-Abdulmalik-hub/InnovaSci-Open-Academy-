@@ -1,285 +1,96 @@
 -- ============================================
 -- INNOVASCI OPEN ACADEMY - SEED DATA
--- Admin User: abdulmalikmusba@gmail.com
+-- Only Admin and Student roles
+-- Admin: abdulmalikmusba@gmail.com / admin123
+-- Student: student@innovasci.com / student123
 -- ============================================
 
 -- ============================================
--- 1. CREATE SYSTEM ROLES
--- ============================================
-
-INSERT INTO roles (id, name, description, "createdAt") VALUES
-    (gen_random_uuid(), 'SYSTEM_ADMIN', 'Full system administration access', NOW()),
-    (gen_random_uuid(), 'INSTRUCTOR', 'Course instructor with content management access', NOW()),
-    (gen_random_uuid(), 'STUDENT', 'Standard learner account', NOW()),
-    (gen_random_uuid(), 'GUEST', 'Limited guest access', NOW())
-ON CONFLICT (name) DO NOTHING;
-
--- ============================================
--- 2. CREATE SYSTEM PERMISSIONS
--- ============================================
-
--- User Management Permissions
-INSERT INTO permissions (id, key, description, "createdAt") VALUES
-    (gen_random_uuid(), 'users.view', 'View all users', NOW()),
-    (gen_random_uuid(), 'users.create', 'Create new users', NOW()),
-    (gen_random_uuid(), 'users.update', 'Update user information', NOW()),
-    (gen_random_uuid(), 'users.delete', 'Delete users', NOW()),
-    (gen_random_uuid(), 'users.suspend', 'Suspend user accounts', NOW())
-ON CONFLICT (key) DO NOTHING;
-
--- Course Management Permissions
-INSERT INTO permissions (id, key, description, "createdAt") VALUES
-    (gen_random_uuid(), 'courses.view', 'View all courses', NOW()),
-    (gen_random_uuid(), 'courses.create', 'Create new courses', NOW()),
-    (gen_random_uuid(), 'courses.update', 'Update courses', NOW()),
-    (gen_random_uuid(), 'courses.delete', 'Delete courses', NOW()),
-    (gen_random_uuid(), 'courses.publish', 'Publish/unpublish courses', NOW()),
-    (gen_random_uuid(), 'courses.duplicate', 'Duplicate courses', NOW())
-ON CONFLICT (key) DO NOTHING;
-
--- Video Management Permissions
-INSERT INTO permissions (id, key, description, "createdAt") VALUES
-    (gen_random_uuid(), 'videos.view', 'View all videos', NOW()),
-    (gen_random_uuid(), 'videos.upload', 'Upload new videos', NOW()),
-    (gen_random_uuid(), 'videos.update', 'Update video metadata', NOW()),
-    (gen_random_uuid(), 'videos.delete', 'Delete videos', NOW())
-ON CONFLICT (key) DO NOTHING;
-
--- Certificate Permissions
-INSERT INTO permissions (id, key, description, "createdAt") VALUES
-    (gen_random_uuid(), 'certificates.view', 'View all certificates', NOW()),
-    (gen_random_uuid(), 'certificates.issue', 'Issue certificates', NOW()),
-    (gen_random_uuid(), 'certificates.revoke', 'Revoke certificates', NOW())
-ON CONFLICT (key) DO NOTHING;
-
--- Payment Permissions
-INSERT INTO permissions (id, key, description, "createdAt") VALUES
-    (gen_random_uuid(), 'payments.view', 'View payment records', NOW()),
-    (gen_random_uuid(), 'payments.approve', 'Approve/reject payments', NOW()),
-    (gen_random_uuid(), 'payments.refund', 'Process refunds', NOW())
-ON CONFLICT (key) DO NOTHING;
-
--- Settings Permissions
-INSERT INTO permissions (id, key, description, "createdAt") VALUES
-    (gen_random_uuid(), 'settings.view', 'View system settings', NOW()),
-    (gen_random_uuid(), 'settings.update', 'Update system settings', NOW()),
-    (gen_random_uuid(), 'settings.maintenance', 'Enable maintenance mode', NOW())
-ON CONFLICT (key) DO NOTHING;
-
--- Audit Permissions
-INSERT INTO permissions (id, key, description, "createdAt") VALUES
-    (gen_random_uuid(), 'audit.view', 'View audit logs', NOW()),
-    (gen_random_uuid(), 'audit.export', 'Export audit logs', NOW())
-ON CONFLICT (key) DO NOTHING;
-
--- ============================================
--- 3. ASSIGN ALL PERMISSIONS TO SYSTEM_ADMIN
--- ============================================
-
-INSERT INTO role_permissions (id, "roleId", "permissionId", "createdAt")
-SELECT 
-    gen_random_uuid(),
-    r.id,
-    p.id,
-    NOW()
-FROM roles r
-CROSS JOIN permissions p
-WHERE r.name = 'SYSTEM_ADMIN'
-ON CONFLICT ("roleId", "permissionId") DO NOTHING;
-
--- ============================================
--- 4. CREATE ADMIN USER AND PROFILE
+-- SEED DATA - ADMIN USER
+-- Password: admin123
 -- ============================================
 
 DO $$
 DECLARE
     admin_user_id UUID;
-    admin_role_id UUID;
     admin_profile_id UUID;
 BEGIN
-    -- Check if admin user already exists
     SELECT id INTO admin_user_id FROM users WHERE email = 'abdulmalikmusba@gmail.com';
     
-    -- If not, create the user
     IF admin_user_id IS NULL THEN
         admin_user_id := gen_random_uuid();
-        
         INSERT INTO users (id, email, "passwordHash", role, status, "createdAt", "updatedAt") VALUES
-            (admin_user_id, 'abdulmalikmusba@gmail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5iHJ4j.S4IXTK', 'SYSTEM_ADMIN', 'ACTIVE', NOW(), NOW());
+            (admin_user_id, 'abdulmalikmusba@gmail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5iHJ4j.S4IXTK', 'ADMIN', 'ACTIVE', NOW(), NOW());
     ELSE
-        -- Update existing user to be admin
-        UPDATE users SET role = 'SYSTEM_ADMIN', status = 'ACTIVE' WHERE id = admin_user_id;
+        UPDATE users SET role = 'ADMIN', status = 'ACTIVE' WHERE id = admin_user_id;
     END IF;
     
-    -- Get or create SYSTEM_ADMIN role
-    SELECT id INTO admin_role_id FROM roles WHERE name = 'SYSTEM_ADMIN';
-    
-    -- Assign admin role to user
-    INSERT INTO user_roles (id, "userId", "roleId", "createdAt")
-    VALUES (gen_random_uuid(), admin_user_id, admin_role_id, NOW())
-    ON CONFLICT ("userId", "roleId") DO NOTHING;
-    
-    -- Check if profile exists
     SELECT id INTO admin_profile_id FROM profiles WHERE "userId" = admin_user_id;
     
-    -- Create or update admin profile
     IF admin_profile_id IS NULL THEN
-        INSERT INTO profiles (
-            id, "userId", "fullName", username, bio, 
-            "twoFactorEnabled", "createdAt", "updatedAt"
-        ) VALUES (
-            gen_random_uuid(),
-            admin_user_id,
-            'Abdulmalik Musba',
-            'abdulmalik',
-            'System Administrator at InnovaSci Open Academy',
-            false,
-            NOW(),
-            NOW()
-        )
-        ON CONFLICT ("userId") DO UPDATE SET
-            "fullName" = 'Abdulmalik Musba',
-            username = 'abdulmalik',
-            bio = 'System Administrator at InnovaSci Open Academy';
+        INSERT INTO profiles (id, "userId", "fullName", username, bio, status, "createdAt", "updatedAt")
+        VALUES (gen_random_uuid(), admin_user_id, 'Admin User', 'admin', 'Platform Administrator', 'active', NOW(), NOW());
     ELSE
-        UPDATE profiles SET
-            "fullName" = 'Abdulmalik Musba',
-            username = 'abdulmalik',
-            bio = 'System Administrator at InnovaSci Open Academy'
+        UPDATE profiles SET "fullName" = 'Admin User', username = 'admin', bio = 'Platform Administrator'
         WHERE id = admin_profile_id;
     END IF;
     
-    RAISE NOTICE 'Admin user setup completed successfully';
+    RAISE NOTICE 'Admin setup completed';
 END $$;
 
 -- ============================================
--- 5. CREATE DEMO STUDENT USER AND PROFILE
+-- SEED DATA - DEMO STUDENT USER
+-- Password: student123
 -- ============================================
 
 DO $$
 DECLARE
     student_user_id UUID;
     student_profile_id UUID;
-    student_role_id UUID;
 BEGIN
-    -- Check if student user already exists
     SELECT id INTO student_user_id FROM users WHERE email = 'student@innovasci.com';
     
-    -- If not, create the student user
     IF student_user_id IS NULL THEN
         student_user_id := gen_random_uuid();
-        
         INSERT INTO users (id, email, "passwordHash", role, status, "createdAt", "updatedAt") VALUES
             (student_user_id, 'student@innovasci.com', '$2b$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'STUDENT', 'ACTIVE', NOW(), NOW());
     ELSE
         UPDATE users SET role = 'STUDENT', status = 'ACTIVE' WHERE id = student_user_id;
     END IF;
     
-    -- Get or create STUDENT role
-    SELECT id INTO student_role_id FROM roles WHERE name = 'STUDENT';
-    
-    -- Assign student role to user
-    INSERT INTO user_roles (id, "userId", "roleId", "createdAt")
-    VALUES (gen_random_uuid(), student_user_id, student_role_id, NOW())
-    ON CONFLICT ("userId", "roleId") DO NOTHING;
-    
-    -- Check if profile exists
     SELECT id INTO student_profile_id FROM profiles WHERE "userId" = student_user_id;
     
-    -- Create or update student profile
     IF student_profile_id IS NULL THEN
-        INSERT INTO profiles (
-            id, "userId", "fullName", username, bio, 
-            "twoFactorEnabled", "createdAt", "updatedAt"
-        ) VALUES (
-            gen_random_uuid(),
-            student_user_id,
-            'Demo Student',
-            'demostudent',
-            'A student exploring scientific computing courses',
-            false,
-            NOW(),
-            NOW()
-        )
-        ON CONFLICT ("userId") DO UPDATE SET
-            "fullName" = 'Demo Student',
-            username = 'demostudent',
-            bio = 'A student exploring scientific computing courses';
+        INSERT INTO profiles (id, "userId", "fullName", username, bio, status, "createdAt", "updatedAt")
+        VALUES (gen_random_uuid(), student_user_id, 'Demo Student', 'demostudent', 'A learning enthusiast', 'active', NOW(), NOW());
+    ELSE
+        UPDATE profiles SET "fullName" = 'Demo Student', username = 'demostudent', bio = 'A learning enthusiast'
+        WHERE id = student_profile_id;
     END IF;
     
-    RAISE NOTICE 'Demo student setup completed successfully';
+    RAISE NOTICE 'Student setup completed';
 END $$;
 
 -- ============================================
--- 6. LOG ADMIN CREATION IN AUDIT LOG
+-- SEED DATA - SUBSCRIPTION PLANS
 -- ============================================
 
-INSERT INTO audit_logs (id, "userId", action, module, details, "createdAt")
+INSERT INTO subscriptions (id, "userId", plan, status, "startDate", "createdAt", "updatedAt")
 SELECT 
     gen_random_uuid(),
     id,
-    'CREATE',
-    'users',
-    jsonb_build_object(
-        'email', 'abdulmalikmusba@gmail.com',
-        'role', 'SYSTEM_ADMIN',
-        'action', 'Initial admin setup'
-    ),
+    'FREE',
+    'active',
+    NOW(),
+    NOW(),
     NOW()
-FROM users WHERE email = 'abdulmalikmusba@gmail.com'
+FROM users WHERE email = 'student@innovasci.com'
 ON CONFLICT DO NOTHING;
 
 -- ============================================
--- 7. SEED SUBSCRIPTION PLANS
+-- VERIFICATION
 -- ============================================
 
-INSERT INTO subscription_plans (id, name, slug, description, "billingCycle", "priceMonthly", "priceAnnual", features, limits, "isActive", "createdAt", "updatedAt")
-VALUES 
-    (gen_random_uuid(), 'Free', 'free', 'Get started with basic learning', 'monthly', 0, 0, 
-     '["Access to free courses", "Community forum access", "Basic progress tracking", "Email support"]'::jsonb,
-     '{"maxCourses": 5, "certificates": false, "downloads": false}'::jsonb,
-     true, NOW(), NOW()),
-    
-    (gen_random_uuid(), 'Pro', 'pro', 'Everything you need to master scientific computing', 'monthly', 29, 24,
-     '["Access to all courses", "Community forum access", "Advanced progress tracking", "Priority email support", "Certificate of completion", "Downloadable resources"]'::jsonb,
-     '{"maxCourses": -1, "certificates": true, "downloads": true}'::jsonb,
-     true, NOW(), NOW()),
-    
-    (gen_random_uuid(), 'Team', 'team', 'For teams and organizations', 'monthly', 79, 65,
-     '["Everything in Pro", "Team management dashboard", "Collaborative learning", "24/7 phone support", "Custom certificates", "Offline downloads", "Dedicated account manager", "Custom learning paths"]'::jsonb,
-     '{"maxCourses": -1, "certificates": true, "downloads": true, "teamMembers": -1}'::jsonb,
-     true, NOW(), NOW())
-ON CONFLICT (slug) DO NOTHING;
-
--- ============================================
--- 8. SEED LEARNING PATHS
--- ============================================
-
-INSERT INTO learning_paths (id, name, slug, description, "isPublished", "createdAt", "updatedAt")
-VALUES 
-    (gen_random_uuid(), 'Data Science Foundations', 'data-science-foundations', 'Master the fundamentals of data science with this comprehensive learning path', true, NOW(), NOW()),
-    (gen_random_uuid(), 'Computational Biology Track', 'computational-biology-track', 'Explore the intersection of biology and computing', true, NOW(), NOW()),
-    (gen_random_uuid(), 'Machine Learning Engineer', 'ml-engineer', 'Become a machine learning engineer from scratch', true, NOW(), NOW()),
-    (gen_random_uuid(), 'Fundamentals', 'fundamentals', 'Master the core concepts every scientist and developer needs', true, NOW(), NOW()),
-    (gen_random_uuid(), 'Front-end Development', 'frontend', 'Build beautiful, responsive web interfaces', true, NOW(), NOW()),
-    (gen_random_uuid(), 'Back-end Development', 'backend', 'Build robust APIs and data systems', true, NOW(), NOW()),
-    (gen_random_uuid(), 'Research Methods', 'research', 'Scientific computing and research tools', true, NOW(), NOW())
-ON CONFLICT (slug) DO NOTHING;
-
--- ============================================
--- 9. VERIFICATION QUERIES
--- ============================================
-
-SELECT 'roles' as table_name, COUNT(*) as row_count FROM roles
-UNION ALL
-SELECT 'permissions', COUNT(*) FROM permissions
-UNION ALL
-SELECT 'users', COUNT(*) FROM users
-UNION ALL
-SELECT 'profiles', COUNT(*) FROM profiles
-UNION ALL
-SELECT 'user_roles', COUNT(*) FROM user_roles
-UNION ALL
-SELECT 'subscription_plans', COUNT(*) FROM subscription_plans
-UNION ALL
-SELECT 'learning_paths', COUNT(*) FROM learning_paths;
+SELECT 'Seed Complete!' as status;
+SELECT 'Users: ' || COUNT(*) as result FROM users
+UNION ALL SELECT 'Profiles: ' || COUNT(*) FROM profiles;
