@@ -537,3 +537,84 @@ model Module {
   @@unique([courseId, orderIndex])
   @@map("modules")
 }
+
+// ============================================
+// 17. SUPPORT & TICKETING SYSTEM
+// ============================================
+
+model SupportTicket {
+  id          String   @id @default(uuid())
+  userId      String?
+  email       String
+  category    String   // 'billing', 'course-access', 'technical', 'business', 'partnership', 'other'
+  subject     String?
+  message     String   @db.Text
+  status      String   @default("open")   // 'open', 'in_progress', 'resolved', 'closed'
+  priority    String   @default("medium") // 'low', 'medium', 'high', 'urgent'
+  assignedTo  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  resolvedAt  DateTime?
+  
+  user        Profile?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+  comments    TicketComment[]
+  
+  @@map("support_tickets")
+}
+
+model TicketComment {
+  id          String   @id @default(uuid())
+  ticketId    String
+  userId      String?
+  message     String   @db.Text
+  isInternal  Boolean  @default(false) // Internal notes not visible to user
+  createdAt   DateTime @default(now())
+  
+  ticket      SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  user        Profile?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  
+  @@map("ticket_comments")
+}
+
+// ============================================
+// 18. MEMBERSHIP & SUBSCRIPTION PLANS
+// ============================================
+
+model SubscriptionPlan {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  slug            String   @unique
+  description     String?
+  billingCycle    String   // 'monthly', 'annual'
+  priceMonthly    Decimal  @default(0)
+  priceAnnual    Decimal  @default(0)
+  features        Json?    // JSON array of features
+  limits          Json?    // JSON object with usage limits
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  userSubscriptions UserSubscription[]
+  
+  @@map("subscription_plans")
+}
+
+model UserSubscription {
+  id              String    @id @default(uuid())
+  userId          String
+  planId          String
+  billingCycle    String    // 'monthly', 'annual'
+  status          String    @default("active") // 'active', 'cancelled', 'expired', 'trial'
+  startDate       DateTime  @default(now())
+  endDate         DateTime?
+  cancelledAt     DateTime?
+  autoRenew       Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  user            Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan            SubscriptionPlan @relation(fields: [planId], references: [id])
+  
+  @@unique([userId, planId])
+  @@map("user_subscriptions")
+}
