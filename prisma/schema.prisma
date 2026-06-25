@@ -7,9 +7,71 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// 1. Profiles & Users Extension
+// ============================================
+// 1. AUTHENTICATION & USER MANAGEMENT
+// ============================================
+
+// User Account (authentication level)
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  passwordHash   String?
+  emailVerified  DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // SSO Providers
+  ssoAccounts   SsoAccount[]
+  
+  // Profile (profile level)
+  profile       Profile?
+  
+  // Sessions
+  sessions      Session[]
+  
+  // Audit
+  auditLogs     AuditLog[]
+  
+  @@map("users")
+}
+
+// SSO Provider Accounts (supports multiple SSO providers)
+model SsoAccount {
+  id              String   @id @default(uuid())
+  userId          String
+  provider        String   // 'apple', 'google', 'github', etc.
+  providerAccountId String @unique
+  accessToken     String?
+  refreshToken    String?
+  expiresAt       DateTime?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sso_accounts")
+}
+
+// Session Management
+model Session {
+  id           String   @id @default(uuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@map("sessions")
+}
+
+// ============================================
+// 2. PROFILES & USERS EXTENSION
+// ============================================
+
+// Profile (user details and preferences level)
 model Profile {
   id          String   @id @default(uuid())
+  userId      String   @unique
   fullName    String?
   username    String?  @unique
   phone       String?
@@ -21,20 +83,22 @@ model Profile {
   avatarUrl   String?
   role        String   @default("student")
   status      String   @default("active")
+  preferences Json?    @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   // Relations
-  courses       Course[]
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courses       Course[]         @relation("InstructorCourses")
   enrollments   Enrollment[]
-  progress      LearningProgress[]
+  lectureProgress UserLectureProgress[]
   certificates  Certificate[]
   userRoles     UserRole[]
   subscriptions Subscription[]
   payments      Payment[]
   wishlists     Wishlist[]
   notifications Notification[]
-  auditLogs     AuditLog[]
+  learningPathProgress LearningPathProgress[]
   
   @@map("profiles")
 }
@@ -111,12 +175,16 @@ model Course {
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
   
-  instructor  Profile?
+  instructor  Profile?      @relation("InstructorCourses")
+  modules     Module[]
   lessons     Lesson[]
   enrollments Enrollment[]
   progress    LearningProgress[]
   certificates Certificate[]
   wishlists   Wishlist[]
+  
+  // Learning Paths this course belongs to
+  learningPaths LearningPathCourse[]
   
   @@map("courses")
 }
@@ -158,13 +226,17 @@ model LearningProgress {
 model Lesson {
   id          String   @id @default(uuid())
   courseId    String
+  moduleId    String?
   title       String
   description String?  @db.Text
   orderIndex  Int      @default(0)
+  lessonType  String   @default("video")  // 'video', 'quiz', 'lab', 'reading'
+  duration    Int?     // Duration in seconds
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   
   course    Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module    Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
   materials Material[]
   videos    Video[]
   progress  LearningProgress[]
@@ -364,4 +436,104 @@ model Wishlist {
   
   @@unique([userId, courseId])
   @@map("wishlists")
+}
+
+// ============================================
+// 14. LEARNING PATHS (Sequential Roadmaps)
+// ============================================
+
+model LearningPath {
+  id          String   @id @default(uuid())
+  name        String
+  slug        String   @unique
+  description String?  @db.Text
+  thumbnailUrl String?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Courses in this path (with order)
+  pathCourses LearningPathCourse[]
+  
+  // User progress on this path
+  userProgress LearningPathProgress[]
+  
+  @@map("learning_paths")
+}
+
+// Junction table for Learning Path <-> Course (ordered)
+model LearningPathCourse {
+  id              String   @id @default(uuid())
+  learningPathId  String
+  courseId        String
+  orderIndex      Int      @default(0)  // Sequential order in the path
+  isRequired      Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  
+  learningPath    LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  course          Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  @@unique([learningPathId, courseId])
+  @@map("learning_path_courses")
+}
+
+// User Progress on Learning Paths
+model LearningPathProgress {
+  id              String    @id @default(uuid())
+  userId          String
+  learningPathId  String
+  enrolledAt      DateTime  @default(now())
+  completedAt     DateTime?
+  progressPercent Int       @default(0)
+  
+  user          Profile       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  learningPath  LearningPath  @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, learningPathId])
+  @@map("learning_path_progress")
+}
+
+// ============================================
+// 15. GRANULAR PROGRESS TRACKING
+// ============================================
+
+// Fine-grained lecture progress (lesson-by-lesson tracking)
+model UserLectureProgress {
+  id            String    @id @default(uuid())
+  userId        String
+  lessonId      String
+  courseId      String    // Denormalized for easier queries
+  completed     Boolean   @default(false)
+  completedAt   DateTime?
+  watchTime     Int       @default(0)      // Watch time in seconds
+  lastPosition  Int       @default(0)      // Last video position in seconds
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  user          Profile   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson        Lesson    @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  
+  @@unique([userId, lessonId])
+  @@index([userId, courseId])
+  @@map("user_lecture_progress")
+}
+
+// ============================================
+// 16. MODULE ORGANIZATION (for Course Curriculum)
+// ============================================
+
+model Module {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  description String?  @db.Text
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  course      Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lessons     Lesson[]
+  
+  @@unique([courseId, orderIndex])
+  @@map("modules")
 }
