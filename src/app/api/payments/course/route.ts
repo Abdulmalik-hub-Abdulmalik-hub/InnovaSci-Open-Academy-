@@ -16,7 +16,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { initializeTransaction, toKobo, generatePaymentReference } from '@/lib/paystack'
+import { initializeTransaction, toKobo, generatePaymentReference, PaystackMetadata } from '@/lib/paystack'
 
 export async function POST(request: NextRequest) {
   try {
@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     const reference = generatePaymentReference()
 
     // Build metadata for course enrollment
-    const metadata = {
+    const metadata: PaystackMetadata = {
       user_id: userId,
       course_id: courseId,
       course_title: courseTitle,

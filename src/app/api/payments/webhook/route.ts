@@ -12,8 +12,46 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyTransaction, fromKobo } from '@/lib/paystack'
-import type { PaystackWebhookEvent } from '@/lib/paystack'
+import { fromKobo } from '@/lib/paystack'
+
+// Type definitions for webhook data
+interface WebhookMetadata {
+  user_id: string
+  type: string
+  course_id?: string
+  reference_id?: string
+  plan_id?: string
+  [key: string]: unknown
+}
+
+interface WebhookData {
+  id: number
+  domain: string
+  amount: number
+  currency: string
+  reference: string
+  status: string
+  paid_at: string | null
+  created_at: string
+  channel: string
+  customer: {
+    email: string
+    customer_code: string
+  }
+  metadata: WebhookMetadata
+  authorization: {
+    authorization_code: string
+    bank: string
+    channel: string
+    card_type: string
+    reusable: boolean
+  }
+}
+
+interface WebhookEvent {
+  event: string
+  data: WebhookData
+}
 
 // Store processed events to prevent duplicate processing
 const processedEvents = new Set<string>()
@@ -41,7 +79,7 @@ export async function POST(request: NextRequest) {
     //   return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
     // }
 
-    let event: PaystackWebhookEvent
+    let event: WebhookEvent
     try {
       event = JSON.parse(rawBody)
     } catch {
@@ -97,11 +135,14 @@ export async function POST(request: NextRequest) {
   }
 }
 
+// Type for valid payment types
+type PaymentType = 'course_enrollment' | 'certificate' | 'subscription' | 'one_time'
+
 /**
  * Handle successful payment
  */
-async function handleSuccessfulCharge(data: PaystackWebhookEvent['data']) {
-  const { amount, reference, status, customer, metadata, authorization } = data
+async function handleSuccessfulCharge(data: WebhookData) {
+  const { amount, reference, customer, metadata, authorization } = data
   
   console.log(`Payment successful: ${reference} - ${fromKobo(amount)} ${data.currency}`)
   console.log(`Customer: ${customer.email}`)
@@ -109,12 +150,14 @@ async function handleSuccessfulCharge(data: PaystackWebhookEvent['data']) {
   console.log(`Authorization: ${authorization.authorization_code}`)
 
   // Process based on payment type
-  switch (metadata.type) {
+  const paymentType = metadata.type as PaymentType
+  
+  switch (paymentType) {
     case 'course_enrollment':
       await fulfillCourseEnrollment({
         reference,
         userId: metadata.user_id,
-        courseId: metadata.course_id,
+        courseId: metadata.course_id || '',
         amount: fromKobo(amount),
         customerEmail: customer.email,
         authorizationCode: authorization.authorization_code,
@@ -125,7 +168,7 @@ async function handleSuccessfulCharge(data: PaystackWebhookEvent['data']) {
       await fulfillCertificatePurchase({
         reference,
         userId: metadata.user_id,
-        certificateId: metadata.reference_id,
+        certificateId: metadata.reference_id || '',
         amount: fromKobo(amount),
         customerEmail: customer.email,
       })
@@ -135,7 +178,7 @@ async function handleSuccessfulCharge(data: PaystackWebhookEvent['data']) {
       await fulfillSubscription({
         reference,
         userId: metadata.user_id,
-        planId: metadata.plan_id,
+        planId: metadata.plan_id || '',
         amount: fromKobo(amount),
         customerEmail: customer.email,
         authorizationCode: authorization.authorization_code,
@@ -159,7 +202,7 @@ async function handleSuccessfulCharge(data: PaystackWebhookEvent['data']) {
 /**
  * Handle failed payment
  */
-async function handleFailedCharge(data: PaystackWebhookEvent['data']) {
+async function handleFailedCharge(data: WebhookData) {
   const { reference, metadata, customer } = data
   
   console.log(`Payment failed: ${reference}`)
@@ -167,13 +210,12 @@ async function handleFailedCharge(data: PaystackWebhookEvent['data']) {
   console.log(`Payment type: ${metadata.type}`)
 
   // Log the failed payment for support/review
-  // In production, you would update the payment record in your database
 }
 
 /**
  * Handle successful transfer (for refunds)
  */
-async function handleSuccessfulTransfer(data: PaystackWebhookEvent['data']) {
+async function handleSuccessfulTransfer(data: WebhookData) {
   console.log(`Transfer successful: ${data.reference}`)
 }
 
@@ -189,12 +231,7 @@ async function fulfillCourseEnrollment(params: {
   authorizationCode: string
 }) {
   console.log(`Fulfilling course enrollment:`, params)
-
   // TODO: Implement database operations
-  // 1. Create enrollment record in database
-  // 2. Create payment record
-  // 3. Send confirmation email
-  // 4. Update course statistics
 }
 
 /**
@@ -208,11 +245,7 @@ async function fulfillCertificatePurchase(params: {
   customerEmail: string
 }) {
   console.log(`Fulfilling certificate purchase:`, params)
-
   // TODO: Implement database operations
-  // 1. Generate certificate
-  // 2. Create payment record
-  // 3. Send certificate email
 }
 
 /**
@@ -227,12 +260,7 @@ async function fulfillSubscription(params: {
   authorizationCode: string
 }) {
   console.log(`Fulfilling subscription:`, params)
-
   // TODO: Implement database operations
-  // 1. Create/update subscription record
-  // 2. Create payment record
-  // 3. Store authorization for future charges
-  // 4. Send welcome email
 }
 
 /**
@@ -245,8 +273,5 @@ async function fulfillOneTimePayment(params: {
   customerEmail: string
 }) {
   console.log(`Fulfilling one-time payment:`, params)
-
   // TODO: Implement database operations
-  // 1. Create payment record
-  // 2. Send confirmation email
 }
