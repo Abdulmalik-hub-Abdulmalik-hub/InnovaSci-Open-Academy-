@@ -8,67 +8,43 @@ datasource db {
 }
 
 // ============================================
-// 1. AUTHENTICATION & USER MANAGEMENT
+// 1. USERS (authentication level - uses snake_case from original schema)
 // ============================================
 
-// User Account (authentication level)
+// User Account (using original snake_case naming)
 model User {
   id            String    @id @default(uuid())
   email         String    @unique
   passwordHash   String?
+  role          String   @default("student")
+  status        String   @default("ACTIVE")
   emailVerified  DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
   
-  // SSO Providers
-  ssoAccounts   SsoAccount[]
+  // SSO Providers (optional - add if needed)
+  // ssoAccounts   SsoAccount[]
   
-  // Profile (profile level)
+  // Profile (one-to-one with Profile)
   profile       Profile?
   
   // Sessions
-  sessions      Session[]
+  // sessions      Session[]
   
   // Audit
   auditLogs     AuditLog[]
   
+  // User roles
+  userRoles     UserRole[]
+  
   @@map("users")
 }
 
-// SSO Provider Accounts (supports multiple SSO providers)
-model SsoAccount {
-  id              String   @id @default(uuid())
-  userId          String
-  provider        String   // 'apple', 'google', 'github', etc.
-  providerAccountId String @unique
-  accessToken     String?
-  refreshToken    String?
-  expiresAt       DateTime?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  
-  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("sso_accounts")
-}
-
-// Session Management
-model Session {
-  id           String   @id @default(uuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@map("sessions")
-}
-
 // ============================================
-// 2. PROFILES & USERS EXTENSION
+// 2. PROFILES & USER EXTENSION (using snake_case)
 // ============================================
 
-// Profile (user details and preferences level)
+// Profile (user details level - uses snake_case from original schema)
 model Profile {
   id          String   @id @default(uuid())
   userId      String   @unique
@@ -83,6 +59,7 @@ model Profile {
   avatarUrl   String?
   role        String   @default("student")
   status      String   @default("active")
+  twoFactorEnabled Boolean @default(false)
   preferences Json?    @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
@@ -93,7 +70,6 @@ model Profile {
   enrollments   Enrollment[]
   lectureProgress UserLectureProgress[]
   certificates  Certificate[]
-  userRoles     UserRole[]
   subscriptions Subscription[]
   payments      Payment[]
   wishlists     Wishlist[]
@@ -144,7 +120,7 @@ model UserRole {
   roleId String
   createdAt DateTime @default(now())
   
-  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   role Role   @relation(fields: [roleId], references: [id], onDelete: Cascade)
   
   @@id([userId, roleId])
