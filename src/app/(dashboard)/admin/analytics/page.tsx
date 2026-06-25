@@ -103,7 +103,12 @@ export default function AnalyticsPage() {
 
   const { overview, charts, categories, topCourses } = data || {
     overview: {},
-    charts: {},
+    charts: {
+      usersOverTime: [],
+      enrollmentsOverTime: [],
+      revenueOverTime: [],
+      revenueByDayOfWeek: [],
+    },
     categories: [],
     topCourses: []
   }
@@ -207,7 +212,7 @@ export default function AnalyticsPage() {
             <div className="h-64">
               {loading ? (
                 <div className="h-full bg-white/10 rounded animate-pulse" />
-              ) : charts.revenueOverTime?.length > 0 ? (
+              ) : (charts.revenueOverTime && charts.revenueOverTime.length > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   {chartType === "line" ? (
                     <LineChart data={charts.revenueOverTime}>
@@ -252,7 +257,7 @@ export default function AnalyticsPage() {
             <div className="h-64">
               {loading ? (
                 <div className="h-full bg-white/10 rounded animate-pulse" />
-              ) : charts.usersOverTime?.length > 0 ? (
+              ) : (charts.usersOverTime && charts.usersOverTime.length > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={charts.usersOverTime}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#ffffff10" />
