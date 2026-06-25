@@ -1,19 +1,48 @@
 -- ============================================
--- INNOVASCI OPEN ACADEMY - SIMPLIFIED DATABASE SETUP
--- Only Admin and Student roles
+-- INNOVASCI OPEN ACADEMY - COMPLETE SETUP
+-- Run this file ONCE to set up everything
+-- Can be run multiple times safely (uses DROP IF EXISTS)
 -- ============================================
 
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- ============================================
--- 1. USERS TABLE - Only Admin and Student
+-- DROP EXISTING TABLES
 -- ============================================
-CREATE TABLE IF NOT EXISTS users (
+
+DROP TABLE IF EXISTS ticket_comments CASCADE;
+DROP TABLE IF EXISTS support_tickets CASCADE;
+DROP TABLE IF EXISTS learning_path_progress CASCADE;
+DROP TABLE IF EXISTS learning_path_courses CASCADE;
+DROP TABLE IF EXISTS learning_paths CASCADE;
+DROP TABLE IF EXISTS user_lecture_progress CASCADE;
+DROP TABLE IF EXISTS wishlists CASCADE;
+DROP TABLE IF EXISTS certificates CASCADE;
+DROP TABLE IF EXISTS learning_progress CASCADE;
+DROP TABLE IF EXISTS enrollments CASCADE;
+DROP TABLE IF EXISTS videos CASCADE;
+DROP TABLE IF EXISTS materials CASCADE;
+DROP TABLE IF EXISTS lessons CASCADE;
+DROP TABLE IF EXISTS modules CASCADE;
+DROP TABLE IF EXISTS courses CASCADE;
+DROP TABLE IF EXISTS subscriptions CASCADE;
+DROP TABLE IF EXISTS payments CASCADE;
+DROP TABLE IF EXISTS notifications CASCADE;
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS profiles CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+DROP TABLE IF EXISTS newsletter_subscribers CASCADE;
+DROP TABLE IF EXISTS system_settings CASCADE;
+
+-- ============================================
+-- 1. USERS TABLE
+-- ============================================
+CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     "passwordHash" VARCHAR(255),
-    role VARCHAR(50) DEFAULT 'STUDENT' CHECK (role IN ('ADMIN', 'STUDENT')),
+    role VARCHAR(50) DEFAULT 'STUDENT',
     status VARCHAR(50) DEFAULT 'ACTIVE',
     "emailVerified" BOOLEAN DEFAULT false,
     "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -23,7 +52,7 @@ CREATE TABLE IF NOT EXISTS users (
 -- ============================================
 -- 2. PROFILES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS profiles (
+CREATE TABLE profiles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID UNIQUE NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     "fullName" VARCHAR(255),
@@ -41,9 +70,9 @@ CREATE TABLE IF NOT EXISTS profiles (
 );
 
 -- ============================================
--- 3. COURSES TABLE - Managed by Admin
+-- 3. COURSES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS courses (
+CREATE TABLE courses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
@@ -67,9 +96,9 @@ CREATE TABLE IF NOT EXISTS courses (
 );
 
 -- ============================================
--- 4. MODULES TABLE - Course sections
+-- 4. MODULES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS modules (
+CREATE TABLE modules (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "courseId" UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
@@ -83,7 +112,7 @@ CREATE TABLE IF NOT EXISTS modules (
 -- ============================================
 -- 5. LESSONS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS lessons (
+CREATE TABLE lessons (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "courseId" UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
     "moduleId" UUID REFERENCES modules(id) ON DELETE SET NULL,
@@ -101,7 +130,7 @@ CREATE TABLE IF NOT EXISTS lessons (
 -- ============================================
 -- 6. MATERIALS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS materials (
+CREATE TABLE materials (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "lessonId" UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
@@ -115,7 +144,7 @@ CREATE TABLE IF NOT EXISTS materials (
 -- ============================================
 -- 7. VIDEOS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS videos (
+CREATE TABLE videos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "lessonId" UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
@@ -130,7 +159,7 @@ CREATE TABLE IF NOT EXISTS videos (
 -- ============================================
 -- 8. ENROLLMENTS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS enrollments (
+CREATE TABLE enrollments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     "courseId" UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -144,7 +173,7 @@ CREATE TABLE IF NOT EXISTS enrollments (
 -- ============================================
 -- 9. LEARNING PROGRESS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS learning_progress (
+CREATE TABLE learning_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     "courseId" UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -159,7 +188,7 @@ CREATE TABLE IF NOT EXISTS learning_progress (
 -- ============================================
 -- 10. USER LECTURE PROGRESS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS user_lecture_progress (
+CREATE TABLE user_lecture_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     "lessonId" UUID NOT NULL REFERENCES lessons(id) ON DELETE CASCADE,
@@ -176,7 +205,7 @@ CREATE TABLE IF NOT EXISTS user_lecture_progress (
 -- ============================================
 -- 11. CERTIFICATES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS certificates (
+CREATE TABLE certificates (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     "courseId" UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -190,7 +219,7 @@ CREATE TABLE IF NOT EXISTS certificates (
 -- ============================================
 -- 12. PAYMENTS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS payments (
+CREATE TABLE payments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     amount DECIMAL(10,2) NOT NULL,
@@ -209,7 +238,7 @@ CREATE TABLE IF NOT EXISTS payments (
 -- ============================================
 -- 13. SUBSCRIPTIONS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS subscriptions (
+CREATE TABLE subscriptions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     plan VARCHAR(100) NOT NULL,
@@ -224,7 +253,7 @@ CREATE TABLE IF NOT EXISTS subscriptions (
 -- ============================================
 -- 14. LEARNING PATHS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS learning_paths (
+CREATE TABLE learning_paths (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     name VARCHAR(255) NOT NULL,
     slug VARCHAR(255) UNIQUE NOT NULL,
@@ -238,7 +267,7 @@ CREATE TABLE IF NOT EXISTS learning_paths (
 -- ============================================
 -- 15. LEARNING PATH COURSES TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS learning_path_courses (
+CREATE TABLE learning_path_courses (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "learningPathId" UUID NOT NULL REFERENCES learning_paths(id) ON DELETE CASCADE,
     "courseId" UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -251,7 +280,7 @@ CREATE TABLE IF NOT EXISTS learning_path_courses (
 -- ============================================
 -- 16. LEARNING PATH PROGRESS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS learning_path_progress (
+CREATE TABLE learning_path_progress (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     "learningPathId" UUID NOT NULL REFERENCES learning_paths(id) ON DELETE CASCADE,
@@ -264,7 +293,7 @@ CREATE TABLE IF NOT EXISTS learning_path_progress (
 -- ============================================
 -- 17. WISHLISTS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS wishlists (
+CREATE TABLE wishlists (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     "courseId" UUID NOT NULL REFERENCES courses(id) ON DELETE CASCADE,
@@ -275,7 +304,7 @@ CREATE TABLE IF NOT EXISTS wishlists (
 -- ============================================
 -- 18. NOTIFICATIONS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS notifications (
+CREATE TABLE notifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
     title VARCHAR(255) NOT NULL,
@@ -289,7 +318,7 @@ CREATE TABLE IF NOT EXISTS notifications (
 -- ============================================
 -- 19. AUDIT LOGS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS audit_logs (
+CREATE TABLE audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID REFERENCES profiles(id) ON DELETE SET NULL,
     action VARCHAR(100) NOT NULL,
@@ -302,7 +331,7 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 -- ============================================
 -- 20. SUPPORT TICKETS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS support_tickets (
+CREATE TABLE support_tickets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "userId" UUID REFERENCES profiles(id) ON DELETE SET NULL,
     email VARCHAR(255) NOT NULL,
@@ -320,7 +349,7 @@ CREATE TABLE IF NOT EXISTS support_tickets (
 -- ============================================
 -- 21. TICKET COMMENTS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS ticket_comments (
+CREATE TABLE ticket_comments (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     "ticketId" UUID NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
     "userId" UUID REFERENCES profiles(id) ON DELETE SET NULL,
@@ -332,7 +361,7 @@ CREATE TABLE IF NOT EXISTS ticket_comments (
 -- ============================================
 -- 22. NEWSLETTER SUBSCRIBERS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+CREATE TABLE newsletter_subscribers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
     "isActive" BOOLEAN DEFAULT true,
@@ -343,7 +372,7 @@ CREATE TABLE IF NOT EXISTS newsletter_subscribers (
 -- ============================================
 -- 23. SYSTEM SETTINGS TABLE
 -- ============================================
-CREATE TABLE IF NOT EXISTS system_settings (
+CREATE TABLE system_settings (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     key VARCHAR(255) UNIQUE NOT NULL,
     value TEXT NOT NULL,
@@ -352,6 +381,75 @@ CREATE TABLE IF NOT EXISTS system_settings (
     "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- ============================================
+-- INDEXES
+-- ============================================
+CREATE INDEX idx_courses_slug ON courses(slug);
+CREATE INDEX idx_courses_category ON courses(category);
+CREATE INDEX idx_enrollments_user ON enrollments("userId");
+CREATE INDEX idx_enrollments_course ON enrollments("courseId");
+CREATE INDEX idx_payments_user ON payments("userId");
+CREATE INDEX idx_notifications_user ON notifications("userId");
+CREATE INDEX idx_audit_logs_user ON audit_logs("userId");
+CREATE INDEX idx_support_tickets_user ON support_tickets("userId");
+CREATE INDEX idx_learning_path_courses_path ON learning_path_courses("learningPathId");
+CREATE INDEX idx_learning_path_progress_user ON learning_path_progress("userId");
+CREATE INDEX idx_user_lecture_progress_user_course ON user_lecture_progress("userId", "courseId");
+
+-- ============================================
+-- HELPER FUNCTIONS
+-- ============================================
+
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS BOOLEAN AS $$
+BEGIN
+    RETURN EXISTS (
+        SELECT 1 FROM users u
+        WHERE u.id = current_setting('app.current_user_id', TRUE)::uuid
+        AND u.role = 'ADMIN'
+    );
+EXCEPTION WHEN OTHERS THEN
+    RETURN FALSE;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+CREATE OR REPLACE FUNCTION get_user_role()
+RETURNS TEXT AS $$
+BEGIN
+    RETURN (
+        SELECT u.role 
+        FROM users u
+        WHERE u.id = current_setting('app.current_user_id', TRUE)::uuid
+        LIMIT 1
+    );
+EXCEPTION WHEN OTHERS THEN
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- ============================================
+-- AUTO-UPDATE TIMESTAMPS TRIGGER
+-- ============================================
+
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW."updatedAt" = CURRENT_TIMESTAMP;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+CREATE TRIGGER update_users_updated_at BEFORE UPDATE ON users FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_profiles_updated_at BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_courses_updated_at BEFORE UPDATE ON courses FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_lessons_updated_at BEFORE UPDATE ON lessons FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_materials_updated_at BEFORE UPDATE ON materials FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_modules_updated_at BEFORE UPDATE ON modules FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_enrollments_updated_at BEFORE UPDATE ON enrollments FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_learning_progress_updated_at BEFORE UPDATE ON learning_progress FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_notifications_updated_at BEFORE UPDATE ON notifications FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
+CREATE TRIGGER update_audit_logs_updated_at BEFORE UPDATE ON audit_logs FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
 -- SEED DATA - ADMIN USER
@@ -368,10 +466,8 @@ BEGIN
     
     IF admin_user_id IS NULL THEN
         admin_user_id := gen_random_uuid();
-        
         INSERT INTO users (id, email, "passwordHash", role, status, "createdAt", "updatedAt") VALUES
             (admin_user_id, 'abdulmalikmusba@gmail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5iHJ4j.S4IXTK', 'ADMIN', 'ACTIVE', NOW(), NOW());
-        
         RAISE NOTICE 'Admin user created';
     ELSE
         UPDATE users SET role = 'ADMIN', status = 'ACTIVE' WHERE id = admin_user_id;
@@ -381,7 +477,6 @@ BEGIN
     -- Check if profile exists
     SELECT id INTO admin_profile_id FROM profiles WHERE "userId" = admin_user_id;
     
-    -- Create or update admin profile
     IF admin_profile_id IS NULL THEN
         INSERT INTO profiles (id, "userId", "fullName", username, bio, status, "createdAt", "updatedAt")
         VALUES (gen_random_uuid(), admin_user_id, 'Admin User', 'admin', 'Platform Administrator', 'active', NOW(), NOW());
@@ -407,10 +502,8 @@ BEGIN
     
     IF student_user_id IS NULL THEN
         student_user_id := gen_random_uuid();
-        
         INSERT INTO users (id, email, "passwordHash", role, status, "createdAt", "updatedAt") VALUES
             (student_user_id, 'student@innovasci.com', '$2b$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'STUDENT', 'ACTIVE', NOW(), NOW());
-        
         RAISE NOTICE 'Student user created';
     ELSE
         UPDATE users SET role = 'STUDENT', status = 'ACTIVE' WHERE id = student_user_id;
@@ -431,9 +524,46 @@ BEGIN
 END $$;
 
 -- ============================================
+-- SEED DATA - SUBSCRIPTION PLANS
+-- ============================================
+
+INSERT INTO subscription_plans (id, name, slug, description, "billingCycle", "priceMonthly", "priceAnnual", features, limits, "isActive", "createdAt", "updatedAt")
+VALUES 
+    (gen_random_uuid(), 'Free', 'free', 'Get started with basic learning', 'monthly', 0, 0, 
+     '["Access to free courses", "Basic progress tracking"]'::jsonb,
+     '{"maxCourses": 5}'::jsonb,
+     true, NOW(), NOW()),
+    
+    (gen_random_uuid(), 'Pro', 'pro', 'Everything you need for scientific learning', 'monthly', 29, 24,
+     '["Access to all courses", "Certificates", "Priority support"]'::jsonb,
+     '{"maxCourses": -1}'::jsonb,
+     true, NOW(), NOW()),
+    
+    (gen_random_uuid(), 'Team', 'team', 'For teams and organizations', 'monthly', 79, 65,
+     '["Everything in Pro", "Team dashboard", "24/7 support"]'::jsonb,
+     '{"maxCourses": -1}'::jsonb,
+     true, NOW(), NOW())
+ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
+-- SEED DATA - LEARNING PATHS
+-- ============================================
+
+INSERT INTO learning_paths (id, name, slug, description, "isPublished", "createdAt", "updatedAt")
+VALUES 
+    (gen_random_uuid(), 'Data Science Foundations', 'data-science-foundations', 'Master the fundamentals of data science', true, NOW(), NOW()),
+    (gen_random_uuid(), 'Computational Biology', 'computational-biology', 'Explore biology with computing', true, NOW(), NOW()),
+    (gen_random_uuid(), 'Machine Learning', 'machine-learning', 'Become a ML engineer', true, NOW(), NOW()),
+    (gen_random_uuid(), 'Fundamentals', 'fundamentals', 'Core concepts for scientists', true, NOW(), NOW()),
+    (gen_random_uuid(), 'Research Methods', 'research-methods', 'Scientific computing tools', true, NOW(), NOW())
+ON CONFLICT (slug) DO NOTHING;
+
+-- ============================================
 -- VERIFICATION
 -- ============================================
 
 SELECT 'Setup Complete!' as status;
 SELECT 'Users: ' || COUNT(*) as result FROM users
-UNION ALL SELECT 'Profiles: ' || COUNT(*) FROM profiles;
+UNION ALL SELECT 'Profiles: ' || COUNT(*) FROM profiles
+UNION ALL SELECT 'Learning Paths: ' || COUNT(*) FROM learning_paths
+UNION ALL SELECT 'Subscription Plans: ' || COUNT(*) FROM subscription_plans;
