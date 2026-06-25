@@ -1,40 +1,10 @@
 import { NextResponse } from "next/server"
-import { PrismaClient } from "@prisma/client"
-import { exec } from "child_process"
-import { promisify } from "util"
+import { prisma } from "@/lib/prisma"
 
-const execAsync = promisify(exec)
-
-// POST /api/setup - Push Prisma schema and seed database
+// POST /api/setup - Seed database with demo data (assumes tables exist)
 export async function POST() {
   try {
-    const results: string[] = []
-    
-    // Step 1: Push Prisma schema to database
-    results.push("Step 1: Pushing Prisma schema to database...")
-    
-    try {
-      const { stdout: dbPushOut, stderr: dbPushErr } = await execAsync('npx prisma db push --accept-data-loss', {
-        cwd: process.cwd(),
-        env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL }
-      })
-      results.push("✓ Schema pushed successfully")
-      if (dbPushOut) console.log(dbPushOut)
-    } catch (err: unknown) {
-      const error = err as { message?: string; stderr?: string }
-      const errorMsg = error.stderr || error.message || String(err)
-      console.log("db push output:", errorMsg)
-      // Continue even if schema push fails (tables might already exist)
-      if (!errorMsg.includes("already exists") && !errorMsg.includes("database")) {
-        throw err
-      }
-      results.push("✓ Schema already exists or pushed")
-    }
-
-    // Step 2: Create demo data
-    results.push("\nStep 2: Creating demo data...")
-    
-    const prisma = new PrismaClient()
+    console.log("Starting database setup...")
     
     // Create Admin User
     const admin = await prisma.user.upsert({
@@ -54,7 +24,7 @@ export async function POST() {
       },
       include: { profile: true }
     })
-    results.push("✓ Admin user created: " + admin.email)
+    console.log("✓ Admin user:", admin.email)
 
     // Create Student User
     const student = await prisma.user.upsert({
@@ -75,7 +45,7 @@ export async function POST() {
       },
       include: { profile: true }
     })
-    results.push("✓ Student user created: " + student.email)
+    console.log("✓ Student user:", student.email)
 
     // Create Demo Courses
     const course1 = await prisma.course.upsert({
@@ -130,7 +100,7 @@ export async function POST() {
         status: "published",
       },
     })
-    results.push("✓ 3 demo courses created")
+    console.log("✓ 3 demo courses created")
 
     // Create Module and Lessons
     const module1 = await prisma.module.upsert({
@@ -173,7 +143,7 @@ export async function POST() {
         duration: 1200,
       },
     })
-    results.push("✓ Module and lessons created")
+    console.log("✓ Module and lessons created")
 
     // Enroll student in courses
     await prisma.enrollment.upsert({
@@ -198,7 +168,7 @@ export async function POST() {
         completedAt: new Date(),
       },
     })
-    results.push("✓ Student enrolled in courses")
+    console.log("✓ Student enrolled in courses")
 
     // Create sample payment
     await prisma.payment.upsert({
@@ -214,14 +184,11 @@ export async function POST() {
         transactionId: "txn_123456",
       },
     })
-    results.push("✓ Sample payment created")
-
-    await prisma.$disconnect()
+    console.log("✓ Sample payment created")
 
     return NextResponse.json({
       success: true,
       message: "Setup completed successfully!",
-      results: results,
       credentials: {
         admin: { email: "admin@innovasci.com", password: "admin123" },
         student: { email: "student@innovasci.com", password: "student123" }
@@ -241,13 +208,11 @@ export async function POST() {
 // GET /api/setup - Check database status
 export async function GET() {
   try {
-    const prisma = new PrismaClient()
     const [userCount, courseCount, enrollmentCount] = await Promise.all([
       prisma.user.count(),
       prisma.course.count(),
       prisma.enrollment.count(),
     ])
-    await prisma.$disconnect()
 
     return NextResponse.json({
       success: true,
