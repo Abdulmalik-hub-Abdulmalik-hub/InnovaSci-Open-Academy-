@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { 
   Menu, X, Moon, Sun, GraduationCap, User, 
   LayoutDashboard, BookOpen, Settings, LogOut, ChevronDown,
-  CreditCard, MessageSquare, Compass, Mail
+  CreditCard, MessageSquare, Compass, Mail, Home, BookText
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -16,9 +16,10 @@ import { cn } from "@/lib/utils"
 
 // Navigation items - Mosh-style hierarchy
 const navItems = [
+  { href: "/", label: "Home", icon: Home },
+  { href: "/courses", label: "Courses", icon: BookText },
   { href: "/membership", label: "Membership", icon: CreditCard },
   { href: "/learning-paths", label: "Learning Paths", icon: Compass },
-  { href: "/forum", label: "Forum", icon: MessageSquare },
   { href: "/contact", label: "Contact", icon: Mail },
 ]
 
