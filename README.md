@@ -38,7 +38,7 @@ World-class Scientific Learning Management System (LMS) platform powered by **In
 - **Supabase** - Database, Auth, Storage
 - **Cloudflare R2** - Object storage
 - **Resend** - Email delivery
-- **Stripe** - Payment processing
+- **Paystack** - Payment processing
 
 ## 📁 Project Structure
 
@@ -108,6 +108,30 @@ Open [http://localhost:3000/admin](http://localhost:3000/admin) for the admin da
 ## 📝 Environment Variables
 
 See `.env.example` for all required environment variables.
+
+### Paystack Configuration
+
+1. Create a Paystack account at [paystack.com](https://paystack.com)
+2. Get your API keys from Dashboard → Settings → API Keys
+3. Configure webhook URL in Dashboard → Settings → Webhooks:
+   ```
+   https://your-domain.com/api/payments/webhook
+   ```
+4. Add the following to your `.env` file:
+   ```
+   PAYSTACK_SECRET_KEY=sk_test_...
+   NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY=pk_test_...
+   PAYSTACK_WEBHOOK_SECRET=your_webhook_secret
+   ```
+
+### Payment Flow
+
+The platform supports the following payment flows:
+- **Course Enrollment**: One-time payment for course access
+- **Certificate Purchase**: Payment for certificate generation
+- **Subscriptions**: Recurring payments for Pro/Team plans
+
+All payments are processed via Paystack's secure payment gateway.
 
 ## 🎨 Design System
 

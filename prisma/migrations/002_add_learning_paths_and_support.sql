@@ -164,7 +164,29 @@ ALTER TABLE "lessons" ADD COLUMN IF NOT EXISTS "duration" INTEGER;
 ALTER TABLE "profiles" ADD COLUMN IF NOT EXISTS "two_factor_enabled" BOOLEAN DEFAULT false;
 
 -- ============================================
--- 7. INDEXES FOR PERFORMANCE
+-- 7. ADD PAYSTACK FIELDS TO PAYMENTS
+-- ============================================
+
+-- Update payments table with Paystack-specific fields
+ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "paystack_reference" VARCHAR(255);
+ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "paystack_domain" VARCHAR(50);
+ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "channel" VARCHAR(50); -- Card, Bank, USSD, Mobile Money
+ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "authorization_code" VARCHAR(255);
+
+-- Update default currency to NGN for Paystack
+ALTER TABLE "payments" ALTER COLUMN "currency" SET DEFAULT 'NGN';
+
+-- ============================================
+-- 8. ADD PAYSTACK FIELDS TO USER_SUBSCRIPTIONS
+-- ============================================
+
+ALTER TABLE "user_subscriptions" ADD COLUMN IF NOT EXISTS "paystack_customer_code" VARCHAR(255);
+ALTER TABLE "user_subscriptions" ADD COLUMN IF NOT EXISTS "paystack_authorization_code" VARCHAR(255);
+ALTER TABLE "user_subscriptions" ADD COLUMN IF NOT EXISTS "paystack_subscription_code" VARCHAR(255);
+ALTER TABLE "user_subscriptions" ADD COLUMN IF NOT EXISTS "paystack_email_token" VARCHAR(255);
+
+-- ============================================
+-- 9. INDEXES FOR PERFORMANCE
 -- ============================================
 
 CREATE INDEX IF NOT EXISTS "idx_support_tickets_user_id" ON "support_tickets"("user_id");
@@ -177,6 +199,11 @@ CREATE INDEX IF NOT EXISTS "idx_user_subscriptions_status" ON "user_subscription
 CREATE INDEX IF NOT EXISTS "idx_learning_paths_slug" ON "learning_paths"("slug");
 CREATE INDEX IF NOT EXISTS "idx_learning_path_courses_path_id" ON "learning_path_courses"("learning_path_id");
 CREATE INDEX IF NOT EXISTS "idx_learning_path_progress_user_id" ON "learning_path_progress"("user_id");
+
+-- Paystack-specific indexes
+CREATE INDEX IF NOT EXISTS "idx_payments_paystack_reference" ON "payments"("paystack_reference");
+CREATE INDEX IF NOT EXISTS "idx_payments_status" ON "payments"("status");
+CREATE INDEX IF NOT EXISTS "idx_user_subscriptions_paystack_customer" ON "user_subscriptions"("paystack_customer_code");
 
 -- ============================================
 -- 8. DATA MIGRATION HELPERS

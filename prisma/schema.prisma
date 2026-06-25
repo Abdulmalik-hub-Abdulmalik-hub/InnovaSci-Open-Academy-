@@ -288,12 +288,18 @@ model Payment {
   id              String   @id @default(uuid())
   userId          String
   amount          Decimal
-  currency        String   @default("USD")
+  currency        String   @default("NGN")  // Changed to Naira for Paystack
   status          String   @default("pending")
   paymentMethod   String?
   transactionId   String?
   metadata        Json?
   createdAt       DateTime @default(now())
+  
+  // Paystack-specific fields
+  paystackReference String?   @map("paystack_reference")
+  paystackDomain   String?   @map("paystack_domain")
+  channel         String?   // Card, Bank, USSD, Mobile Money, etc.
+  authorizationCode String? @map("authorization_code")
   
   user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
   
@@ -587,6 +593,12 @@ model UserSubscription {
   autoRenew       Boolean   @default(true)
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
+  
+  // Paystack-specific fields for subscriptions
+  paystackCustomerCode String? @map("paystack_customer_code")
+  paystackAuthorizationCode String? @map("paystack_authorization_code")
+  paystackSubscriptionCode String? @map("paystack_subscription_code")
+  paystackEmailToken String? @map("paystack_email_token")
   
   user            Profile         @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan            SubscriptionPlan @relation(fields: [planId], references: [id])
