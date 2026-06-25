@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 
 // GET /api/admin/users - Get all users with pagination
 export async function GET(request: NextRequest) {
@@ -46,8 +47,11 @@ export async function GET(request: NextRequest) {
               fullName: true,
               username: true,
               avatarUrl: true,
+              phone: true,
               country: true,
               bio: true,
+              createdAt: true,
+              updatedAt: true,
             }
           },
           _count: {
@@ -62,16 +66,40 @@ export async function GET(request: NextRequest) {
     ])
 
     // Transform data
-    const transformedUsers = users.map(user => ({
+    const transformedUsers = users.map((user: {
+      id: string;
+      email: string;
+      role: string;
+      status: string;
+      createdAt: Date;
+      profile: {
+        id: string;
+        fullName: string | null;
+        username: string | null;
+        avatarUrl: string | null;
+        phone: string | null;
+        country: string | null;
+        bio: string | null;
+        createdAt: Date | null;
+        updatedAt: Date | null;
+      } | null;
+      _count: { enrollments: number; certificates: number };
+    }) => ({
       id: user.id,
       email: user.email,
       role: user.role,
       status: user.status,
       createdAt: user.createdAt.toISOString(),
       profile: user.profile ? {
-        ...user.profile,
-        createdAt: user.profile ? user.createdAt?.toISOString() : null,
-        updatedAt: user.profile ? user.createdAt?.toISOString() : null,
+        id: user.profile.id,
+        fullName: user.profile.fullName,
+        username: user.profile.username,
+        avatarUrl: user.profile.avatarUrl,
+        phone: user.profile.phone,
+        country: user.profile.country,
+        bio: user.profile.bio,
+        createdAt: user.profile.createdAt?.toISOString() || null,
+        updatedAt: user.profile.updatedAt?.toISOString() || null,
       } : null,
       enrollments: user._count.enrollments,
       certificates: user._count.certificates,
@@ -125,7 +153,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user with profile in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const user = await tx.user.create({
         data: {
           email,

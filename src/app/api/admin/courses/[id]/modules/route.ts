@@ -26,7 +26,23 @@ export async function GET(
 
     return NextResponse.json({
       success: true,
-      data: modules.map(m => ({
+      data: modules.map((m: { 
+        id: string; 
+        title: string; 
+        description: string | null; 
+        orderIndex: number; 
+        lessons: { 
+          id: string; 
+          title: string; 
+          description: string | null; 
+          orderIndex: number; 
+          lessonType: string; 
+          duration: number | null; 
+          videoUrl: string | null; 
+          isPreview: boolean; 
+          _count: { materials: number; videos: number } 
+        }[]
+      }) => ({
         id: m.id,
         title: m.title,
         description: m.description,

@@ -105,15 +105,15 @@ export function useCourses(): UseCoursesReturn {
     category: "",
   })
 
-  const fetchCourses = useCallback(async (params?: typeof queryParams) => {
-    const query = params || queryParams
+  const fetchCourses = useCallback(async (params?: Partial<typeof queryParams>) => {
+    const query = { ...queryParams, ...params }
     setLoading(true)
     setError(null)
 
     try {
       const searchParams = new URLSearchParams()
-      searchParams.set("page", query.page.toString())
-      searchParams.set("limit", query.limit.toString())
+      searchParams.set("page", String(query.page || 1))
+      searchParams.set("limit", String(query.limit || 20))
       if (query.search) searchParams.set("search", query.search)
       if (query.status && query.status !== "all") searchParams.set("status", query.status)
       if (query.category) searchParams.set("category", query.category)

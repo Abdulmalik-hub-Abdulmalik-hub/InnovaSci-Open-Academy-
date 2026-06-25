@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 
 // GET /api/admin/users/[id] - Get single user
 export async function GET(
@@ -80,7 +81,7 @@ export async function PUT(
     }
 
     // Update user and profile in a transaction
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       // Update user
       const updatedUser = await tx.user.update({
         where: { id },

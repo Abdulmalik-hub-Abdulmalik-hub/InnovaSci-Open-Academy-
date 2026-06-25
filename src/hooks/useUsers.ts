@@ -13,6 +13,7 @@ export interface User {
     fullName: string | null
     username: string | null
     avatarUrl: string | null
+    phone: string | null
     country: string | null
     bio: string | null
   } | null
@@ -86,15 +87,15 @@ export function useUsers(): UseUsersReturn {
     status: "all",
   })
 
-  const fetchUsers = useCallback(async (params?: typeof queryParams) => {
-    const query = params || queryParams
+  const fetchUsers = useCallback(async (params?: Partial<typeof queryParams>) => {
+    const query = { ...queryParams, ...params }
     setLoading(true)
     setError(null)
 
     try {
       const searchParams = new URLSearchParams()
-      searchParams.set("page", query.page.toString())
-      searchParams.set("limit", query.limit.toString())
+      searchParams.set("page", String(query.page || 1))
+      searchParams.set("limit", String(query.limit || 20))
       if (query.search) searchParams.set("search", query.search)
       if (query.role && query.role !== "all") searchParams.set("role", query.role)
       if (query.status && query.status !== "all") searchParams.set("status", query.status)

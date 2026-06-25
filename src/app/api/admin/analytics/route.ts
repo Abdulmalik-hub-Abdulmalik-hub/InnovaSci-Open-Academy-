@@ -110,19 +110,19 @@ export async function GET(request: NextRequest) {
       }),
     ])
 
-    const usersByDate = usersOverTime.reduce((acc: Record<string, number>, item) => {
+    const usersByDate = usersOverTime.reduce((acc: Record<string, number>, item: { createdAt: Date; _count: number }) => {
       const date = item.createdAt.toISOString().split("T")[0]
       acc[date] = (acc[date] || 0) + item._count
       return acc
     }, {})
 
-    const enrollmentsByDate = enrollmentsOverTime.reduce((acc: Record<string, number>, item) => {
+    const enrollmentsByDate = enrollmentsOverTime.reduce((acc: Record<string, number>, item: { enrolledAt: Date; _count: number }) => {
       const date = item.enrolledAt.toISOString().split("T")[0]
       acc[date] = (acc[date] || 0) + item._count
       return acc
     }, {})
 
-    const revenueByDate = revenueOverTime.reduce((acc: Record<string, number>, item) => {
+    const revenueByDate = revenueOverTime.reduce((acc: Record<string, number>, item: { createdAt: Date; amount: unknown }) => {
       const date = item.createdAt.toISOString().split("T")[0]
       acc[date] = (acc[date] || 0) + Number(item.amount)
       return acc
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
     const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
     const revenueByDayOfWeek = Array(7).fill(0)
     
-    revenueByDay.forEach(payment => {
+    revenueByDay.forEach((payment: { createdAt: Date; amount: unknown }) => {
       const dayIndex = payment.createdAt.getDay()
       revenueByDayOfWeek[dayIndex] += Number(payment.amount)
     })
@@ -163,8 +163,8 @@ export async function GET(request: NextRequest) {
           revenueOverTime: Object.entries(revenueByDate).map(([date, amount]) => ({ date, amount })),
           revenueByDayOfWeek: dayNames.map((day, index) => ({ day, amount: revenueByDayOfWeek[index] })),
         },
-        categories: coursesByCategory.map(c => ({ category: c.category, count: c._count })),
-        topCourses: topCourses.map(c => ({ id: c.id, title: c.title, enrollments: c._count.enrollments })),
+        categories: coursesByCategory.map((c: { category: string | null; _count: number }) => ({ category: c.category, count: c._count })),
+        topCourses: topCourses.map((c: { id: string; title: string; _count: { enrollments: number } }) => ({ id: c.id, title: c.title, enrollments: c._count.enrollments })),
       }
     })
   } catch (error) {

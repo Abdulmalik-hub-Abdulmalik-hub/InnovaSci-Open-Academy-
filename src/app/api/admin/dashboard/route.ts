@@ -97,7 +97,7 @@ export async function GET() {
 
     // Process top courses
     const processedTopCourses = topCourses
-      .map(course => ({
+      .map((course: { id: string; title: string; status: string; thumbnailUrl: string | null; _count: { enrollments: number }; enrollments: unknown[] }) => ({
         id: course.id,
         title: course.title,
         students: course._count.enrollments,
@@ -105,12 +105,12 @@ export async function GET() {
         status: course.status,
         thumbnailUrl: course.thumbnailUrl,
       }))
-      .sort((a, b) => b.students - a.students)
+      .sort((a: { students: number }, b: { students: number }) => b.students - a.students)
       .slice(0, 5)
 
     // Process recent activity
     const recentActivity = [
-      ...recentEnrollments.map(e => ({
+      ...recentEnrollments.map((e: { id: string; enrolledAt: Date; user: { email: string; profile: { fullName: string | null } | null }; course: { title: string } }) => ({
         id: e.id,
         type: "enrollment" as const,
         userName: e.user.profile?.fullName || e.user.email,
@@ -119,7 +119,7 @@ export async function GET() {
         target: e.course.title,
         timestamp: e.enrolledAt.toISOString(),
       })),
-      ...recentPayments.map(p => ({
+      ...recentPayments.map((p: { id: string; createdAt: Date; amount: unknown; user: { email: string; profile: { fullName: string | null } | null } }) => ({
         id: p.id,
         type: "payment" as const,
         userName: p.user.profile?.fullName || p.user.email,
@@ -129,7 +129,7 @@ export async function GET() {
         timestamp: p.createdAt.toISOString(),
       })),
     ]
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    .sort((a: { timestamp: string }, b: { timestamp: string }) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 10)
 
     // Calculate revenue

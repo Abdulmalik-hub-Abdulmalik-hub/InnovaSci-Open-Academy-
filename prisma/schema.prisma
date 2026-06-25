@@ -30,6 +30,11 @@ model User {
   wishlists    Wishlist[]
   subscriptions Subscription[]
   auditLogs    AuditLog[]
+  learningProgress LearningProgress[]
+  userLectureProgress UserLectureProgress[]
+  learningPathProgress LearningPathProgress[]
+  supportTickets SupportTicket[]
+  ticketComments TicketComment[]
   
   @@map("users")
 }
@@ -55,14 +60,7 @@ model Profile {
   updatedAt   DateTime @updatedAt
   
   // Relations
-  user                User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
-  enrollments         Enrollment[]
-  lectureProgress     UserLectureProgress[]
-  certificates        Certificate[]
-  payments            Payment[]
-  wishlists           Wishlist[]
-  notifications       Notification[]
-  learningPathProgress LearningPathProgress[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("profiles")
 }
@@ -99,6 +97,7 @@ model Course {
   enrollments Enrollment[]
   certificates Certificate[]
   wishlists   Wishlist[]
+  learningProgress LearningProgress[]
   
   // Learning Paths
   learningPaths LearningPathCourse[]
@@ -206,8 +205,8 @@ model Enrollment {
   enrolledAt      DateTime @default(now())
   completedAt     DateTime?
   
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
   @@unique([userId, courseId])
   @@map("enrollments")
@@ -227,9 +226,9 @@ model LearningProgress {
   completedAt DateTime?
   updatedAt  DateTime  @updatedAt
   
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  lesson Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   
   @@unique([userId, lessonId])
   @@map("learning_progress")
@@ -251,8 +250,8 @@ model UserLectureProgress {
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
   
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  lesson Lesson  @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
   
   @@unique([userId, lessonId])
   @@index([userId, courseId])
@@ -272,8 +271,8 @@ model Certificate {
   issuedAt         DateTime @default(now())
   status           String   @default("issued")  // issued, revoked
   
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
   @@unique([userId, courseId])
   @@map("certificates")
@@ -298,7 +297,7 @@ model Payment {
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
   
-  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("payments")
 }
@@ -318,7 +317,7 @@ model Subscription {
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt
   
-  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("subscriptions")
 }
@@ -374,7 +373,7 @@ model LearningPathProgress {
   completedAt     DateTime?
   progressPercent Int       @default(0)
   
-  user         Profile      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
   
   @@unique([userId, learningPathId])
@@ -391,8 +390,8 @@ model Wishlist {
   courseId String
   addedAt  DateTime @default(now())
   
-  user   Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
-  course Course  @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   
   @@unique([userId, courseId])
   @@map("wishlists")
@@ -412,7 +411,7 @@ model Notification {
   data      Json?
   createdAt DateTime @default(now())
   
-  user Profile @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
   
   @@map("notifications")
 }
@@ -430,7 +429,7 @@ model AuditLog {
   ipAddress String?
   createdAt DateTime @default(now())
   
-  user Profile? @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   @@map("audit_logs")
 }
@@ -453,7 +452,7 @@ model SupportTicket {
   updatedAt  DateTime  @updatedAt
   resolvedAt DateTime?
   
-  user     Profile?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user     User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
   comments TicketComment[]
   
   @@map("support_tickets")
@@ -472,7 +471,7 @@ model TicketComment {
   createdAt  DateTime @default(now())
   
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user   Profile?      @relation(fields: [userId], references: [id], onDelete: SetNull)
+  user   User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
   
   @@map("ticket_comments")
 }

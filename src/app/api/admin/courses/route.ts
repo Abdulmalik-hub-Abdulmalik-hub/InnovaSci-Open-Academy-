@@ -64,7 +64,26 @@ export async function GET(request: NextRequest) {
     ])
 
     // Transform data
-    const transformedCourses = courses.map(course => {
+    const transformedCourses = courses.map((course: {
+      id: string;
+      title: string;
+      slug: string;
+      category: string | null;
+      subcategory: string | null;
+      shortDescription: string | null;
+      price: unknown;
+      isFree: boolean;
+      status: string;
+      thumbnailUrl: string | null;
+      difficultyLevel: string | null;
+      durationHours: number | null;
+      language: string | null;
+      createdAt: Date;
+      updatedAt: Date;
+      modules: { _count: { lessons: number } }[];
+      enrollments: unknown[];
+      _count: { enrollments: number; wishlists: number };
+    }) => {
       const totalLessons = course.modules.reduce((acc, m) => acc + m._count.lessons, 0)
       const completedEnrollments = course.enrollments.length
       
@@ -96,7 +115,7 @@ export async function GET(request: NextRequest) {
 
     // Get unique categories
     const uniqueCategories = categories
-      .map(c => c.category)
+      .map((c: { category: string | null }) => c.category)
       .filter(Boolean)
       .sort()
 

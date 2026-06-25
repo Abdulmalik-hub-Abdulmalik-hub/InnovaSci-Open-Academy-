@@ -66,7 +66,24 @@ export async function GET(
       status: course.status,
       createdAt: course.createdAt.toISOString(),
       updatedAt: course.updatedAt.toISOString(),
-      modules: course.modules.map(m => ({
+      modules: course.modules.map((m: { 
+        id: string; 
+        title: string; 
+        description: string | null; 
+        orderIndex: number; 
+        lessons: {
+          id: string;
+          title: string;
+          description: string | null;
+          orderIndex: number;
+          lessonType: string;
+          duration: number | null;
+          videoUrl: string | null;
+          isPreview: boolean;
+          materials: unknown[];
+          videos: unknown[];
+        }[]
+      }) => ({
         id: m.id,
         title: m.title,
         description: m.description,
