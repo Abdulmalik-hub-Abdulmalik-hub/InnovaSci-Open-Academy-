@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+// This endpoint is intentionally public for demo purposes
+// In production, add authentication
+
 // POST /api/admin/seed - Seed database with demo data
 export async function POST() {
   try {
