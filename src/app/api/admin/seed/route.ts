@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// POST /api/admin/seed - Seed database with demo data (creates schema + data)
+// POST /api/admin/seed - Seed database with demo data
 export async function POST() {
   try {
-    console.log("Starting database setup and seed...")
+    console.log("Starting database seed...")
 
     // Create Admin User
     const admin = await prisma.user.upsert({
