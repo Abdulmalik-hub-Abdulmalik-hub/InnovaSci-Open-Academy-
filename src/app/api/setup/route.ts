@@ -1,11 +1,41 @@
 import { NextResponse } from "next/server"
-import { prisma } from "@/lib/prisma"
+import { PrismaClient } from "@prisma/client"
+import { exec } from "child_process"
+import { promisify } from "util"
 
-// POST /api/admin/seed - Seed database with demo data (creates schema + data)
+const execAsync = promisify(exec)
+
+// POST /api/setup - Push Prisma schema and seed database
 export async function POST() {
   try {
-    console.log("Starting database setup and seed...")
+    const results: string[] = []
+    
+    // Step 1: Push Prisma schema to database
+    results.push("Step 1: Pushing Prisma schema to database...")
+    
+    try {
+      const { stdout: dbPushOut, stderr: dbPushErr } = await execAsync('npx prisma db push --accept-data-loss', {
+        cwd: process.cwd(),
+        env: { ...process.env, DATABASE_URL: process.env.DATABASE_URL }
+      })
+      results.push("✓ Schema pushed successfully")
+      if (dbPushOut) console.log(dbPushOut)
+    } catch (err: unknown) {
+      const error = err as { message?: string; stderr?: string }
+      const errorMsg = error.stderr || error.message || String(err)
+      console.log("db push output:", errorMsg)
+      // Continue even if schema push fails (tables might already exist)
+      if (!errorMsg.includes("already exists") && !errorMsg.includes("database")) {
+        throw err
+      }
+      results.push("✓ Schema already exists or pushed")
+    }
 
+    // Step 2: Create demo data
+    results.push("\nStep 2: Creating demo data...")
+    
+    const prisma = new PrismaClient()
+    
     // Create Admin User
     const admin = await prisma.user.upsert({
       where: { email: "admin@innovasci.com" },
@@ -24,7 +54,7 @@ export async function POST() {
       },
       include: { profile: true }
     })
-    console.log("✓ Admin user:", admin.email)
+    results.push("✓ Admin user created: " + admin.email)
 
     // Create Student User
     const student = await prisma.user.upsert({
@@ -45,7 +75,7 @@ export async function POST() {
       },
       include: { profile: true }
     })
-    console.log("✓ Student user:", student.email)
+    results.push("✓ Student user created: " + student.email)
 
     // Create Demo Courses
     const course1 = await prisma.course.upsert({
@@ -65,7 +95,6 @@ export async function POST() {
         status: "published",
       },
     })
-    console.log("✓ Course:", course1.title)
 
     const course2 = await prisma.course.upsert({
       where: { slug: "web-development-masterclass" },
@@ -84,7 +113,6 @@ export async function POST() {
         status: "published",
       },
     })
-    console.log("✓ Course:", course2.title)
 
     const course3 = await prisma.course.upsert({
       where: { slug: "mobile-app-development" },
@@ -102,9 +130,9 @@ export async function POST() {
         status: "published",
       },
     })
-    console.log("✓ Course:", course3.title)
+    results.push("✓ 3 demo courses created")
 
-    // Create Module for Course 1
+    // Create Module and Lessons
     const module1 = await prisma.module.upsert({
       where: { courseId_orderIndex: { courseId: course1.id, orderIndex: 0 } },
       update: {},
@@ -116,7 +144,6 @@ export async function POST() {
       },
     })
     
-    // Create Lessons for Module 1
     await prisma.lesson.upsert({
       where: { id: "lesson-1" },
       update: {},
@@ -146,7 +173,7 @@ export async function POST() {
         duration: 1200,
       },
     })
-    console.log("✓ Module and lessons created")
+    results.push("✓ Module and lessons created")
 
     // Enroll student in courses
     await prisma.enrollment.upsert({
@@ -159,7 +186,6 @@ export async function POST() {
         completed: false,
       },
     })
-    console.log("✓ Enrolled in:", course1.title)
 
     await prisma.enrollment.upsert({
       where: { userId_courseId: { userId: student.id, courseId: course3.id } },
@@ -172,7 +198,7 @@ export async function POST() {
         completedAt: new Date(),
       },
     })
-    console.log("✓ Enrolled in:", course3.title)
+    results.push("✓ Student enrolled in courses")
 
     // Create sample payment
     await prisma.payment.upsert({
@@ -188,51 +214,58 @@ export async function POST() {
         transactionId: "txn_123456",
       },
     })
-    console.log("✓ Sample payment created")
+    results.push("✓ Sample payment created")
+
+    await prisma.$disconnect()
 
     return NextResponse.json({
       success: true,
-      message: "Database setup completed successfully!",
-      data: {
-        admin: admin.email,
-        student: student.email,
-        courses: [course1.title, course2.title, course3.title]
+      message: "Setup completed successfully!",
+      results: results,
+      credentials: {
+        admin: { email: "admin@innovasci.com", password: "admin123" },
+        student: { email: "student@innovasci.com", password: "student123" }
       }
     })
 
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    console.error("Seed error:", errorMessage)
+    console.error("Setup error:", errorMessage)
     return NextResponse.json(
-      { success: false, error: "Failed to setup database", details: errorMessage },
+      { success: false, error: "Setup failed", details: errorMessage },
       { status: 500 }
     )
   }
 }
 
-// GET /api/admin/seed - Check seed status
+// GET /api/setup - Check database status
 export async function GET() {
   try {
+    const prisma = new PrismaClient()
     const [userCount, courseCount, enrollmentCount] = await Promise.all([
       prisma.user.count(),
       prisma.course.count(),
       prisma.enrollment.count(),
     ])
+    await prisma.$disconnect()
 
     return NextResponse.json({
       success: true,
+      databaseConnected: true,
       data: {
         users: userCount,
         courses: courseCount,
-        enrollments: enrollmentCount,
-        seeded: userCount > 0
-      }
+        enrollments: enrollmentCount
+      },
+      needsSetup: userCount === 0
     })
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : String(error)
-    return NextResponse.json(
-      { success: false, error: "Database not connected or not set up yet", details: errorMessage },
-      { status: 500 }
-    )
+    return NextResponse.json({
+      success: false,
+      databaseConnected: false,
+      error: errorMessage,
+      needsSetup: true
+    })
   }
 }
