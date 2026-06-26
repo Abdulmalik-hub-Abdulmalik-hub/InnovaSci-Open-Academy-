@@ -77,7 +77,7 @@ export function CourseCatalog() {
           className="text-center mb-12"
         >
           <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Explore Our <span className="bg-gradient-to-r from-brand-purple to-brand-blue bg-clip-text text-transparent">Courses</span>
+            Explore Our <span className="bg-gradient-to-r from-violet-600 to-purple-600 bg-clip-text text-transparent">Courses</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
             Discover world-class courses taught by leading experts in AI, Data Science, Computational Biology, and more.
@@ -106,7 +106,7 @@ export function CourseCatalog() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   
                   {/* Category Badge */}
-                  <Badge className="absolute top-3 left-3 bg-brand-purple/90 text-white">
+                  <Badge className="absolute top-3 left-3 bg-violet-600/90 text-white">
                     {course.category}
                   </Badge>
 
@@ -120,13 +120,13 @@ export function CourseCatalog() {
                   {/* Play Button Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center">
-                      <Play className="h-6 w-6 text-brand-purple ml-1" />
+                      <Play className="h-6 w-6 text-violet-600 ml-1" />
                     </div>
                   </div>
                 </div>
 
                 <CardHeader className="p-4">
-                  <h3 className="font-semibold line-clamp-2 group-hover:text-brand-purple transition-colors">
+                  <h3 className="font-semibold line-clamp-2 group-hover:text-violet-600 transition-colors">
                     {course.title}
                   </h3>
                   <p className="text-sm text-muted-foreground">
