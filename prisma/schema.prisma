@@ -15,27 +15,30 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   passwordHash  String?
-  role          String    @default("STUDENT")  // SUPER_ADMIN, ADMIN, STUDENT
-  status        String    @default("ACTIVE")   // ACTIVE, INACTIVE, SUSPENDED
+  role          String    @default("STUDENT") // SUPER_ADMIN, ADMIN, STUDENT
+  status        String    @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
-  
+
   // Relations
-  profile      Profile?
-  enrollments  Enrollment[]
-  certificates Certificate[]
-  payments     Payment[]
-  notifications Notification[]
-  wishlists    Wishlist[]
-  subscriptions Subscription[]
-  auditLogs    AuditLog[]
-  learningProgress LearningProgress[]
-  userLectureProgress UserLectureProgress[]
+  profile              Profile?
+  enrollments          Enrollment[]
+  certificates         Certificate[]
+  payments             Payment[]
+  notifications        Notification[]
+  wishlists            Wishlist[]
+  subscriptions        Subscription[]
+  auditLogs            AuditLog[]
+  learningProgress     LearningProgress[]
+  userLectureProgress  UserLectureProgress[]
   learningPathProgress LearningPathProgress[]
-  supportTickets SupportTicket[]
-  ticketComments TicketComment[]
-  
+  supportTickets       SupportTicket[]
+  ticketComments       TicketComment[]
+  userRoles            UserRole[]
+  Role                 Role?                  @relation(fields: [roleId], references: [id])
+  roleId               String?
+
   @@map("users")
 }
 
@@ -58,10 +61,10 @@ model Profile {
   preferences Json?    @default("{}")
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   // Relations
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@map("profiles")
 }
 
@@ -87,21 +90,21 @@ model Course {
   promoVideoUrl    String?
   price            Decimal  @default(0)
   isFree           Boolean  @default(true)
-  status           String   @default("draft")  // draft, published, archived
+  status           String   @default("draft") // draft, published, archived
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
-  
+
   // Relations
-  modules     Module[]
-  lessons     Lesson[]
-  enrollments Enrollment[]
-  certificates Certificate[]
-  wishlists   Wishlist[]
+  modules          Module[]
+  lessons          Lesson[]
+  enrollments      Enrollment[]
+  certificates     Certificate[]
+  wishlists        Wishlist[]
   learningProgress LearningProgress[]
-  
+
   // Learning Paths
   learningPaths LearningPathCourse[]
-  
+
   @@map("courses")
 }
 
@@ -117,10 +120,10 @@ model Module {
   orderIndex  Int      @default(0)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   course  Course   @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lessons Lesson[]
-  
+
   @@unique([courseId, orderIndex])
   @@map("modules")
 }
@@ -136,20 +139,20 @@ model Lesson {
   title       String
   description String?  @db.Text
   orderIndex  Int      @default(0)
-  lessonType  String   @default("video")  // video, quiz, lab, reading
-  duration    Int?     // Duration in seconds
+  lessonType  String   @default("video") // video, quiz, lab, reading
+  duration    Int? // Duration in seconds
   videoUrl    String?
   isPreview   Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
-  course     Course             @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  module     Module?            @relation(fields: [moduleId], references: [id], onDelete: SetNull)
-  materials  Material[]
-  videos     Video[]
-  progress   LearningProgress[]
+
+  course          Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  module          Module?               @relation(fields: [moduleId], references: [id], onDelete: SetNull)
+  materials       Material[]
+  videos          Video[]
+  progress        LearningProgress[]
   lectureProgress UserLectureProgress[]
-  
+
   @@map("lessons")
 }
 
@@ -166,9 +169,9 @@ model Material {
   visibility      String   @default("public")
   downloadAllowed Boolean  @default(true)
   createdAt       DateTime @default(now())
-  
+
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
+
   @@map("materials")
 }
 
@@ -186,9 +189,9 @@ model Video {
   storageType String?
   orderIndex  Int      @default(0)
   createdAt   DateTime @default(now())
-  
+
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
+
   @@map("videos")
 }
 
@@ -197,17 +200,17 @@ model Video {
 // ============================================
 
 model Enrollment {
-  id              String   @id @default(uuid())
+  id              String    @id @default(uuid())
   userId          String
   courseId        String
-  progressPercent Int      @default(0)
-  completed       Boolean  @default(false)
-  enrolledAt      DateTime @default(now())
+  progressPercent Int       @default(0)
+  completed       Boolean   @default(false)
+  enrolledAt      DateTime  @default(now())
   completedAt     DateTime?
-  
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, courseId])
   @@map("enrollments")
 }
@@ -217,19 +220,19 @@ model Enrollment {
 // ============================================
 
 model LearningProgress {
-  id         String    @id @default(uuid())
-  userId     String
-  courseId   String
-  lessonId   String
-  completed  Boolean   @default(false)
-  watchTime  Int       @default(0)
+  id          String    @id @default(uuid())
+  userId      String
+  courseId    String
+  lessonId    String
+  completed   Boolean   @default(false)
+  watchTime   Int       @default(0)
   completedAt DateTime?
-  updatedAt  DateTime  @updatedAt
-  
+  updatedAt   DateTime  @updatedAt
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, lessonId])
   @@map("learning_progress")
 }
@@ -249,10 +252,10 @@ model UserLectureProgress {
   lastPosition Int       @default(0)
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, lessonId])
   @@index([userId, courseId])
   @@map("user_lecture_progress")
@@ -266,14 +269,14 @@ model Certificate {
   id               String   @id @default(uuid())
   userId           String
   courseId         String
-  certificateUrl    String?
+  certificateUrl   String?
   verificationCode String   @unique
   issuedAt         DateTime @default(now())
-  status           String   @default("issued")  // issued, revoked
-  
+  status           String   @default("issued") // issued, revoked
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, courseId])
   @@map("certificates")
 }
@@ -287,7 +290,7 @@ model Payment {
   userId            String
   amount            Decimal
   currency          String   @default("NGN")
-  status            String   @default("PENDING")  // PENDING, COMPLETED, FAILED, REFUNDED
+  status            String   @default("PENDING") // PENDING, COMPLETED, FAILED, REFUNDED
   paymentMethod     String?
   transactionId     String?
   paystackReference String?
@@ -296,9 +299,9 @@ model Payment {
   metadata          Json?
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@map("payments")
 }
 
@@ -307,30 +310,30 @@ model Payment {
 // ============================================
 
 model Plan {
-  id                   String   @id @default(uuid())
-  name                 String
-  description          String?  @db.Text
-  planType             String   @default("subscription")  // subscription, one_time
-  billingCycle         String   @default("monthly")  // monthly, yearly, lifetime
-  price                Decimal
-  currency             String   @default("USD")
-  stripePriceId        String?  @unique
-  paystackPlanId       String?  @unique
-  features             Json?    @default("[]")
-  isActive             Boolean  @default(true)
-  isFeatured           Boolean  @default(false)
-  discountPercentage    Int?     @default(0)  // For limited-time offers
-  promoCode            String?
-  maxCourses           Int?     @default(-1)  // -1 for unlimited
-  maxCertificates      Int?     @default(-1)
-  allowedCourseIds     String[] @default([])
-  trialDays            Int?     @default(0)
-  sortOrder            Int      @default(0)
-  createdAt            DateTime @default(now())
-  updatedAt            DateTime @updatedAt
-  
+  id                 String   @id @default(uuid())
+  name               String
+  description        String?  @db.Text
+  planType           String   @default("subscription") // subscription, one_time
+  billingCycle       String   @default("monthly") // monthly, yearly, lifetime
+  price              Decimal
+  currency           String   @default("USD")
+  stripePriceId      String?  @unique
+  paystackPlanId     String?  @unique
+  features           Json?    @default("[]")
+  isActive           Boolean  @default(true)
+  isFeatured         Boolean  @default(false)
+  discountPercentage Int?     @default(0) // For limited-time offers
+  promoCode          String?
+  maxCourses         Int?     @default(-1) // -1 for unlimited
+  maxCertificates    Int?     @default(-1)
+  allowedCourseIds   String[] @default([])
+  trialDays          Int?     @default(0)
+  sortOrder          Int      @default(0)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
   subscriptions Subscription[]
-  
+
   @@map("plans")
 }
 
@@ -339,24 +342,24 @@ model Plan {
 // ============================================
 
 model Subscription {
-  id             String    @id @default(uuid())
-  userId         String
-  planId         String?
-  planName       String    @default("FREE")  // FREE, PRO, TEAM (legacy)
-  status         String    @default("active")  // active, cancelled, expired, trialing
-  startDate      DateTime  @default(now())
-  endDate        DateTime?
-  recurringPrice Decimal?
-  isPro          Boolean   @default(false)
-  autoRenew      Boolean   @default(true)
+  id                       String    @id @default(uuid())
+  userId                   String
+  planId                   String?
+  planName                 String    @default("FREE") // FREE, PRO, TEAM (legacy)
+  status                   String    @default("active") // active, cancelled, expired, trialing
+  startDate                DateTime  @default(now())
+  endDate                  DateTime?
+  recurringPrice           Decimal?
+  isPro                    Boolean   @default(false)
+  autoRenew                Boolean   @default(true)
   paystackSubscriptionCode String?
   stripeSubscriptionId     String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt                DateTime  @default(now())
+  updatedAt                DateTime  @updatedAt
+
+  user User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
-  
+
   @@map("subscriptions")
 }
 
@@ -373,10 +376,10 @@ model LearningPath {
   isPublished  Boolean  @default(false)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
-  
+
   pathCourses  LearningPathCourse[]
   userProgress LearningPathProgress[]
-  
+
   @@map("learning_paths")
 }
 
@@ -385,16 +388,16 @@ model LearningPath {
 // ============================================
 
 model LearningPathCourse {
-  id              String   @id @default(uuid())
-  learningPathId  String
-  courseId        String
-  orderIndex      Int      @default(0)
-  isRequired      Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  
+  id             String   @id @default(uuid())
+  learningPathId String
+  courseId       String
+  orderIndex     Int      @default(0)
+  isRequired     Boolean  @default(true)
+  createdAt      DateTime @default(now())
+
   learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
-  course      Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+  course       Course       @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
   @@unique([learningPathId, courseId])
   @@map("learning_path_courses")
 }
@@ -410,10 +413,10 @@ model LearningPathProgress {
   enrolledAt      DateTime  @default(now())
   completedAt     DateTime?
   progressPercent Int       @default(0)
-  
+
   user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, learningPathId])
   @@map("learning_path_progress")
 }
@@ -427,10 +430,10 @@ model Wishlist {
   userId   String
   courseId String
   addedAt  DateTime @default(now())
-  
+
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  
+
   @@unique([userId, courseId])
   @@map("wishlists")
 }
@@ -444,13 +447,13 @@ model Notification {
   userId    String
   title     String
   message   String   @db.Text
-  type      String   @default("info")  // info, success, warning, error
+  type      String   @default("info") // info, success, warning, error
   read      Boolean  @default(false)
   data      Json?
   createdAt DateTime @default(now())
-  
+
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
+
   @@map("notifications")
 }
 
@@ -459,25 +462,25 @@ model Notification {
 // ============================================
 
 model AuditLog {
-  id            String   @id @default(uuid())
-  userId        String?
-  action        String   // SELECT, INSERT, UPDATE, DELETE, EXPORT, etc.
-  module        String   // STORAGE, DB_EXPLORER, USERS, etc.
-  targetTable   String?  // Table being accessed
-  targetId      String?  // Specific row ID
-  query         String?  @db.Text  // Query executed
-  affectedRows  Int?     // Number of rows affected
-  previousData  Json?    // For UPDATE/DELETE - stores original data
-  newData       Json?    // For INSERT/UPDATE - stores new data
-  details       Json?
-  ipAddress     String?
-  userAgent     String?
-  success       Boolean  @default(true)
-  errorMessage  String?
-  createdAt     DateTime @default(now())
-  
+  id           String   @id @default(uuid())
+  userId       String?
+  action       String // SELECT, INSERT, UPDATE, DELETE, EXPORT, etc.
+  module       String // STORAGE, DB_EXPLORER, USERS, etc.
+  targetTable  String? // Table being accessed
+  targetId     String? // Specific row ID
+  query        String?  @db.Text // Query executed
+  affectedRows Int? // Number of rows affected
+  previousData Json? // For UPDATE/DELETE - stores original data
+  newData      Json? // For INSERT/UPDATE - stores new data
+  details      Json?
+  ipAddress    String?
+  userAgent    String?
+  success      Boolean  @default(true)
+  errorMessage String?
+  createdAt    DateTime @default(now())
+
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+
   // Indexes for fast querying
   @@index([createdAt])
   @@index([userId])
@@ -495,19 +498,19 @@ model SupportTicket {
   id         String    @id @default(uuid())
   userId     String?
   email      String
-  category   String    // billing, course-access, technical, business, partnership, other
+  category   String // billing, course-access, technical, business, partnership, other
   subject    String?
   message    String    @db.Text
-  status     String    @default("open")   // open, in_progress, resolved, closed
+  status     String    @default("open") // open, in_progress, resolved, closed
   priority   String    @default("medium") // low, medium, high, urgent
   assignedTo String?
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   resolvedAt DateTime?
-  
-  user     User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  user     User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   comments TicketComment[]
-  
+
   @@map("support_tickets")
 }
 
@@ -522,10 +525,10 @@ model TicketComment {
   message    String   @db.Text
   isInternal Boolean  @default(false)
   createdAt  DateTime @default(now())
-  
+
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
-  user   User?          @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+  user   User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
+
   @@map("ticket_comments")
 }
 
@@ -534,12 +537,12 @@ model TicketComment {
 // ============================================
 
 model NewsletterSubscriber {
-  id           String    @id @default(uuid())
-  email        String    @unique
-  isActive     Boolean   @default(true)
-  subscribedAt DateTime  @default(now())
+  id             String    @id @default(uuid())
+  email          String    @unique
+  isActive       Boolean   @default(true)
+  subscribedAt   DateTime  @default(now())
   unsubscribedAt DateTime?
-  
+
   @@map("newsletter_subscribers")
 }
 
@@ -548,22 +551,22 @@ model NewsletterSubscriber {
 // ============================================
 
 model NewsletterCampaign {
-  id             String    @id @default(uuid())
-  title          String
-  subject        String
-  content        String    @db.Text  // HTML content
-  status         String    @default("draft")  // draft, scheduled, sending, sent, failed
-  recipientType  String    @default("all")  // all, subscribers, enrolled, course_specific
+  id                String    @id @default(uuid())
+  title             String
+  subject           String
+  content           String    @db.Text // HTML content
+  status            String    @default("draft") // draft, scheduled, sending, sent, failed
+  recipientType     String    @default("all") // all, subscribers, enrolled, course_specific
   recipientCourseId String?
-  scheduledAt    DateTime?
-  sentAt         DateTime?
-  totalRecipients Int       @default(0)
-  successfulSends Int       @default(0)
-  failedSends    Int       @default(0)
-  createdBy      String?
-  createdAt      DateTime  @default(now())
-  updatedAt      DateTime  @updatedAt
-  
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  totalRecipients   Int       @default(0)
+  successfulSends   Int       @default(0)
+  failedSends       Int       @default(0)
+  createdBy         String?
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
   @@map("newsletter_campaigns")
 }
 
@@ -572,23 +575,23 @@ model NewsletterCampaign {
 // ============================================
 
 model StoredFile {
-  id            String    @id @default(uuid())
-  originalName  String
-  storedName    String    @unique
-  fileUrl       String    @unique
-  fileSize      Int       // in bytes
-  mimeType      String
-  fileType      String    // IMAGE, VIDEO, AUDIO, DOCUMENT, ARCHIVE, OTHER
-  storageType   String    @default("local")  // local, s3, cloudinary
-  folder        String?   // virtual folder path
-  tags          String[]  @default([])
-  courseId      String?   // optional association
-  uploadedBy    String?
-  isOrphaned    Boolean   @default(false)  // not linked to any resource
+  id             String    @id @default(uuid())
+  originalName   String
+  storedName     String    @unique
+  fileUrl        String    @unique
+  fileSize       Int // in bytes
+  mimeType       String
+  fileType       String // IMAGE, VIDEO, AUDIO, DOCUMENT, ARCHIVE, OTHER
+  storageType    String    @default("local") // local, s3, cloudinary
+  folder         String? // virtual folder path
+  tags           String[]  @default([])
+  courseId       String? // optional association
+  uploadedBy     String?
+  isOrphaned     Boolean   @default(false) // not linked to any resource
   lastAccessedAt DateTime?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
   @@map("stored_files")
 }
 
@@ -600,14 +603,69 @@ model SystemSetting {
   id          String   @id @default(uuid())
   key         String   @unique
   value       String   @db.Text
-  type        String   @default("string")  // string, number, boolean, json
+  type        String   @default("string") // string, number, boolean, json
   category    String   @default("general") // general, appearance, integrations, security, email, payments, storage
-  description String?  // Human-readable description
-  isPublic    Boolean  @default(false)     // Accessible without auth
-  isEncrypted Boolean  @default(false)      // Encrypt value in DB
-  validation  Json?    // Validation rules: { required: true, pattern: "...", min: 0, max: 100 }
+  description String? // Human-readable description
+  isPublic    Boolean  @default(false) // Accessible without auth
+  isEncrypted Boolean  @default(false) // Encrypt value in DB
+  validation  Json? // Validation rules: { required: true, pattern: "...", min: 0, max: 100 }
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
-  
+
   @@map("system_settings")
+}
+
+// ============================================
+// 27. ROLES - Role-based access control
+// ============================================
+
+model Role {
+  id          String       @id @default(uuid())
+  name        String       @unique // SUPER_ADMIN, ADMIN, CONTENT_MANAGER, SUPPORT_STAFF, STUDENT
+  displayName String
+  description String?
+  isSystem    Boolean      @default(false) // System roles cannot be deleted
+  permissions Permission[]
+  users       User[]
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  UserRole    UserRole[]
+
+  @@map("roles")
+}
+
+// ============================================
+// 28. PERMISSIONS - Permission definitions
+// ============================================
+
+model Permission {
+  id          String   @id @default(uuid())
+  name        String   @unique // MANAGE_USERS, VIEW_ANALYTICS, EDIT_COURSES, etc.
+  displayName String
+  description String?
+  resource    String // The resource category (users, courses, settings, etc.)
+  action      String // The action type (create, read, update, delete, manage)
+  roles       Role[]
+  createdAt   DateTime @default(now())
+
+  @@unique([resource, action])
+  @@map("permissions")
+}
+
+// ============================================
+// 29. USER ROLE ASSIGNMENTS - Junction table
+// ============================================
+
+model UserRole {
+  id         String   @id @default(uuid())
+  userId     String
+  roleId     String
+  assignedAt DateTime @default(now())
+  assignedBy String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, roleId])
+  @@map("user_roles")
 }
