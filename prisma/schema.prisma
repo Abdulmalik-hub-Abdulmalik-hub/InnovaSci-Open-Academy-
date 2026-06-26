@@ -15,7 +15,7 @@ model User {
   id            String    @id @default(uuid())
   email         String    @unique
   passwordHash  String?
-  role          String    @default("STUDENT")  // Only: ADMIN, STUDENT
+  role          String    @default("STUDENT")  // SUPER_ADMIN, ADMIN, STUDENT
   status        String    @default("ACTIVE")   // ACTIVE, INACTIVE, SUSPENDED
   emailVerified DateTime?
   createdAt     DateTime  @default(now())
@@ -459,13 +459,22 @@ model Notification {
 // ============================================
 
 model AuditLog {
-  id        String   @id @default(uuid())
-  userId    String?
-  action    String
-  module    String
-  details   Json?
-  ipAddress String?
-  createdAt DateTime @default(now())
+  id            String   @id @default(uuid())
+  userId        String?
+  action        String   // SELECT, INSERT, UPDATE, DELETE, EXPORT, etc.
+  module        String   // STORAGE, DB_EXPLORER, USERS, etc.
+  targetTable   String?  // Table being accessed
+  targetId      String?  // Specific row ID
+  query         String?  @db.Text  // Query executed
+  affectedRows  Int?     // Number of rows affected
+  previousData  Json?    // For UPDATE/DELETE - stores original data
+  newData       Json?    // For INSERT/UPDATE - stores new data
+  details       Json?
+  ipAddress     String?
+  userAgent     String?
+  success       Boolean  @default(true)
+  errorMessage  String?
+  createdAt     DateTime @default(now())
   
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   
