@@ -119,48 +119,43 @@ export async function PUT(
       )
     }
 
-    // Update user and profile in a transaction
-    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
-      // Update user
-      const updatedUser = await tx.user.update({
-        where: { id },
+    // Update user
+    const updatedUser = await prisma.user.update({
+      where: { id },
+      data: {
+        email: email || existingUser.email,
+        role: role || existingUser.role,
+        status: status?.toUpperCase() || existingUser.status,
+      }
+    })
+
+    // Update profile if provided
+    let updatedProfile = null
+    if (fullName !== undefined || username !== undefined || phone !== undefined || country !== undefined || bio !== undefined) {
+      updatedProfile = await prisma.profile.update({
+        where: { userId: id },
         data: {
-          email: email || existingUser.email,
-          role: role || existingUser.role,
-          status: status?.toUpperCase() || existingUser.status,
+          fullName: fullName !== undefined ? fullName : undefined,
+          username: username !== undefined ? username : undefined,
+          phone: phone !== undefined ? phone : undefined,
+          country: country !== undefined ? country : undefined,
+          bio: bio !== undefined ? bio : undefined,
         }
       })
-
-      // Update profile if provided
-      let updatedProfile = null
-      if (fullName !== undefined || username !== undefined || phone !== undefined || country !== undefined || bio !== undefined) {
-        updatedProfile = await tx.profile.update({
-          where: { userId: id },
-          data: {
-            fullName: fullName !== undefined ? fullName : undefined,
-            username: username !== undefined ? username : undefined,
-            phone: phone !== undefined ? phone : undefined,
-            country: country !== undefined ? country : undefined,
-            bio: bio !== undefined ? bio : undefined,
-          }
-        })
-      }
-
-      return { updatedUser, updatedProfile }
-    })
+    }
 
     return NextResponse.json({
       success: true,
       data: {
         user: {
-          id: result.updatedUser.id,
-          email: result.updatedUser.email,
-          role: result.updatedUser.role,
-          status: result.updatedUser.status,
-          createdAt: result.updatedUser.createdAt.toISOString(),
-          updatedAt: result.updatedUser.updatedAt.toISOString(),
+          id: updatedUser.id,
+          email: updatedUser.email,
+          role: updatedUser.role,
+          status: updatedUser.status,
+          createdAt: updatedUser.createdAt.toISOString(),
+          updatedAt: updatedUser.updatedAt.toISOString(),
         },
-        profile: result.updatedProfile
+        profile: updatedProfile
       },
       message: "User updated successfully"
     })

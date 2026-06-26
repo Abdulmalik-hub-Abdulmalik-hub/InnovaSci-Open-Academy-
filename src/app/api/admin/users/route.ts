@@ -111,6 +111,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate password length
+    if (password.length < 6) {
+      return NextResponse.json(
+        { success: false, error: "Password must be at least 6 characters" },
+        { status: 400 }
+      )
+    }
+
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase() }
@@ -123,41 +131,36 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user with profile in a transaction
-    const newUser = await prisma.$transaction(async (tx) => {
-      // Create user
-      const user = await tx.user.create({
-        data: {
-          email: email.toLowerCase(),
-          passwordHash: password, // In production, hash this!
-          role,
-          status: "ACTIVE"
-        }
-      })
+    // Create user first
+    const user = await prisma.user.create({
+      data: {
+        email: email.toLowerCase(),
+        passwordHash: password, // In production, hash this!
+        role,
+        status: "ACTIVE"
+      }
+    })
 
-      // Create profile
-      const profile = await tx.profile.create({
-        data: {
-          userId: user.id,
-          fullName: fullName || null,
-          username: username || null
-        }
-      })
-
-      return { user, profile }
+    // Create profile for the user
+    const profile = await prisma.profile.create({
+      data: {
+        userId: user.id,
+        fullName: fullName || null,
+        username: username || null
+      }
     })
 
     return NextResponse.json({
       success: true,
       data: {
         user: {
-          id: newUser.user.id,
-          email: newUser.user.email,
-          role: newUser.user.role,
-          status: newUser.user.status,
-          createdAt: newUser.user.createdAt.toISOString()
+          id: user.id,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          createdAt: user.createdAt.toISOString()
         },
-        profile: newUser.profile
+        profile: profile
       },
       message: "User created successfully"
     }, { status: 201 })
