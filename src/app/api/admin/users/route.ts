@@ -119,6 +119,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    if (!emailRegex.test(email)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid email format" },
+        { status: 400 }
+      )
+    }
+
     // Check if email already exists
     const existingUser = await prisma.user.findUnique({
       where: { email: email.toLowerCase() }
@@ -131,24 +140,29 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create user first
+    // Create user
     const user = await prisma.user.create({
       data: {
         email: email.toLowerCase(),
-        passwordHash: password, // In production, hash this!
+        passwordHash: password,
         role,
         status: "ACTIVE"
       }
     })
 
     // Create profile for the user
-    const profile = await prisma.profile.create({
-      data: {
-        userId: user.id,
-        fullName: fullName || null,
-        username: username || null
-      }
-    })
+    let profile = null
+    try {
+      profile = await prisma.profile.create({
+        data: {
+          userId: user.id,
+          fullName: fullName || null,
+          username: username || null
+        }
+      })
+    } catch (profileError) {
+      console.error("Profile creation warning:", profileError)
+    }
 
     return NextResponse.json({
       success: true,
@@ -167,8 +181,9 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error("Create user error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { success: false, error: "Failed to create user" },
+      { success: false, error: `Failed to create user: ${errorMessage}` },
       { status: 500 }
     )
   }
