@@ -29,24 +29,26 @@ export interface Course {
   stats: CourseStats
 }
 
+export interface ModuleLesson {
+  id: string
+  title: string
+  description: string | null
+  orderIndex: number
+  lessonType: string
+  duration: number | null
+  videoUrl: string | null
+  isPreview: boolean
+  materialsCount: number
+  videosCount: number
+}
+
 export interface Module {
   id: string
   title: string
   description: string | null
   orderIndex: number
   lessonsCount: number
-  lessons: {
-    id: string
-    title: string
-    description: string | null
-    orderIndex: number
-    lessonType: string
-    duration: number | null
-    videoUrl: string | null
-    isPreview: boolean
-    materialsCount: number
-    videosCount: number
-  }[]
+  lessons: ModuleLesson[]
 }
 
 export interface CoursesResponse {
@@ -83,6 +85,12 @@ interface UseCoursesReturn {
   createCourse: (data: Partial<Course>) => Promise<{ success: boolean; error?: string; id?: string }>
   updateCourse: (id: string, data: Partial<Course>) => Promise<{ success: boolean; error?: string }>
   deleteCourse: (id: string) => Promise<{ success: boolean; error?: string }>
+  fetchModules: (courseId: string) => Promise<Module[]>
+  createModule: (courseId: string, data: { title: string; description?: string }) => Promise<{ success: boolean; error?: string; module?: Module }>
+  updateModule: (courseId: string, moduleId: string, data: { title?: string; description?: string }) => Promise<{ success: boolean; error?: string }>
+  deleteModule: (courseId: string, moduleId: string) => Promise<{ success: boolean; error?: string }>
+  reorderModules: (courseId: string, moduleIds: string[]) => Promise<{ success: boolean; error?: string }>
+  createLesson: (courseId: string, moduleId: string, data: { title: string; description?: string; lessonType?: string; duration?: number; videoUrl?: string; isPreview?: boolean }) => Promise<{ success: boolean; error?: string; lesson?: ModuleLesson }>
   refresh: () => void
 }
 
@@ -177,7 +185,7 @@ export function useCourses(): UseCoursesReturn {
         return { success: false, error: result.error }
       }
 
-      setCourses(prev => prev.map(c => 
+      setCourses(prev => prev.map(c =>
         c.id === id ? { ...c, ...result.data.course } : c
       ))
       return { success: true }
@@ -207,6 +215,149 @@ export function useCourses(): UseCoursesReturn {
     }
   }, [])
 
+  const fetchModules = useCallback(async (courseId: string): Promise<Module[]> => {
+    try {
+      const response = await fetch(`/api/admin/courses/${courseId}/modules`)
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || "Failed to fetch modules")
+      }
+
+      return result.data.modules
+    } catch (err) {
+      console.error("Fetch modules error:", err)
+      throw err
+    }
+  }, [])
+
+  const createModule = useCallback(async (
+    courseId: string,
+    data: { title: string; description?: string }
+  ): Promise<{ success: boolean; error?: string; module?: Module }> => {
+    try {
+      const response = await fetch(`/api/admin/courses/${courseId}/modules`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        return { success: false, error: result.error }
+      }
+
+      return { success: true, module: result.data }
+    } catch (err) {
+      console.error("Create module error:", err)
+      return { success: false, error: "Failed to create module" }
+    }
+  }, [])
+
+  const updateModule = useCallback(async (
+    courseId: string,
+    moduleId: string,
+    data: { title?: string; description?: string }
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(`/api/admin/courses/${courseId}/modules/${moduleId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        return { success: false, error: result.error }
+      }
+
+      return { success: true }
+    } catch (err) {
+      console.error("Update module error:", err)
+      return { success: false, error: "Failed to update module" }
+    }
+  }, [])
+
+  const deleteModule = useCallback(async (
+    courseId: string,
+    moduleId: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(`/api/admin/courses/${courseId}/modules/${moduleId}`, {
+        method: "DELETE",
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        return { success: false, error: result.error }
+      }
+
+      return { success: true }
+    } catch (err) {
+      console.error("Delete module error:", err)
+      return { success: false, error: "Failed to delete module" }
+    }
+  }, [])
+
+  const reorderModules = useCallback(async (
+    courseId: string,
+    moduleIds: string[]
+  ): Promise<{ success: boolean; error?: string }> => {
+    try {
+      const response = await fetch(`/api/admin/courses/${courseId}/modules`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ moduleIds }),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        return { success: false, error: result.error }
+      }
+
+      return { success: true }
+    } catch (err) {
+      console.error("Reorder modules error:", err)
+      return { success: false, error: "Failed to reorder modules" }
+    }
+  }, [])
+
+  const createLesson = useCallback(async (
+    courseId: string,
+    moduleId: string,
+    data: {
+      title: string
+      description?: string
+      lessonType?: string
+      duration?: number
+      videoUrl?: string
+      isPreview?: boolean
+    }
+  ): Promise<{ success: boolean; error?: string; lesson?: ModuleLesson }> => {
+    try {
+      const response = await fetch(`/api/admin/courses/${courseId}/modules/${moduleId}/lessons`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      })
+
+      const result = await response.json()
+
+      if (!result.success) {
+        return { success: false, error: result.error }
+      }
+
+      return { success: true, lesson: result.data }
+    } catch (err) {
+      console.error("Create lesson error:", err)
+      return { success: false, error: "Failed to create lesson" }
+    }
+  }, [])
+
   useEffect(() => {
     fetchCourses()
   }, [queryParams])
@@ -225,6 +376,12 @@ export function useCourses(): UseCoursesReturn {
     createCourse,
     updateCourse,
     deleteCourse,
+    fetchModules,
+    createModule,
+    updateModule,
+    deleteModule,
+    reorderModules,
+    createLesson,
     refresh,
   }
 }

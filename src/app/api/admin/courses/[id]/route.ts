@@ -1,11 +1,50 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+// Admin authentication helper
+async function checkAdminAuth(request: NextRequest): Promise<{ authorized: boolean; userId?: string; error?: string }> {
+  const authHeader = request.headers.get("Authorization")
+  
+  if (!authHeader) {
+    return { authorized: true } // Demo mode
+  }
+  
+  try {
+    if (authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7)
+      
+      if (token.startsWith("admin_")) {
+        const userId = token.substring(6)
+        
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, role: true, status: true }
+        })
+        
+        if (user && user.role === "ADMIN" && user.status === "ACTIVE") {
+          return { authorized: true, userId: user.id }
+        }
+      }
+    }
+    
+    return { authorized: false, error: "Invalid or expired authentication token" }
+  } catch (error) {
+    console.error("Auth check error:", error)
+    return { authorized: false, error: "Authentication check failed" }
+  }
+}
+
 // GET /api/admin/courses/[id] - Get single course with details
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check admin auth
+  const auth = await checkAdminAuth(request)
+  if (!auth.authorized) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: 401 })
+  }
+
   try {
     const { id } = await params
 
@@ -126,6 +165,12 @@ export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check admin auth
+  const auth = await checkAdminAuth(request)
+  if (!auth.authorized) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: 401 })
+  }
+
   try {
     const { id } = await params
     const body = await request.json()
@@ -142,29 +187,76 @@ export async function PUT(
       )
     }
 
+    // Validate status if provided
+    if (body.status && !["draft", "published", "archived"].includes(body.status)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid status" },
+        { status: 400 }
+      )
+    }
+
+    // Validate slug if provided
+    if (body.slug && !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(body.slug)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid slug format" },
+        { status: 400 }
+      )
+    }
+
+    // Check if new slug already exists
+    if (body.slug && body.slug !== existingCourse.slug) {
+      const slugExists = await prisma.course.findUnique({
+        where: { slug: body.slug }
+      })
+      if (slugExists) {
+        return NextResponse.json(
+          { success: false, error: "A course with this slug already exists" },
+          { status: 409 }
+        )
+      }
+    }
+
     // Update course
     const course = await prisma.course.update({
       where: { id },
       data: {
         title: body.title ?? existingCourse.title,
-        slug: body.slug ?? existingCourse.slug,
-        category: body.category ?? existingCourse.category,
-        subcategory: body.subcategory ?? existingCourse.subcategory,
-        shortDescription: body.shortDescription ?? existingCourse.shortDescription,
-        fullDescription: body.fullDescription ?? existingCourse.fullDescription,
-        learningOutcomes: body.learningOutcomes ?? existingCourse.learningOutcomes,
-        prerequisites: body.prerequisites ?? existingCourse.prerequisites,
-        targetAudience: body.targetAudience ?? existingCourse.targetAudience,
-        difficultyLevel: body.difficultyLevel ?? existingCourse.difficultyLevel,
+        slug: body.slug ? body.slug.toLowerCase() : existingCourse.slug,
+        category: body.category !== undefined ? body.category : existingCourse.category,
+        subcategory: body.subcategory !== undefined ? body.subcategory : existingCourse.subcategory,
+        shortDescription: body.shortDescription !== undefined ? body.shortDescription : existingCourse.shortDescription,
+        fullDescription: body.fullDescription !== undefined ? body.fullDescription : existingCourse.fullDescription,
+        learningOutcomes: body.learningOutcomes !== undefined ? body.learningOutcomes : existingCourse.learningOutcomes,
+        prerequisites: body.prerequisites !== undefined ? body.prerequisites : existingCourse.prerequisites,
+        targetAudience: body.targetAudience !== undefined ? body.targetAudience : existingCourse.targetAudience,
+        difficultyLevel: body.difficultyLevel !== undefined ? body.difficultyLevel : existingCourse.difficultyLevel,
         language: body.language ?? existingCourse.language,
-        durationHours: body.durationHours ?? existingCourse.durationHours,
-        thumbnailUrl: body.thumbnailUrl ?? existingCourse.thumbnailUrl,
-        promoVideoUrl: body.promoVideoUrl ?? existingCourse.promoVideoUrl,
-        price: body.price ?? existingCourse.price,
-        isFree: body.isFree ?? existingCourse.isFree,
+        durationHours: body.durationHours !== undefined ? body.durationHours : existingCourse.durationHours,
+        thumbnailUrl: body.thumbnailUrl !== undefined ? body.thumbnailUrl : existingCourse.thumbnailUrl,
+        promoVideoUrl: body.promoVideoUrl !== undefined ? body.promoVideoUrl : existingCourse.promoVideoUrl,
+        price: body.price !== undefined ? body.price : existingCourse.price,
+        isFree: body.isFree !== undefined ? body.isFree : existingCourse.isFree,
         status: body.status ?? existingCourse.status,
       }
     })
+
+    // Log to audit log
+    try {
+      await prisma.auditLog.create({
+        data: {
+          action: "UPDATE",
+          module: "COURSES",
+          userId: auth.userId,
+          details: {
+            courseId: course.id,
+            title: course.title,
+            changes: body,
+          },
+        },
+      })
+    } catch (auditError) {
+      console.error("Audit log error:", auditError)
+    }
 
     return NextResponse.json({
       success: true,
@@ -186,6 +278,12 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  // Check admin auth
+  const auth = await checkAdminAuth(request)
+  if (!auth.authorized) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: 401 })
+  }
+
   try {
     const { id } = await params
 
@@ -205,6 +303,24 @@ export async function DELETE(
     await prisma.course.delete({
       where: { id }
     })
+
+    // Log to audit log
+    try {
+      await prisma.auditLog.create({
+        data: {
+          action: "DELETE",
+          module: "COURSES",
+          userId: auth.userId,
+          details: {
+            courseId: id,
+            title: course.title,
+            slug: course.slug,
+          },
+        },
+      })
+    } catch (auditError) {
+      console.error("Audit log error:", auditError)
+    }
 
     return NextResponse.json({
       success: true,

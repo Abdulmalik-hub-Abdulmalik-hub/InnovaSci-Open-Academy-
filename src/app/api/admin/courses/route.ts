@@ -1,10 +1,258 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
-// GET /api/admin/courses - List all courses
-export async function GET() {
+// Admin authentication helper
+async function checkAdminAuth(request: NextRequest): Promise<{ authorized: boolean; userId?: string; error?: string }> {
+  const authHeader = request.headers.get("Authorization")
+  
+  if (!authHeader) {
+    return { authorized: true } // Demo mode
+  }
+  
   try {
-    const courses = await prisma.course.findMany({
+    if (authHeader.startsWith("Bearer ")) {
+      const token = authHeader.substring(7)
+      
+      if (token.startsWith("admin_")) {
+        const userId = token.substring(6)
+        
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, role: true, status: true }
+        })
+        
+        if (user && user.role === "ADMIN" && user.status === "ACTIVE") {
+          return { authorized: true, userId: user.id }
+        }
+      }
+    }
+    
+    return { authorized: false, error: "Invalid or expired authentication token" }
+  } catch (error) {
+    console.error("Auth check error:", error)
+    return { authorized: false, error: "Authentication check failed" }
+  }
+}
+
+// GET /api/admin/courses - List all courses
+export async function GET(request: NextRequest) {
+  // Check admin auth
+  const auth = await checkAdminAuth(request)
+  if (!auth.authorized) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: 401 })
+  }
+
+  try {
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "20")
+    const search = searchParams.get("search") || ""
+    const status = searchParams.get("status") || ""
+    const category = searchParams.get("category") || ""
+
+    const skip = (page - 1) * limit
+
+    // Build where clause
+    const where: Record<string, unknown> = {}
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: "insensitive" } },
+        { slug: { contains: search, mode: "insensitive" } },
+      ]
+    }
+    if (status && status !== "all") {
+      where.status = status
+    }
+    if (category) {
+      where.category = category
+    }
+
+    const [courses, total] = await Promise.all([
+      prisma.course.findMany({
+        where,
+        include: {
+          modules: {
+            include: {
+              lessons: true
+            }
+          },
+          _count: {
+            select: {
+              enrollments: true
+            }
+          }
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit
+      }),
+      prisma.course.count({ where })
+    ])
+
+    // Get unique categories
+    const allCourses = await prisma.course.findMany({
+      select: { category: true },
+      distinct: ["category"]
+    })
+    const categories = allCourses.map(c => c.category).filter(Boolean) as string[]
+
+    const formattedCourses = courses.map(course => ({
+      id: course.id,
+      title: course.title,
+      slug: course.slug,
+      category: course.category,
+      status: course.status,
+      difficultyLevel: course.difficultyLevel,
+      price: Number(course.price),
+      isFree: course.isFree,
+      thumbnailUrl: course.thumbnailUrl,
+      createdAt: course.createdAt.toISOString(),
+      updatedAt: course.updatedAt.toISOString(),
+      stats: {
+        enrollments: course._count.enrollments,
+        completed: 0,
+        wishlists: 0,
+        modules: course.modules.length,
+        lessons: course.modules.reduce((acc, m) => acc + m.lessons.length, 0),
+      }
+    }))
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        courses: formattedCourses,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        },
+        filters: {
+          categories
+        }
+      }
+    })
+  } catch (error) {
+    console.error("Courses API error:", error)
+    return NextResponse.json({
+      success: false,
+      error: "Database not ready",
+      data: {
+        courses: [],
+        pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
+        filters: { categories: [] }
+      }
+    })
+  }
+}
+
+// POST /api/admin/courses - Create new course
+export async function POST(request: NextRequest) {
+  // Check admin auth
+  const auth = await checkAdminAuth(request)
+  if (!auth.authorized) {
+    return NextResponse.json({ success: false, error: auth.error }, { status: 401 })
+  }
+
+  try {
+    // Check DATABASE_URL
+    if (!process.env.DATABASE_URL) {
+      return NextResponse.json(
+        { success: false, error: "Database configuration missing" },
+        { status: 500 }
+      )
+    }
+
+    const body = await request.json()
+    const {
+      title,
+      slug,
+      category,
+      subcategory,
+      shortDescription,
+      fullDescription,
+      learningOutcomes,
+      prerequisites,
+      targetAudience,
+      difficultyLevel,
+      language,
+      durationHours,
+      thumbnailUrl,
+      promoVideoUrl,
+      price,
+      isFree,
+      status
+    } = body
+
+    // Validation
+    const errors: string[] = []
+    
+    if (!title || title.trim().length < 3) {
+      errors.push("Title must be at least 3 characters")
+    }
+    
+    if (!slug) {
+      errors.push("Slug is required")
+    } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
+      errors.push("Slug must be lowercase alphanumeric with hyphens only")
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json(
+        { success: false, error: errors.join(", ") },
+        { status: 400 }
+      )
+    }
+
+    // Check if slug already exists
+    const existingCourse = await prisma.course.findUnique({
+      where: { slug }
+    })
+
+    if (existingCourse) {
+      return NextResponse.json(
+        { success: false, error: "A course with this slug already exists" },
+        { status: 409 }
+      )
+    }
+
+    // Validate status
+    if (status && !["draft", "published", "archived"].includes(status)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid status. Must be: draft, published, or archived" },
+        { status: 400 }
+      )
+    }
+
+    // Validate difficulty level
+    if (difficultyLevel && !["Beginner", "Intermediate", "Advanced"].includes(difficultyLevel)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid difficulty level" },
+        { status: 400 }
+      )
+    }
+
+    // Create course
+    const course = await prisma.course.create({
+      data: {
+        title: title.trim(),
+        slug: slug.toLowerCase(),
+        category: category || null,
+        subcategory: subcategory || null,
+        shortDescription: shortDescription || null,
+        fullDescription: fullDescription || null,
+        learningOutcomes: learningOutcomes || null,
+        prerequisites: prerequisites || null,
+        targetAudience: targetAudience || null,
+        difficultyLevel: difficultyLevel || null,
+        language: language || "English",
+        durationHours: durationHours || null,
+        thumbnailUrl: thumbnailUrl || null,
+        promoVideoUrl: promoVideoUrl || null,
+        price: price || 0,
+        isFree: isFree !== undefined ? isFree : true,
+        status: status || "draft",
+      },
       include: {
         modules: {
           include: {
@@ -16,37 +264,58 @@ export async function GET() {
             enrollments: true
           }
         }
-      },
-      orderBy: { createdAt: "desc" }
-    }).catch(() => [])
+      }
+    })
 
-    const formattedCourses = courses.map(course => ({
-      id: course.id,
-      title: course.title,
-      slug: course.slug,
-      category: course.category,
-      status: course.status,
-      difficultyLevel: course.difficultyLevel,
-      price: course.price,
-      isFree: course.isFree,
-      thumbnailUrl: course.thumbnailUrl,
-      enrollments: course._count.enrollments,
-      totalLessons: course.modules.reduce((acc, m) => acc + m.lessons.length, 0),
-      createdAt: course.createdAt
-    }))
+    // Log to audit log
+    try {
+      await prisma.auditLog.create({
+        data: {
+          action: "CREATE",
+          module: "COURSES",
+          userId: auth.userId,
+          details: {
+            courseId: course.id,
+            title: course.title,
+            slug: course.slug,
+            status: course.status,
+          },
+        },
+      })
+    } catch (auditError) {
+      console.error("Audit log error:", auditError)
+    }
 
     return NextResponse.json({
       success: true,
-      data: formattedCourses,
-      total: formattedCourses.length
-    })
+      data: {
+        course: {
+          id: course.id,
+          title: course.title,
+          slug: course.slug,
+          category: course.category,
+          status: course.status,
+          price: Number(course.price),
+          isFree: course.isFree,
+          thumbnailUrl: course.thumbnailUrl,
+          createdAt: course.createdAt.toISOString(),
+          stats: {
+            enrollments: course._count.enrollments,
+            completed: 0,
+            wishlists: 0,
+            modules: 0,
+            lessons: 0,
+          }
+        }
+      },
+      message: "Course created successfully"
+    }, { status: 201 })
+
   } catch (error) {
-    console.error("Courses API error:", error)
-    return NextResponse.json({
-      success: false,
-      error: "Database not ready",
-      data: [],
-      total: 0
-    })
+    console.error("Create course error:", error)
+    return NextResponse.json(
+      { success: false, error: error instanceof Error ? error.message : "Failed to create course" },
+      { status: 500 }
+    )
   }
 }
