@@ -5,7 +5,7 @@ export async function GET() {
   const diagnostics = {
     timestamp: new Date().toISOString(),
     environment: process.env.NODE_ENV,
-    checks: [] as Array<{ name: string; status: string; details?: string; error?: string }>
+    checks: [] as Array<{ name: string; status: string; details?: string; error?: string; stack?: string }>
   }
 
   // Check 1: DATABASE_URL presence
