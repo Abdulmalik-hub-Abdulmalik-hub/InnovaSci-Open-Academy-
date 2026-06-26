@@ -478,6 +478,12 @@ model AuditLog {
   
   user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
   
+  // Indexes for fast querying
+  @@index([createdAt])
+  @@index([userId])
+  @@index([module])
+  @@index([action])
+  @@index([targetTable])
   @@map("audit_logs")
 }
 
