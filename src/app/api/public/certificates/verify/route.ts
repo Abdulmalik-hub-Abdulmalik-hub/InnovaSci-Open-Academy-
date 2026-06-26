@@ -14,15 +14,72 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Find certificate by verification code
+    const normalizedCode = code.toUpperCase()
+
+    // First check IssuedCertificate table for new records
+    const issuedCert = await prisma.issuedCertificate.findUnique({
+      where: { certificateCode: normalizedCode },
+      include: {
+        student: {
+          select: {
+            id: true,
+            email: true,
+            profile: {
+              select: {
+                fullName: true,
+                avatarUrl: true,
+              }
+            }
+          }
+        },
+        course: {
+          select: {
+            id: true,
+            title: true,
+            slug: true,
+            thumbnailUrl: true,
+          }
+        }
+      }
+    })
+
+    // If found in IssuedCertificate, return those details
+    if (issuedCert) {
+      const isRevoked = !!issuedCert.revokedAt
+      
+      return NextResponse.json({
+        success: true,
+        data: {
+          valid: !isRevoked,
+          status: isRevoked ? "REVOKED" : "ACTIVE",
+          certificateId: issuedCert.id,
+          certificateCode: issuedCert.certificateCode,
+          verificationUrl: issuedCert.verificationUrl,
+          pdfUrl: issuedCert.pdfUrl,
+          issuedAt: issuedCert.issuedAt.toISOString(),
+          studentName: issuedCert.student.profile?.fullName || issuedCert.student.email,
+          studentEmail: issuedCert.student.email,
+          studentAvatar: issuedCert.student.profile?.avatarUrl,
+          courseName: issuedCert.course.title,
+          courseThumbnail: issuedCert.course.thumbnailUrl,
+          revoked: isRevoked,
+          revokedAt: issuedCert.revokedAt?.toISOString() || null,
+          revokeReason: issuedCert.revokeReason,
+          source: "issued_certificates",
+        }
+      })
+    }
+
+    // Fallback to legacy Certificate table
     const certificate = await prisma.certificate.findUnique({
-      where: { verificationCode: code.toUpperCase() },
+      where: { verificationCode: normalizedCode },
       include: {
         user: {
           include: {
             profile: {
               select: {
                 fullName: true,
+                avatarUrl: true,
               }
             }
           }
@@ -48,17 +105,24 @@ export async function GET(request: NextRequest) {
       })
     }
 
-    // Return certificate details if valid
+    // Return certificate details from legacy table
     return NextResponse.json({
       success: true,
       data: {
-        valid: certificate.status === "issued",
+        valid: certificate.status === "ACTIVE",
         status: certificate.status,
+        certificateId: certificate.id,
         verificationCode: certificate.verificationCode,
+        verificationUrl: certificate.verificationUrl,
+        pdfUrl: certificate.pdfUrl,
         issuedAt: certificate.issuedAt.toISOString(),
-        student: certificate.user.profile?.fullName || certificate.user.email,
+        studentName: certificate.user.profile?.fullName || certificate.user.email,
+        studentEmail: certificate.user.email,
+        studentAvatar: certificate.user.profile?.avatarUrl,
         courseName: certificate.course.title,
-        revoked: certificate.status === "revoked",
+        courseThumbnail: certificate.course.thumbnailUrl,
+        revoked: certificate.status === "REVOKED",
+        source: "certificates_legacy",
       }
     })
   } catch (error) {

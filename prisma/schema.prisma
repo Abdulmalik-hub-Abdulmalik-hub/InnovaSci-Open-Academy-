@@ -38,6 +38,7 @@ model User {
   userRoles            UserRole[]
   Role                 Role?                  @relation(fields: [roleId], references: [id])
   roleId               String?
+  IssuedCertificate    IssuedCertificate[]
 
   @@map("users")
 }
@@ -103,7 +104,8 @@ model Course {
   learningProgress LearningProgress[]
 
   // Learning Paths
-  learningPaths LearningPathCourse[]
+  learningPaths     LearningPathCourse[]
+  IssuedCertificate IssuedCertificate[]
 
   @@map("courses")
 }
@@ -269,16 +271,46 @@ model Certificate {
   id               String   @id @default(uuid())
   userId           String
   courseId         String
-  certificateUrl   String?
+  certificateUrl   String?  @db.Text // Legacy field, use IssuedCertificate for new records
+  pdfUrl           String?  @db.Text // URL to PDF in cloud storage
+  verificationUrl  String?  @db.Text // Public verification URL
   verificationCode String   @unique
   issuedAt         DateTime @default(now())
-  status           String   @default("issued") // issued, revoked
+  status           String   @default("ACTIVE") // ACTIVE, REVOKED
 
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
+  @@index([userId])
+  @@index([courseId])
+  @@index([status])
   @@map("certificates")
+}
+
+// ============================================
+// 11b. ISSUED CERTIFICATES - Certificate issuance tracking
+// ============================================
+
+model IssuedCertificate {
+  id              String    @id @default(uuid())
+  certificateId   String    @unique // Links to Certificate.id
+  studentId       String
+  courseId        String
+  certificateCode String    @unique // Human-readable code (CERT-2026-XXXX)
+  pdfUrl          String?   @db.Text // URL to generated PDF
+  verificationUrl String    @db.Text // Public verification URL
+  issuedAt        DateTime  @default(now())
+  revokedAt       DateTime?
+  revokeReason    String?
+
+  student User   @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  course  Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([studentId])
+  @@index([courseId])
+  @@index([issuedAt])
+  @@map("issued_certificates")
 }
 
 // ============================================
@@ -504,7 +536,7 @@ model SupportTicket {
   status     String    @default("open") // open, in_progress, resolved, closed
   priority   String    @default("medium") // low, medium, high, urgent
   assignedTo String?
-  labels     String?   // Comma-separated labels for categorization
+  labels     String? // Comma-separated labels for categorization
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   resolvedAt DateTime?
@@ -534,7 +566,7 @@ model TicketComment {
 
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user   User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-  
+
   @@index([ticketId])
   @@map("ticket_comments")
 }

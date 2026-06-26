@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
         courseId,
         certificateUrl,
         verificationCode,
-        status: "issued",
+        status: "ACTIVE",
       },
       include: {
         user: {
@@ -168,6 +168,40 @@ export async function POST(request: NextRequest) {
       }
     })
 
+    // Create IssuedCertificate record for tracking
+    const year = new Date().getFullYear()
+    const randomSuffix = crypto.randomBytes(4).toString("hex").toUpperCase()
+    const certificateCode = `CERT-${year}-${randomSuffix}`
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://innovasci.com"
+    const verificationUrl = `${appUrl}/verify/${certificateCode}`
+    const pdfUrl = certificateUrl // In production, this would be a PDF URL from cloud storage
+
+    const issuedCertificate = await prisma.issuedCertificate.create({
+      data: {
+        certificateId: certificate.id,
+        studentId: userId,
+        courseId,
+        certificateCode,
+        pdfUrl,
+        verificationUrl,
+      },
+      include: {
+        student: {
+          select: {
+            id: true,
+            email: true,
+            profile: { select: { fullName: true } }
+          }
+        },
+        course: {
+          select: {
+            id: true,
+            title: true,
+          }
+        }
+      }
+    })
+
     // Log to audit log
     try {
       await prisma.auditLog.create({
@@ -177,6 +211,8 @@ export async function POST(request: NextRequest) {
           userId: auth.userId,
           details: {
             certificateId: certificate.id,
+            issuedCertificateId: issuedCertificate.id,
+            certificateCode,
             verificationCode,
             studentName: user.profile?.fullName || user.email,
             courseName: course.title,
@@ -202,6 +238,13 @@ export async function POST(request: NextRequest) {
             email: certificate.user.email,
           },
           course: certificate.course,
+        },
+        issuedCertificate: {
+          id: issuedCertificate.id,
+          certificateCode: issuedCertificate.certificateCode,
+          verificationUrl: issuedCertificate.verificationUrl,
+          pdfUrl: issuedCertificate.pdfUrl,
+          issuedAt: issuedCertificate.issuedAt.toISOString(),
         }
       },
       message: "Certificate generated successfully"
