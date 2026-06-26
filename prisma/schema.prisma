@@ -553,7 +553,32 @@ model NewsletterCampaign {
 }
 
 // ============================================
-// 24. SYSTEM SETTINGS
+// 25. STORED FILES - File management
+// ============================================
+
+model StoredFile {
+  id            String    @id @default(uuid())
+  originalName  String
+  storedName    String    @unique
+  fileUrl       String    @unique
+  fileSize      Int       // in bytes
+  mimeType      String
+  fileType      String    // IMAGE, VIDEO, AUDIO, DOCUMENT, ARCHIVE, OTHER
+  storageType   String    @default("local")  // local, s3, cloudinary
+  folder        String?   // virtual folder path
+  tags          String[]  @default([])
+  courseId      String?   // optional association
+  uploadedBy    String?
+  isOrphaned    Boolean   @default(false)  // not linked to any resource
+  lastAccessedAt DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  @@map("stored_files")
+}
+
+// ============================================
+// 26. SYSTEM SETTINGS
 // ============================================
 
 model SystemSetting {

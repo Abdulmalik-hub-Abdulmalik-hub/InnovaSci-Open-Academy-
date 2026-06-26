@@ -1,10 +1,12 @@
-import { writeFile, mkdir, unlink } from "fs/promises"
+import { writeFile, mkdir, unlink, readdir, stat } from "fs/promises"
 import { existsSync } from "fs"
 import path from "path"
 import { randomBytes } from "crypto"
 
+// Configuration
 const UPLOAD_DIR = path.join(process.cwd(), "public", "uploads", "materials")
 const MAX_FILE_SIZE = 50 * 1024 * 1024 // 50MB
+const APP_URL = process.env.APP_URL || "http://localhost:3000"
 
 const ALLOWED_TYPES = [
   "application/pdf",
@@ -33,6 +35,7 @@ export interface UploadResult {
   fileName?: string
   fileSize?: number
   fileType?: string
+  storageType?: string
   error?: string
 }
 
@@ -43,6 +46,41 @@ export interface FileInfo {
   fileSize: number
   fileType: string
   mimeType: string
+}
+
+// S3 Configuration
+interface S3Config {
+  accessKeyId: string
+  secretAccessKey: string
+  bucket: string
+  region: string
+  endpoint?: string
+}
+
+function getS3Config(): S3Config | null {
+  if (process.env.AWS_ACCESS_KEY_ID && 
+      process.env.AWS_SECRET_ACCESS_KEY && 
+      process.env.AWS_S3_BUCKET) {
+    return {
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+      bucket: process.env.AWS_S3_BUCKET,
+      region: process.env.AWS_REGION || "us-east-1",
+      endpoint: process.env.AWS_S3_ENDPOINT,
+    }
+  }
+  return null
+}
+
+// Determine file type category
+export function getFileTypeCategory(mimeType: string): string {
+  if (mimeType.startsWith("image/")) return "IMAGE"
+  if (mimeType.startsWith("video/")) return "VIDEO"
+  if (mimeType.startsWith("audio/")) return "AUDIO"
+  if (mimeType.includes("pdf") || mimeType.includes("document") || 
+      mimeType.includes("presentation") || mimeType.includes("spreadsheet")) return "DOCUMENT"
+  if (mimeType.includes("zip") || mimeType.includes("rar") || mimeType.includes("compressed")) return "ARCHIVE"
+  return "OTHER"
 }
 
 export async function ensureUploadDir(): Promise<void> {
@@ -75,13 +113,96 @@ export function getFileExtension(mimeType: string, originalName: string): string
   return mimeToExt[mimeType] || path.extname(originalName)
 }
 
+// Generate S3 presigned URL for upload
+export async function generateUploadUrl(
+  fileName: string,
+  mimeType: string
+): Promise<{ uploadUrl: string; fileUrl: string; key: string } | null> {
+  const s3Config = getS3Config()
+  if (!s3Config) return null
+
+  try {
+    const ext = path.extname(fileName)
+    const key = `uploads/${Date.now()}_${randomBytes(8).toString("hex")}${ext}`
+    
+    // For S3, we'll use a PUT presigned URL
+    const signedUrlExpireSeconds = 3600 // 1 hour
+    
+    // Use AWS S3 presigned URL generation
+    const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3")
+    const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner")
+    
+    const client = new S3Client({
+      region: s3Config.region,
+      credentials: {
+        accessKeyId: s3Config.accessKeyId,
+        secretAccessKey: s3Config.secretAccessKey,
+      },
+      ...(s3Config.endpoint && { endpoint: s3Config.endpoint }),
+    })
+
+    const command = new PutObjectCommand({
+      Bucket: s3Config.bucket,
+      Key: key,
+      ContentType: mimeType,
+    })
+
+    const uploadUrl = await getSignedUrl(client, command, { expiresIn: signedUrlExpireSeconds })
+    const fileUrl = s3Config.endpoint 
+      ? `${s3Config.endpoint}/${s3Config.bucket}/${key}`
+      : `https://${s3Config.bucket}.s3.${s3Config.region}.amazonaws.com/${key}`
+
+    return { uploadUrl, fileUrl, key }
+  } catch (error) {
+    console.error("S3 presigned URL error:", error)
+    return null
+  }
+}
+
+// Generate signed URL for downloading/viewing
+export async function generateSignedUrl(fileUrl: string, expiresIn: number = 3600): Promise<string> {
+  const s3Config = getS3Config()
+  
+  // If local storage, just return the URL
+  if (!s3Config || fileUrl.startsWith("/")) {
+    return `${APP_URL}${fileUrl}`
+  }
+
+  try {
+    // Extract key from URL
+    const key = fileUrl.replace(
+      `https://${s3Config.bucket}.s3.${s3Config.region}.amazonaws.com/`,
+      ""
+    ).replace(`${s3Config.endpoint}/${s3Config.bucket}/`, "")
+
+    const { S3Client, GetObjectCommand } = await import("@aws-sdk/client-s3")
+    const { getSignedUrl } = await import("@aws-sdk/s3-request-presigner")
+
+    const client = new S3Client({
+      region: s3Config.region,
+      credentials: {
+        accessKeyId: s3Config.accessKeyId,
+        secretAccessKey: s3Config.secretAccessKey,
+      },
+    })
+
+    const command = new GetObjectCommand({
+      Bucket: s3Config.bucket,
+      Key: key,
+    })
+
+    return await getSignedUrl(client, command, { expiresIn })
+  } catch (error) {
+    console.error("Generate signed URL error:", error)
+    return fileUrl
+  }
+}
+
 export async function uploadFile(
   file: File,
   customName?: string
 ): Promise<UploadResult> {
   try {
-    await ensureUploadDir()
-
     // Validate file type
     if (!ALLOWED_TYPES.includes(file.type)) {
       return {
@@ -97,6 +218,55 @@ export async function uploadFile(
         error: `File size exceeds maximum limit of ${MAX_FILE_SIZE / 1024 / 1024}MB`,
       }
     }
+
+    // Check if using S3
+    const s3Config = getS3Config()
+    if (s3Config) {
+      // Upload to S3
+      const ext = getFileExtension(file.type, file.name)
+      const timestamp = Date.now()
+      const randomStr = randomBytes(8).toString("hex")
+      const baseName = customName
+        ? customName.replace(/[^a-zA-Z0-9-_]/g, "_")
+        : path.parse(file.name).name.replace(/[^a-zA-Z0-9-_]/g, "_")
+      const storedName = `${baseName}_${timestamp}_${randomStr}${ext}`
+      const key = `uploads/${storedName}`
+
+      const { S3Client, PutObjectCommand } = await import("@aws-sdk/client-s3")
+      
+      const client = new S3Client({
+        region: s3Config.region,
+        credentials: {
+          accessKeyId: s3Config.accessKeyId,
+          secretAccessKey: s3Config.secretAccessKey,
+        },
+      })
+
+      const buffer = Buffer.from(await file.arrayBuffer())
+      
+      await client.send(new PutObjectCommand({
+        Bucket: s3Config.bucket,
+        Key: key,
+        Body: buffer,
+        ContentType: file.type,
+      }))
+
+      const fileUrl = s3Config.endpoint
+        ? `${s3Config.endpoint}/${s3Config.bucket}/${key}`
+        : `https://${s3Config.bucket}.s3.${s3Config.region}.amazonaws.com/${key}`
+
+      return {
+        success: true,
+        fileUrl,
+        fileName: storedName,
+        fileSize: file.size,
+        fileType: getFileTypeCategory(file.type),
+        storageType: "s3",
+      }
+    }
+
+    // Fall back to local storage
+    await ensureUploadDir()
 
     // Generate unique filename
     const ext = getFileExtension(file.type, file.name)
@@ -120,7 +290,8 @@ export async function uploadFile(
       fileUrl,
       fileName: storedName,
       fileSize: file.size,
-      fileType: ext.replace(".", "").toUpperCase(),
+      fileType: getFileTypeCategory(file.type),
+      storageType: "local",
     }
   } catch (error) {
     console.error("File upload error:", error)
@@ -131,9 +302,37 @@ export async function uploadFile(
   }
 }
 
-export async function deleteFile(fileUrl: string): Promise<boolean> {
+export async function deleteFile(fileUrl: string, storageType: string = "local"): Promise<boolean> {
   try {
-    // Extract filename from URL
+    if (storageType === "s3") {
+      const s3Config = getS3Config()
+      if (!s3Config) return false
+
+      // Extract key from URL
+      const key = fileUrl.replace(
+        `https://${s3Config.bucket}.s3.${s3Config.region}.amazonaws.com/`,
+        ""
+      ).replace(`${s3Config.endpoint}/${s3Config.bucket}/`, "")
+
+      const { S3Client, DeleteObjectCommand } = await import("@aws-sdk/client-s3")
+
+      const client = new S3Client({
+        region: s3Config.region,
+        credentials: {
+          accessKeyId: s3Config.accessKeyId,
+          secretAccessKey: s3Config.secretAccessKey,
+        },
+      })
+
+      await client.send(new DeleteObjectCommand({
+        Bucket: s3Config.bucket,
+        Key: key,
+      }))
+
+      return true
+    }
+
+    // Local storage deletion
     const urlParts = fileUrl.split("/")
     const fileName = urlParts[urlParts.length - 1]
 
@@ -153,6 +352,42 @@ export async function deleteFile(fileUrl: string): Promise<boolean> {
     console.error("File deletion error:", error)
     return false
   }
+}
+
+// Scan local storage directory for files
+export async function scanLocalStorage(): Promise<{
+  files: { name: string; path: string; size: number; modified: Date }[]
+  totalSize: number
+}> {
+  await ensureUploadDir()
+
+  const files: { name: string; path: string; size: number; modified: Date }[] = []
+  let totalSize = 0
+
+  async function scanDir(dirPath: string) {
+    const entries = await readdir(dirPath, { withFileTypes: true })
+    
+    for (const entry of entries) {
+      const fullPath = path.join(dirPath, entry.name)
+      
+      if (entry.isDirectory()) {
+        await scanDir(fullPath)
+      } else if (entry.isFile()) {
+        const stats = await stat(fullPath)
+        files.push({
+          name: entry.name,
+          path: fullPath.replace(process.cwd() + "/public", ""),
+          size: stats.size,
+          modified: stats.mtime,
+        })
+        totalSize += stats.size
+      }
+    }
+  }
+
+  await scanDir(UPLOAD_DIR)
+  
+  return { files, totalSize }
 }
 
 export function getFileInfoFromUrl(fileUrl: string): FileInfo | null {
@@ -194,4 +429,13 @@ export function getFileInfoFromUrl(fileUrl: string): FileInfo | null {
   } catch {
     return null
   }
+}
+
+// Format file size for display
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return "0 B"
+  const k = 1024
+  const sizes = ["B", "KB", "MB", "GB", "TB"]
+  const i = Math.floor(Math.log(bytes) / Math.log(k))
+  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i]
 }
