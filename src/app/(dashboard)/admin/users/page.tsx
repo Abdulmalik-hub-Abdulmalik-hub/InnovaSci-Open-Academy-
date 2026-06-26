@@ -33,16 +33,37 @@ function UserModal({
   onSave: () => void
 }) {
   const [formData, setFormData] = useState({
-    email: user?.email || "",
-    role: user?.role || "STUDENT",
-    status: user?.status || "ACTIVE",
-    fullName: user?.profile?.fullName || "",
-    username: user?.profile?.username || "",
-    phone: user?.profile?.phone || "",
-    country: user?.profile?.country || "",
-    bio: user?.profile?.bio || "",
+    email: user?.email ?? "",
+    role: user?.role ?? "STUDENT",
+    status: user?.status ?? "ACTIVE",
+    fullName: user?.fullName ?? user?.profile?.fullName ?? "",
+    username: user?.username ?? user?.profile?.username ?? "",
     password: "",
   })
+
+  // Reset form when modal opens/closes
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        email: user.email ?? "",
+        role: user.role ?? "STUDENT",
+        status: user.status ?? "ACTIVE",
+        fullName: user.fullName ?? user.profile?.fullName ?? "",
+        username: user.username ?? user.profile?.username ?? "",
+        password: "",
+      })
+    } else {
+      setFormData({
+        email: "",
+        role: "STUDENT",
+        status: "ACTIVE",
+        fullName: "",
+        username: "",
+        password: "",
+      })
+    }
+  }, [user])
+
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
 
