@@ -591,13 +591,17 @@ model StoredFile {
 // ============================================
 
 model SystemSetting {
-  id        String   @id @default(uuid())
-  key       String   @unique
-  value     String   @db.Text
-  type      String   @default("string")
-  isPublic  Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id          String   @id @default(uuid())
+  key         String   @unique
+  value       String   @db.Text
+  type        String   @default("string")  // string, number, boolean, json
+  category    String   @default("general") // general, appearance, integrations, security, email, payments, storage
+  description String?  // Human-readable description
+  isPublic    Boolean  @default(false)     // Accessible without auth
+  isEncrypted Boolean  @default(false)      // Encrypt value in DB
+  validation  Json?    // Validation rules: { required: true, pattern: "...", min: 0, max: 100 }
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   
   @@map("system_settings")
 }
