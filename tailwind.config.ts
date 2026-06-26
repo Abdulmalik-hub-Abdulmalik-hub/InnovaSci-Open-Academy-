@@ -43,11 +43,17 @@ const config: Config = {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        // Brand Colors
+        // InnovaSci Brand Colors
         brand: {
           purple: "#7C3AED",
+          "purple-light": "#8B5CF6",
+          "purple-dark": "#6D28D9",
           blue: "#2563EB",
+          "blue-light": "#3B82F6",
+          "blue-dark": "#1D4ED8",
           teal: "#0D9488",
+          "teal-light": "#14B8A6",
+          "teal-dark": "#0F766E",
         },
       },
       borderRadius: {

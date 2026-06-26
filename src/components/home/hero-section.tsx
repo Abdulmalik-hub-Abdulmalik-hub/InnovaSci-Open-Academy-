@@ -45,9 +45,9 @@ export function HeroSection() {
       {/* Premium Background */}
       <div className="absolute inset-0 -z-10">
         {/* Gradient orbs */}
-        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-violet-600/30 via-purple-600/20 to-transparent rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[700px] h-[700px] bg-gradient-to-tr from-blue-600/25 via-cyan-500/15 to-transparent rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] bg-gradient-to-t from-teal-600/15 via-emerald-500/10 to-transparent rounded-full blur-[150px]" />
+        <div className="absolute top-0 left-1/4 w-[600px] h-[600px] bg-gradient-to-br from-brand-purple/30 via-brand-purple/20 to-transparent rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[700px] h-[700px] bg-gradient-to-tr from-brand-blue/25 via-brand-blue/15 to-transparent rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[900px] h-[900px] bg-gradient-to-t from-brand-teal/15 via-brand-teal/10 to-transparent rounded-full blur-[150px]" />
         
         {/* Grid pattern overlay */}
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] bg-[size:4rem_4rem] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_40%,white_100%)]" />
@@ -64,12 +64,12 @@ export function HeroSection() {
             className="mb-6"
           >
             <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold tracking-tight">
-              <span className="bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 dark:from-violet-400 dark:via-purple-400 dark:to-blue-400 bg-clip-text text-transparent">
+              <span className="bg-gradient-to-r from-brand-purple via-brand-purple-light to-brand-blue dark:from-brand-purple-light dark:via-brand-purple dark:to-brand-blue bg-clip-text text-transparent">
                 InnovaSci
               </span>
               <span className="text-foreground dark:text-white font-extrabold"> Open Academy</span>
             </h1>
-            <p className="text-sm sm:text-base text-muted-foreground/80 mt-3 font-medium tracking-wide">
+            <p className="text-sm sm:text-base text-muted-foreground/70 mt-3 font-medium tracking-wide">
               Powered by InnovaSci AI Labs
             </p>
           </motion.div>
@@ -94,7 +94,7 @@ export function HeroSection() {
             {/* Glassmorphism Panel */}
             <div className="relative group">
               {/* Glow effect */}
-              <div className="absolute -inset-1 bg-gradient-to-r from-violet-500/50 via-purple-500/50 to-blue-500/50 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
+              <div className="absolute -inset-1 bg-gradient-to-r from-brand-purple/50 via-brand-purple/50 to-brand-blue/50 rounded-2xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-500" />
               
               {/* Main Panel */}
               <div className="relative bg-white/80 dark:bg-slate-900/80 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/50 dark:border-slate-700/50 p-6 sm:p-8">
@@ -107,7 +107,7 @@ export function HeroSection() {
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
                       placeholder="Search courses..."
-                      className="w-full h-14 pl-14 pr-6 text-base rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20 transition-all duration-200 placeholder:text-muted-foreground outline-none"
+                      className="w-full h-14 pl-14 pr-6 text-base rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 focus:border-brand-purple focus:ring-2 focus:ring-brand-purple/20 transition-all duration-200 placeholder:text-muted-foreground outline-none"
                     />
                   </div>
 
@@ -121,7 +121,7 @@ export function HeroSection() {
                           setIsCategoryOpen(!isCategoryOpen)
                           setIsDifficultyOpen(false)
                         }}
-                        className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 hover:border-violet-500/50 transition-all duration-200 text-left"
+                        className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 hover:border-brand-purple/50 transition-all duration-200 text-left"
                       >
                         <span className={selectedCategory === "All Categories" ? "text-muted-foreground" : "text-foreground"}>
                           {selectedCategory}
@@ -144,8 +144,8 @@ export function HeroSection() {
                                 setSelectedCategory(category)
                                 setIsCategoryOpen(false)
                               }}
-                              className={`w-full px-4 py-3 text-left text-sm hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors ${
-                                selectedCategory === category ? "bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-medium" : "text-foreground"
+                              className={`w-full px-4 py-3 text-left text-sm hover:bg-brand-purple/10 transition-colors ${
+                                selectedCategory === category ? "bg-brand-purple/10 text-brand-purple dark:text-brand-purple-light font-medium" : "text-foreground"
                               }`}
                             >
                               {category}
@@ -163,7 +163,7 @@ export function HeroSection() {
                           setIsDifficultyOpen(!isDifficultyOpen)
                           setIsCategoryOpen(false)
                         }}
-                        className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 hover:border-violet-500/50 transition-all duration-200 text-left"
+                        className="w-full h-12 px-4 flex items-center justify-between rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 hover:border-brand-purple/50 transition-all duration-200 text-left"
                       >
                         <span className={selectedDifficulty === "All Difficulty Levels" ? "text-muted-foreground" : "text-foreground"}>
                           {selectedDifficulty}
@@ -186,8 +186,8 @@ export function HeroSection() {
                                 setSelectedDifficulty(level)
                                 setIsDifficultyOpen(false)
                               }}
-                              className={`w-full px-4 py-3 text-left text-sm hover:bg-violet-50 dark:hover:bg-violet-900/20 transition-colors ${
-                                selectedDifficulty === level ? "bg-violet-50 dark:bg-violet-900/30 text-violet-600 dark:text-violet-400 font-medium" : "text-foreground"
+                              className={`w-full px-4 py-3 text-left text-sm hover:bg-brand-purple/10 transition-colors ${
+                                selectedDifficulty === level ? "bg-brand-purple/10 text-brand-purple dark:text-brand-purple-light font-medium" : "text-foreground"
                               }`}
                             >
                               {level}
@@ -202,7 +202,7 @@ export function HeroSection() {
                   <Button
                     type="submit"
                     size="lg"
-                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-violet-600 via-purple-600 to-blue-600 hover:from-violet-700 hover:via-purple-700 hover:to-blue-700 shadow-lg shadow-violet-500/25 hover:shadow-violet-500/40 transition-all duration-300"
+                    className="w-full h-12 text-base font-semibold bg-gradient-to-r from-brand-purple to-brand-blue hover:opacity-90 shadow-lg shadow-brand-purple/25 hover:shadow-brand-purple/40 transition-all duration-300"
                   >
                     <Search className="h-5 w-5 mr-2" />
                     Search Courses
@@ -220,29 +220,29 @@ export function HeroSection() {
             className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-6 md:gap-8 max-w-4xl mx-auto"
           >
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-violet-100 dark:bg-violet-900/30 mb-3">
-                <BookOpen className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-purple/10 dark:bg-brand-purple/20 mb-3">
+                <BookOpen className="h-6 w-6 text-brand-purple" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold text-foreground">200+</div>
               <div className="text-sm text-muted-foreground">Expert Courses</div>
             </div>
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 mb-3">
-                <Users className="h-6 w-6 text-blue-600 dark:text-blue-400" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-blue/10 dark:bg-brand-blue/20 mb-3">
+                <Users className="h-6 w-6 text-brand-blue" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold text-foreground">50K+</div>
               <div className="text-sm text-muted-foreground">Active Learners</div>
             </div>
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-teal-100 dark:bg-teal-900/30 mb-3">
-                <Award className="h-6 w-6 text-teal-600 dark:text-teal-400" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-teal/10 dark:bg-brand-teal/20 mb-3">
+                <Award className="h-6 w-6 text-brand-teal" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold text-foreground">95%</div>
               <div className="text-sm text-muted-foreground">Completion Rate</div>
             </div>
             <div className="text-center">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 mb-3">
-                <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-brand-purple/10 dark:bg-brand-purple/20 mb-3">
+                <Zap className="h-6 w-6 text-brand-purple" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold text-foreground">AI</div>
               <div className="text-sm text-muted-foreground">Powered Learning</div>
