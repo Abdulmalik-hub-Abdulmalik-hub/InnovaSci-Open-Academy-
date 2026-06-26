@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Search, ChevronDown, Sparkles, BookOpen, Users, Award } from "lucide-react"
+import { Search, ChevronDown, BookOpen, Users, Award, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const categories = [
@@ -56,19 +56,6 @@ export function HeroSection() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Hero Content */}
         <div className="pt-16 pb-12 md:pt-24 md:pb-16 lg:pt-32 lg:pb-24 text-center">
-          {/* Brand Badge */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5 }}
-            className="inline-flex items-center gap-2.5 px-5 py-2.5 rounded-full bg-gradient-to-r from-violet-500/10 via-purple-500/10 to-blue-500/10 border border-violet-500/20 mb-8"
-          >
-            <Sparkles className="h-4 w-4 text-violet-500" />
-            <span className="text-sm font-medium text-violet-600 dark:text-violet-400">
-              Powered by InnovaSci AI Labs
-            </span>
-          </motion.div>
-
           {/* Main Heading */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -253,7 +240,7 @@ export function HeroSection() {
             </div>
             <div className="text-center">
               <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 mb-3">
-                <Sparkles className="h-6 w-6 text-purple-600 dark:text-purple-400" />
+                <Zap className="h-6 w-6 text-purple-600 dark:text-purple-400" />
               </div>
               <div className="text-2xl sm:text-3xl font-bold text-foreground">AI</div>
               <div className="text-sm text-muted-foreground">Powered Learning</div>

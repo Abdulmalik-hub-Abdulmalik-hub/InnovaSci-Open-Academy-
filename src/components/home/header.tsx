@@ -83,12 +83,15 @@ export function Header() {
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href="/" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#7C3AED] to-[#2563EB] transition-transform group-hover:scale-105">
+            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 transition-transform group-hover:scale-105 shadow-lg shadow-violet-500/20">
               <GraduationCap className="h-5 w-5 text-white" />
             </div>
             <div className="flex flex-col">
-              <span className="text-base font-bold tracking-tight">InnovaSci</span>
-              <span className="text-[10px] text-muted-foreground -mt-0.5">Open Academy</span>
+              <span className="text-base sm:text-lg font-bold tracking-tight">
+                <span className="bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">InnovaSci</span>
+                <span className="text-foreground dark:text-white"> Open Academy</span>
+              </span>
+              <span className="text-[10px] text-muted-foreground/70 -mt-0.5 hidden sm:block">Powered by InnovaSci AI Labs</span>
             </div>
           </Link>
 
