@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client"
+import { PrismaClient, Prisma } from "@prisma/client"
 
 // Log database connection info on initialization
 console.log("[Prisma] Initializing Prisma Client...")
@@ -16,20 +16,13 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: [
-      "error",
-      "warn",
-      ...(process.env.NODE_ENV === "development" ? ["query"] : []),
-    ],
+    log: process.env.NODE_ENV === "development" 
+      ? ["query", "error", "warn"] 
+      : ["error", "warn"],
   })
 
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma
 }
-
-// Log successful connection
-prisma.$on("connected" as never, () => {
-  console.log("[Prisma] Successfully connected to database")
-})
 
 console.log("[Prisma] Prisma Client initialized")
