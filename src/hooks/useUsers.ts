@@ -8,6 +8,9 @@ export interface User {
   role: string
   status: string
   createdAt: string
+  fullName: string | null
+  username: string | null
+  avatarUrl: string | null
   profile: {
     id: string
     fullName: string | null
@@ -19,16 +22,7 @@ export interface User {
   } | null
   enrollments: number
   certificates: number
-}
-
-export interface UsersResponse {
-  users: User[]
-  pagination: {
-    page: number
-    limit: number
-    total: number
-    totalPages: number
-  }
+  isSystemAdmin?: boolean
 }
 
 interface UseUsersReturn {
@@ -174,18 +168,14 @@ export function useUsers(): UseUsersReturn {
         return { success: false, error: result.error }
       }
 
-      // Update the user in the local state
-      setUsers(prev => prev.map(u => 
-        u.id === id 
-          ? { ...u, ...result.data.user, profile: { ...u.profile, ...result.data.profile } }
-          : u
-      ))
+      // Refresh the list to get updated data
+      await fetchUsers()
       return { success: true }
     } catch (err) {
       console.error("Update user error:", err)
       return { success: false, error: "Failed to update user" }
     }
-  }, [])
+  }, [fetchUsers])
 
   const deleteUser = useCallback(async (id: string): Promise<{ success: boolean; error?: string }> => {
     try {
@@ -199,14 +189,14 @@ export function useUsers(): UseUsersReturn {
         return { success: false, error: result.error }
       }
 
-      // Remove the user from local state
-      setUsers(prev => prev.filter(u => u.id !== id))
+      // Refresh the list to reflect deletion
+      await fetchUsers()
       return { success: true }
     } catch (err) {
       console.error("Delete user error:", err)
       return { success: false, error: "Failed to delete user" }
     }
-  }, [])
+  }, [fetchUsers])
 
   useEffect(() => {
     fetchUsers()

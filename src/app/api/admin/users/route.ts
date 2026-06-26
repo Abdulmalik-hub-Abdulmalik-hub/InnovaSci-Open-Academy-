@@ -1,21 +1,57 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+// System Admin IDs that cannot be deleted or demoted
+const SYSTEM_ADMIN_IDS = [
+  "d2b7ac6d-0e84-4be7-89bd-4f93b15a2b51",
+  // Add more system admin IDs as needed
+]
+
 // GET /api/admin/users - List all users
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    const users = await prisma.user.findMany({
-      include: {
-        profile: true,
-        _count: {
-          select: {
-            enrollments: true,
-            certificates: true
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "20")
+    const search = searchParams.get("search") || ""
+    const role = searchParams.get("role") || ""
+    const status = searchParams.get("status") || ""
+
+    const skip = (page - 1) * limit
+
+    // Build where clause
+    const where: Record<string, unknown> = {}
+    if (search) {
+      where.OR = [
+        { email: { contains: search, mode: "insensitive" } },
+        { profile: { fullName: { contains: search, mode: "insensitive" } } },
+      ]
+    }
+    if (role && role !== "all") {
+      where.role = role
+    }
+    if (status && status !== "all") {
+      where.status = status
+    }
+
+    const [users, total] = await Promise.all([
+      prisma.user.findMany({
+        where,
+        include: {
+          profile: true,
+          _count: {
+            select: {
+              enrollments: true,
+              certificates: true
+            }
           }
-        }
-      },
-      orderBy: { createdAt: "desc" }
-    }).catch(() => [])
+        },
+        orderBy: { createdAt: "desc" },
+        skip,
+        take: limit
+      }),
+      prisma.user.count({ where })
+    ])
 
     const formattedUsers = users.map(user => ({
       id: user.id,
@@ -23,23 +59,114 @@ export async function GET() {
       role: user.role,
       status: user.status,
       fullName: user.profile?.fullName || "N/A",
-      createdAt: user.createdAt,
+      username: user.profile?.username || null,
+      avatarUrl: user.profile?.avatarUrl || null,
+      createdAt: user.createdAt.toISOString(),
       enrollments: user._count.enrollments,
-      certificates: user._count.certificates
+      certificates: user._count.certificates,
+      isSystemAdmin: SYSTEM_ADMIN_IDS.includes(user.id)
     }))
 
     return NextResponse.json({
       success: true,
-      data: formattedUsers,
-      total: formattedUsers.length
+      data: {
+        users: formattedUsers,
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit)
+        }
+      }
     })
   } catch (error) {
     console.error("Users API error:", error)
     return NextResponse.json({
       success: false,
       error: "Database not ready",
-      data: [],
-      total: 0
+      data: { users: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }
     })
+  }
+}
+
+// POST /api/admin/users - Create new user
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json()
+    const { email, password, role = "STUDENT", fullName, username } = body
+
+    // Validate required fields
+    if (!email || !password) {
+      return NextResponse.json(
+        { success: false, error: "Email and password are required" },
+        { status: 400 }
+      )
+    }
+
+    // Validate role
+    if (!["ADMIN", "STUDENT"].includes(role)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid role. Must be ADMIN or STUDENT" },
+        { status: 400 }
+      )
+    }
+
+    // Check if email already exists
+    const existingUser = await prisma.user.findUnique({
+      where: { email: email.toLowerCase() }
+    })
+
+    if (existingUser) {
+      return NextResponse.json(
+        { success: false, error: "User with this email already exists" },
+        { status: 409 }
+      )
+    }
+
+    // Create user with profile in a transaction
+    const newUser = await prisma.$transaction(async (tx) => {
+      // Create user
+      const user = await tx.user.create({
+        data: {
+          email: email.toLowerCase(),
+          passwordHash: password, // In production, hash this!
+          role,
+          status: "ACTIVE"
+        }
+      })
+
+      // Create profile
+      const profile = await tx.profile.create({
+        data: {
+          userId: user.id,
+          fullName: fullName || null,
+          username: username || null
+        }
+      })
+
+      return { user, profile }
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: {
+        user: {
+          id: newUser.user.id,
+          email: newUser.user.email,
+          role: newUser.user.role,
+          status: newUser.user.status,
+          createdAt: newUser.user.createdAt.toISOString()
+        },
+        profile: newUser.profile
+      },
+      message: "User created successfully"
+    }, { status: 201 })
+
+  } catch (error) {
+    console.error("Create user error:", error)
+    return NextResponse.json(
+      { success: false, error: "Failed to create user" },
+      { status: 500 }
+    )
   }
 }

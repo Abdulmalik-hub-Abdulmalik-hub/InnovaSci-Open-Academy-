@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 import { Prisma } from "@prisma/client"
 
+// System Admin IDs that cannot be deleted or demoted
+const SYSTEM_ADMIN_IDS = [
+  "d2b7ac6d-0e84-4be7-89bd-4f93b15a2b51",
+  // Add more system admin IDs as needed
+]
+
 // GET /api/admin/users/[id] - Get single user
 export async function GET(
   request: NextRequest,
@@ -42,6 +48,7 @@ export async function GET(
         createdAt: user.createdAt.toISOString(),
         updatedAt: user.updatedAt.toISOString(),
         profile: user.profile,
+        isSystemAdmin: SYSTEM_ADMIN_IDS.includes(user.id),
         stats: {
           enrollments: user._count.enrollments,
           certificates: user._count.certificates,
@@ -77,6 +84,38 @@ export async function PUT(
       return NextResponse.json(
         { success: false, error: "User not found" },
         { status: 404 }
+      )
+    }
+
+    // Prevent modification of system admin role
+    if (SYSTEM_ADMIN_IDS.includes(id) && role && role !== "ADMIN") {
+      return NextResponse.json(
+        { success: false, error: "Cannot change the role of a system administrator" },
+        { status: 403 }
+      )
+    }
+
+    // Prevent deactivating system admin
+    if (SYSTEM_ADMIN_IDS.includes(id) && status && status !== "ACTIVE") {
+      return NextResponse.json(
+        { success: false, error: "Cannot deactivate a system administrator" },
+        { status: 403 }
+      )
+    }
+
+    // Validate role
+    if (role && !["ADMIN", "STUDENT"].includes(role)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid role. Must be ADMIN or STUDENT" },
+        { status: 400 }
+      )
+    }
+
+    // Validate status
+    if (status && !["ACTIVE", "INACTIVE", "SUSPENDED"].includes(status)) {
+      return NextResponse.json(
+        { success: false, error: "Invalid status" },
+        { status: 400 }
       )
     }
 
@@ -153,6 +192,28 @@ export async function DELETE(
         { success: false, error: "User not found" },
         { status: 404 }
       )
+    }
+
+    // Prevent deletion of system admin
+    if (SYSTEM_ADMIN_IDS.includes(id)) {
+      return NextResponse.json(
+        { success: false, error: "Cannot delete a system administrator" },
+        { status: 403 }
+      )
+    }
+
+    // Check if this is the last admin
+    if (user.role === "ADMIN") {
+      const adminCount = await prisma.user.count({
+        where: { role: "ADMIN" }
+      })
+      
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { success: false, error: "Cannot delete the last system administrator" },
+          { status: 400 }
+        )
+      }
     }
 
     // Delete user (cascade will handle related records)

@@ -9,7 +9,7 @@ import { useUsers, User } from "@/hooks/useUsers"
 import { 
   Search, Plus, MoreHorizontal, Mail, Phone, 
   Shield, Trash2, Edit, UserCheck, UserX, Eye,
-  RefreshCw, Loader2, X
+  RefreshCw, Loader2, X, ShieldCheck
 } from "lucide-react"
 
 const roleColors: Record<string, string> = {
@@ -298,7 +298,7 @@ export default function UsersPage() {
       {error && (
         <Card className="bg-red-500/10 border-red-500/20">
           <CardContent className="p-4 flex items-center justify-between">
-            <span className="text-red-400">{error}</span>
+	          <span className="text-red-400">{error}</span>
             <Button variant="outline" size="sm" onClick={refresh} className="border-red-500/20 text-red-400">
               <RefreshCw className="h-4 w-4 mr-2" />
               Retry
