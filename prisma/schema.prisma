@@ -504,6 +504,7 @@ model SupportTicket {
   status     String    @default("open") // open, in_progress, resolved, closed
   priority   String    @default("medium") // low, medium, high, urgent
   assignedTo String?
+  labels     String?   // Comma-separated labels for categorization
   createdAt  DateTime  @default(now())
   updatedAt  DateTime  @updatedAt
   resolvedAt DateTime?
@@ -511,6 +512,11 @@ model SupportTicket {
   user     User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   comments TicketComment[]
 
+  @@index([status])
+  @@index([priority])
+  @@index([createdAt])
+  @@index([userId])
+  @@index([assignedTo])
   @@map("support_tickets")
 }
 
@@ -528,7 +534,8 @@ model TicketComment {
 
   ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
   user   User?         @relation(fields: [userId], references: [id], onDelete: SetNull)
-
+  
+  @@index([ticketId])
   @@map("ticket_comments")
 }
 

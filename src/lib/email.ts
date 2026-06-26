@@ -342,3 +342,95 @@ export async function sendUnsubscribeConfirmation(email: string): Promise<SendEm
     html: wrapInEmailTemplate(content, "Unsubscribed")
   })
 }
+
+// ============================================
+// TICKET EMAIL NOTIFICATIONS
+// ============================================
+
+interface TicketEmailData {
+  ticketId: string
+  subject: string
+  customerEmail: string
+  customerName?: string
+  message: string
+  status?: string
+  ticketUrl?: string
+}
+
+export async function sendTicketReplyNotification(data: TicketEmailData): Promise<SendEmailResult> {
+  const { customerEmail, customerName, subject, message, ticketId } = data
+  
+  const ticketUrl = data.ticketUrl || `${APP_URL}/support/tickets/${ticketId}`
+  
+  const content = `
+    <h2>We've Responded to Your Support Request</h2>
+    <p>Hello ${customerName || "there"},</p>
+    <p>Our support team has responded to your ticket:</p>
+    <div style="background: #f9fafb; padding: 20px; border-left: 4px solid #667eea; margin: 20px 0; border-radius: 4px;">
+      <h3 style="margin: 0 0 10px; color: #1f2937;">${subject}</h3>
+      <p style="margin: 0; color: #4b5563; white-space: pre-wrap;">${message}</p>
+    </div>
+    <a href="${ticketUrl}" class="button">View Full Conversation</a>
+    <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+      If you have any further questions, please don't hesitate to reach out.
+    </p>
+  `
+  
+  return sendEmail({
+    to: customerEmail,
+    subject: `Re: ${subject}`,
+    html: wrapInEmailTemplate(content, "Support Response"),
+  })
+}
+
+export async function sendTicketCreatedNotification(data: TicketEmailData): Promise<SendEmailResult> {
+  const { customerEmail, customerName, subject, ticketId } = data
+  
+  const ticketUrl = data.ticketUrl || `${APP_URL}/support/tickets/${ticketId}`
+  
+  const content = `
+    <h2>Support Ticket Received</h2>
+    <p>Hello ${customerName || "there"},</p>
+    <p>Thank you for contacting our support team. Your ticket has been received and is being reviewed.</p>
+    <div style="background: #f9fafb; padding: 20px; margin: 20px 0; border-radius: 4px;">
+      <h3 style="margin: 0 0 10px; color: #1f2937;">${subject}</h3>
+      <p style="margin: 0; color: #6b7280;">Ticket ID: #${ticketId.slice(0, 8).toUpperCase()}</p>
+    </div>
+    <p style="margin: 0 0 20px;">Our team will get back to you as soon as possible. You can expect a response within 24-48 hours.</p>
+    <a href="${ticketUrl}" class="button">View Your Ticket</a>
+  `
+  
+  return sendEmail({
+    to: customerEmail,
+    subject: `Support Ticket Received: ${subject}`,
+    html: wrapInEmailTemplate(content, "Ticket Received"),
+  })
+}
+
+export async function sendTicketStatusNotification(data: TicketEmailData): Promise<SendEmailResult> {
+  const { customerEmail, customerName, subject, status, ticketId } = data
+  
+  const statusMessages: Record<string, string> = {
+    open: "Your ticket is now open and waiting for review.",
+    in_progress: "Your ticket is being worked on by our team.",
+    resolved: "Your ticket has been marked as resolved.",
+    closed: "Your ticket has been closed.",
+  }
+  
+  const content = `
+    <h2>Ticket Status Update</h2>
+    <p>Hello ${customerName || "there"},</p>
+    <div style="background: #f9fafb; padding: 20px; margin: 20px 0; border-radius: 4px; text-align: center;">
+      <p style="margin: 0; font-size: 18px; color: #667eea; text-transform: capitalize; font-weight: bold;">${status?.replace("_", " ") || "Updated"}</p>
+      <p style="margin: 10px 0 0; color: #4b5563;">${statusMessages[status || ""] || "Your ticket status has been updated."}</p>
+    </div>
+    <p style="margin: 20px 0;">Ticket: ${subject}</p>
+    <a href="${APP_URL}/support/tickets/${ticketId}" class="button">View Ticket</a>
+  `
+  
+  return sendEmail({
+    to: customerEmail,
+    subject: `Ticket Status Updated: ${subject}`,
+    html: wrapInEmailTemplate(content, "Status Update"),
+  })
+}
