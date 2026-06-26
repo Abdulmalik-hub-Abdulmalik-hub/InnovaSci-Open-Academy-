@@ -69,6 +69,9 @@ export function HeroSection() {
               </span>
               <span className="text-foreground dark:text-white font-extrabold"> Open Academy</span>
             </h1>
+            <p className="text-sm sm:text-base text-muted-foreground/80 mt-3 font-medium tracking-wide">
+              Powered by InnovaSci AI Labs
+            </p>
           </motion.div>
 
           {/* Description */}
@@ -78,8 +81,7 @@ export function HeroSection() {
             transition={{ duration: 0.5, delay: 0.2 }}
             className="text-lg sm:text-xl md:text-2xl text-muted-foreground max-w-3xl mx-auto mb-12 leading-relaxed"
           >
-            Democratizing scientific and technological education through AI-powered learning. 
-            Master cutting-edge fields from AI to Drug Discovery with world-class instructors.
+            Our mission is to democratize high-quality scientific and technological education through open-access learning. We are dedicated to empowering a global community of innovators, researchers, and learners with the skills and knowledge needed to solve complex real-world challenges.
           </motion.p>
 
           {/* Course Discovery Panel */}

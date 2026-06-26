@@ -91,7 +91,6 @@ export function Header() {
                 <span className="bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">InnovaSci</span>
                 <span className="text-foreground dark:text-white"> Open Academy</span>
               </span>
-              <span className="text-[10px] text-muted-foreground/70 -mt-0.5 hidden sm:block">Powered by InnovaSci AI Labs</span>
             </div>
           </Link>
 
