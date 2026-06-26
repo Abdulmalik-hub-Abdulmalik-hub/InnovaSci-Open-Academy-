@@ -91,6 +91,16 @@ export async function GET(request: NextRequest) {
 
 // POST /api/admin/users - Create new user
 export async function POST(request: NextRequest) {
+  // Check DATABASE_URL before any database operation
+  console.log("[POST /api/admin/users] DATABASE_URL exists:", !!process.env.DATABASE_URL)
+  if (!process.env.DATABASE_URL) {
+    console.error("[POST /api/admin/users] FATAL: DATABASE_URL is not set!")
+    return NextResponse.json(
+      { success: false, error: "Database configuration missing", details: "DATABASE_URL environment variable is not set" },
+      { status: 500 }
+    )
+  }
+
   try {
     const body = await request.json()
     const { email, password, role = "STUDENT", fullName, username } = body
@@ -180,10 +190,18 @@ export async function POST(request: NextRequest) {
     }, { status: 201 })
 
   } catch (error) {
-    console.error("Create user error:", error)
-    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    // Log full error details
+    console.error("========== CREATE USER ERROR ==========")
+    console.error("Error name:", error?.constructor?.name)
+    console.error("Error message:", error instanceof Error ? error.message : String(error))
+    console.error("Error stack:", error instanceof Error ? error.stack : "No stack trace")
+    console.error("Full error object:", JSON.stringify(error, null, 2))
+    console.error("=======================================")
+    
+    // Return detailed error for debugging
+    const errorMessage = error instanceof Error ? error.message : String(error)
     return NextResponse.json(
-      { success: false, error: `Failed to create user: ${errorMessage}` },
+      { success: false, error: `Failed to create user: ${errorMessage}`, details: error?.constructor?.name },
       { status: 500 }
     )
   }
