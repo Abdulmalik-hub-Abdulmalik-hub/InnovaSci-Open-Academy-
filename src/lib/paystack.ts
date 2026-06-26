@@ -338,6 +338,13 @@ export function toKobo(naira: number): number {
 }
 
 /**
+ * Convert dollars to cents for USD payments
+ */
+export function toCents(dollars: number): number {
+  return Math.round(dollars * 100)
+}
+
+/**
  * Convert kobo to naira
  */
 export function fromKobo(kobo: number): number {
@@ -345,12 +352,20 @@ export function fromKobo(kobo: number): number {
 }
 
 /**
- * Generate a unique payment reference
+ * Convert cents to dollars
  */
-export function generatePaymentReference(): string {
+export function fromCents(cents: number): number {
+  return cents / 100
+}
+
+/**
+ * Generate a unique payment reference with optional currency prefix
+ */
+export function generatePaymentReference(currency?: string): string {
   const timestamp = Date.now().toString(36)
   const random = Math.random().toString(36).substring(2, 10)
-  return `INV-${timestamp}-${random}`.toUpperCase()
+  const prefix = currency === 'USD' ? 'USD' : 'NGN'
+  return `${prefix}-${timestamp}-${random}`.toUpperCase()
 }
 
 // ============================================

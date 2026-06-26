@@ -89,11 +89,16 @@ model Course {
   durationHours    Int?
   thumbnailUrl     String?
   promoVideoUrl    String?
-  price            Decimal  @default(0)
+  price            Decimal  @default(0) // Legacy single price
+  pricing          Json? // Multi-currency: { "NGN": { "amount": 50000 }, "USD": { "amount": 100 } }
   isFree           Boolean  @default(true)
   status           String   @default("draft") // draft, published, archived
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
+
+  // Certificate Template
+  certificateTemplateId  String? // Reference to certificate template
+  certificateTemplateUrl String? // URL to certificate template image
 
   // Relations
   modules          Module[]
@@ -338,7 +343,7 @@ model Payment {
 }
 
 // ============================================
-// 13. PLANS - Subscription plans
+// 13. PLANS - Subscription plans (Multi-currency)
 // ============================================
 
 model Plan {
@@ -347,10 +352,11 @@ model Plan {
   description        String?  @db.Text
   planType           String   @default("subscription") // subscription, one_time
   billingCycle       String   @default("monthly") // monthly, yearly, lifetime
-  price              Decimal
-  currency           String   @default("USD")
-  stripePriceId      String?  @unique
-  paystackPlanId     String?  @unique
+  price              Decimal  @default(0) // Legacy single price
+  currency           String   @default("USD") // Legacy single currency
+  pricing            Json? // Multi-currency: { "NGN": { "amount": 50000, "paystackPlanId": "xxx" }, "USD": { "amount": 100, "stripePriceId": "xxx" } }
+  stripePriceId      String?  @unique // Legacy
+  paystackPlanId     String?  @unique // Legacy
   features           Json?    @default("[]")
   isActive           Boolean  @default(true)
   isFeatured         Boolean  @default(false)

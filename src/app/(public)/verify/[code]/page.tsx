@@ -7,17 +7,26 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { 
   CheckCircle, XCircle, Award, Search, Loader2, 
-  GraduationCap, Calendar, User, BookOpen
+  GraduationCap, Calendar, User, BookOpen, Download, AlertTriangle
 } from "lucide-react"
 
 interface VerificationResult {
   valid: boolean
   status: string
-  verificationCode: string
+  certificateId?: string
+  certificateCode: string
+  verificationCode?: string
+  verificationUrl?: string
+  pdfUrl?: string
   issuedAt: string
-  student: string
+  studentName: string
+  studentEmail?: string
+  studentAvatar?: string
   courseName: string
+  courseThumbnail?: string
   revoked?: boolean
+  revokedAt?: string | null
+  revokeReason?: string | null
   message?: string
 }
 
@@ -79,6 +88,13 @@ export default function VerifyCertificatePage({
     })
   }
 
+  // Normalize result for backward compatibility
+  const normalizedResult = result ? {
+    ...result,
+    student: result.studentName,
+    verificationCode: result.certificateCode || result.verificationCode,
+  } : null
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center p-4">
       <div className="w-full max-w-2xl">
@@ -103,7 +119,7 @@ export default function VerifyCertificatePage({
                   value={code}
                   onChange={(e) => setCode(e.target.value.toUpperCase())}
                   className="pl-10 bg-white/10 border-white/20 text-white placeholder:text-white/40 text-lg font-mono"
-                  placeholder="Enter verification code (e.g., ABC123DEF456)"
+                  placeholder="Enter certificate code (e.g., CERT-2026-ABCD1234)"
                   onKeyDown={(e) => e.key === "Enter" && handleVerify()}
                 />
               </div>
@@ -129,21 +145,21 @@ export default function VerifyCertificatePage({
         </Card>
 
         {/* Results */}
-        {searched && result && (
+        {searched && normalizedResult && (
           <Card className={`bg-white/10 backdrop-blur-lg border-2 ${
-            result.valid ? "border-green-500/50" : result.revoked ? "border-yellow-500/50" : "border-red-500/50"
+            normalizedResult.valid ? "border-green-500/50" : normalizedResult.revoked ? "border-yellow-500/50" : "border-red-500/50"
           }`}>
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle className="text-white flex items-center gap-3">
-                  {result.valid ? (
+                  {normalizedResult.valid ? (
                     <>
                       <CheckCircle className="h-8 w-8 text-green-400" />
                       <span className="text-green-400">Valid Certificate</span>
                     </>
-                  ) : result.revoked ? (
+                  ) : normalizedResult.revoked ? (
                     <>
-                      <XCircle className="h-8 w-8 text-yellow-400" />
+                      <AlertTriangle className="h-8 w-8 text-yellow-400" />
                       <span className="text-yellow-400">Certificate Revoked</span>
                     </>
                   ) : (
@@ -154,25 +170,28 @@ export default function VerifyCertificatePage({
                   )}
                 </CardTitle>
                 <Badge className={
-                  result.valid 
+                  normalizedResult.valid 
                     ? "bg-green-500/20 text-green-400 border-green-500/50" 
-                    : result.revoked
+                    : normalizedResult.revoked
                     ? "bg-yellow-500/20 text-yellow-400 border-yellow-500/50"
                     : "bg-red-500/20 text-red-400 border-red-500/50"
                 }>
-                  {result.status?.toUpperCase()}
+                  {normalizedResult.status?.toUpperCase()}
                 </Badge>
               </div>
             </CardHeader>
             
-            {result.valid && (
+            {normalizedResult.valid && (
               <CardContent className="space-y-4">
                 <div className="grid gap-4">
                   <div className="flex items-center gap-4 p-4 bg-white/5 rounded-lg">
                     <User className="h-6 w-6 text-purple-400" />
                     <div>
                       <p className="text-white/50 text-sm">Graduate</p>
-                      <p className="text-white text-lg font-medium">{result.student}</p>
+                      <p className="text-white text-lg font-medium">{normalizedResult.studentName}</p>
+                      {normalizedResult.studentEmail && (
+                        <p className="text-white/50 text-sm">{normalizedResult.studentEmail}</p>
+                      )}
                     </div>
                   </div>
                   
@@ -180,7 +199,7 @@ export default function VerifyCertificatePage({
                     <BookOpen className="h-6 w-6 text-purple-400" />
                     <div>
                       <p className="text-white/50 text-sm">Course Completed</p>
-                      <p className="text-white text-lg font-medium">{result.courseName}</p>
+                      <p className="text-white text-lg font-medium">{normalizedResult.courseName}</p>
                     </div>
                   </div>
                   
@@ -188,18 +207,30 @@ export default function VerifyCertificatePage({
                     <Calendar className="h-6 w-6 text-purple-400" />
                     <div>
                       <p className="text-white/50 text-sm">Issue Date</p>
-                      <p className="text-white text-lg font-medium">{formatDate(result.issuedAt)}</p>
+                      <p className="text-white text-lg font-medium">{formatDate(normalizedResult.issuedAt)}</p>
                     </div>
                   </div>
                   
                   <div className="flex items-center gap-4 p-4 bg-white/5 rounded-lg">
                     <GraduationCap className="h-6 w-6 text-purple-400" />
                     <div>
-                      <p className="text-white/50 text-sm">Verification Code</p>
-                      <p className="text-white text-lg font-mono font-bold">{result.verificationCode}</p>
+                      <p className="text-white/50 text-sm">Certificate Code</p>
+                      <p className="text-white text-lg font-mono font-bold">{normalizedResult.certificateCode}</p>
                     </div>
                   </div>
                 </div>
+                
+                {normalizedResult.pdfUrl && (
+                  <Button
+                    asChild
+                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                  >
+                    <a href={normalizedResult.pdfUrl} download>
+                      <Download className="h-5 w-5 mr-2" />
+                      Download Certificate PDF
+                    </a>
+                  </Button>
+                )}
                 
                 <div className="mt-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                   <p className="text-green-400 text-center">
@@ -209,21 +240,42 @@ export default function VerifyCertificatePage({
               </CardContent>
             )}
             
-            {result.revoked && (
-              <CardContent>
+            {normalizedResult.revoked && (
+              <CardContent className="space-y-4">
                 <div className="p-4 bg-yellow-500/10 border border-yellow-500/30 rounded-lg">
-                  <p className="text-yellow-400 text-center">
-                    ⚠️ This certificate was previously revoked and is no longer valid
-                  </p>
+                  <div className="flex items-start gap-3">
+                    <AlertTriangle className="h-6 w-6 text-yellow-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <p className="text-yellow-400 font-medium">This certificate has been revoked</p>
+                      {normalizedResult.revokeReason && (
+                        <p className="text-yellow-300/80 text-sm mt-1">
+                          Reason: {normalizedResult.revokeReason}
+                        </p>
+                      )}
+                      {normalizedResult.revokedAt && (
+                        <p className="text-yellow-300/80 text-sm">
+                          Revoked on: {formatDate(normalizedResult.revokedAt)}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="flex items-center gap-4 p-4 bg-white/5 rounded-lg">
+                  <GraduationCap className="h-6 w-6 text-purple-400" />
+                  <div>
+                    <p className="text-white/50 text-sm">Certificate Code</p>
+                    <p className="text-white text-lg font-mono font-bold">{normalizedResult.certificateCode}</p>
+                  </div>
                 </div>
               </CardContent>
             )}
             
-            {result.message && !result.valid && !result.revoked && (
+            {normalizedResult.message && !normalizedResult.valid && !normalizedResult.revoked && (
               <CardContent>
                 <div className="p-4 bg-red-500/10 border border-red-500/30 rounded-lg">
                   <p className="text-red-400 text-center">
-                    {result.message}
+                    {normalizedResult.message}
                   </p>
                 </div>
               </CardContent>
@@ -235,7 +287,7 @@ export default function VerifyCertificatePage({
         <div className="mt-6 p-4 bg-white/5 border border-white/10 rounded-lg">
           <h3 className="text-white font-medium mb-2">How to verify a certificate</h3>
           <ol className="text-white/60 text-sm space-y-1 list-decimal list-inside">
-            <li>Locate the verification code on the certificate (bottom right corner)</li>
+            <li>Locate the certificate code on the certificate (e.g., CERT-2026-ABCD1234)</li>
             <li>Enter the code in the search box above</li>
             <li>Click "Verify" to confirm the certificate's authenticity</li>
           </ol>

@@ -1,24 +1,25 @@
 /**
- * Paystack Payment Initialization API
+ * Paystack Payment Initialization API (Multi-currency)
  * 
  * POST /api/payments/initialize
  * 
  * Body:
  * {
  *   type: 'course' | 'certificate' | 'subscription',
- *   amount: number (in naira),
+ *   amount: number,
+ *   currency: 'NGN' | 'USD',
  *   email: string,
  *   metadata?: object
  * }
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { initializeTransaction, toKobo, generatePaymentReference, PaystackMetadata } from '@/lib/paystack'
+import { initializeTransaction, toKobo, toCents, generatePaymentReference, PaystackMetadata } from '@/lib/paystack'
 
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { type, amount, email, metadata = {} } = body
+    const { type, amount, currency = 'NGN', email, metadata = {} } = body
 
     // Validate required fields
     if (!type || !amount || !email) {
@@ -28,6 +29,17 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate currency
+    const validCurrencies = ['NGN', 'USD']
+    if (!validCurrencies.includes(currency.toUpperCase())) {
+      return NextResponse.json(
+        { error: 'Invalid currency. Must be NGN or USD' },
+        { status: 400 }
+      )
+    }
+
+    const normalizedCurrency = currency.toUpperCase()
+
     // Validate amount
     if (amount < 0) {
       return NextResponse.json(
@@ -36,24 +48,28 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Generate a unique reference
-    const reference = generatePaymentReference()
+    // Generate a unique reference with currency prefix
+    const reference = generatePaymentReference(normalizedCurrency)
 
-    // Build metadata
+    // Build metadata with currency info
     const paystackMetadata: PaystackMetadata = {
       user_id: (metadata as Record<string, unknown>).user_id as string || '',
       type: type as 'course_enrollment' | 'certificate' | 'subscription' | 'one_time',
       ...metadata,
       payment_type: type,
+      currency: normalizedCurrency,
       original_reference: reference,
     }
 
-    // Get callback URL
-    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/payments/success?reference=${reference}`
+    // Get callback URL with currency
+    const callbackUrl = `${process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin}/payments/success?reference=${reference}&currency=${normalizedCurrency}`
 
     // Initialize Paystack transaction
+    // For USD, we use cents; for NGN, we use kobo
+    const formattedAmount = normalizedCurrency === 'NGN' ? toKobo(amount) : toCents(amount)
+    
     const response = await initializeTransaction(
-      toKobo(amount), // Convert to kobo
+      formattedAmount,
       email,
       paystackMetadata,
       callbackUrl
@@ -70,6 +86,8 @@ export async function POST(request: NextRequest) {
       success: true,
       authorizationUrl: response.data.authorization_url,
       reference: response.data.reference,
+      currency: normalizedCurrency,
+      amount: amount,
     })
   } catch (error) {
     console.error('Payment initialization error:', error)
