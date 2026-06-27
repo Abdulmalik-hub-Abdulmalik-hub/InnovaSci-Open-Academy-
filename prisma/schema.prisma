@@ -98,7 +98,7 @@ model Course {
 
   // Certificate Template
   certificateTemplateId  String? // Reference to certificate template
-  certificateTemplateUrl String? // URL to certificate template image
+  certificateTemplateUrl String? // Legacy URL field
 
   // Relations
   modules          Module[]
@@ -107,6 +107,9 @@ model Course {
   certificates     Certificate[]
   wishlists        Wishlist[]
   learningProgress LearningProgress[]
+  
+  // Certificate Template Relation
+  certificateTemplate CertificateTemplate? @relation(fields: [certificateTemplateId], references: [id])
 
   // Learning Paths
   learningPaths     LearningPathCourse[]
@@ -291,6 +294,53 @@ model Certificate {
   @@index([courseId])
   @@index([status])
   @@map("certificates")
+}
+
+// ============================================
+// 11a. CERTIFICATE TEMPLATES - Configurable certificate layouts
+// ============================================
+
+model CertificateTemplate {
+  id           String   @id @default(uuid())
+  name         String   // Template name (e.g., "Standard Certificate", "Premium Certificate")
+  description  String?  // Template description
+  backgroundUrl String  @db.Text // URL to template background image
+  width        Int      @default(1200) // Template width in pixels
+  height       Int      @default(900) // Template height in pixels
+  
+  // Field positions (as percentages of template dimensions for responsive rendering)
+  studentNameX     Float   @default(0.5) // X position as percentage (0-1)
+  studentNameY     Float   @default(0.35) // Y position as percentage (0-1)
+  studentNameSize  Int     @default(48) // Font size in pixels
+  studentNameFont  String  @default("Georgia") // Font family
+  
+  courseNameX      Float   @default(0.5)
+  courseNameY      Float   @default(0.5)
+  courseNameSize   Int     @default(32)
+  courseNameFont   String  @default("Georgia")
+  
+  issueDateX       Float   @default(0.5)
+  issueDateY       Float   @default(0.65)
+  issueDateSize    Int     @default(24)
+  issueDateFont    String  @default("Georgia")
+  
+  certificateIdX   Float   @default(0.5)
+  certificateIdY  Float   @default(0.75)
+  certificateIdSize Int    @default(18)
+  certificateIdFont String @default("Courier")
+  
+  // Styling
+  textColor      String   @default("#1a1a2e") // Dark navy color for text
+  
+  // Status
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  courses       Course[]
+
+  @@map("certificate_templates")
 }
 
 // ============================================
