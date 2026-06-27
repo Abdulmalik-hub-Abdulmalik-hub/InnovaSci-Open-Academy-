@@ -9,7 +9,7 @@ import { HeaderLogo, FooterBranding } from "./logo"
 import { 
   LayoutDashboard, Users, BookOpen, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
-  Headphones, FileText, X
+  Headphones, FileText, X, LayoutTemplate
 } from "lucide-react"
 
 // Menu items with icons
@@ -43,6 +43,10 @@ const menuItems = [
     title: "Certificates",
     href: "/admin/certificates",
     icon: Award,
+    submenu: [
+      { title: "Manage Certificates", href: "/admin/certificates" },
+      { title: "Certificate Templates", href: "/admin/certificates/templates" },
+    ],
   },
   {
     title: "Pricing & Plans",
@@ -124,21 +128,67 @@ export function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           <ul className="space-y-1">
             {menuItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+              const hasSubmenu = !!item.submenu
+              const isSubmenuActive = item.submenu?.some(sub => pathname === sub.href || pathname.startsWith(sub.href + "/"))
+              
               return (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={() => onClose()}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
-                      isActive
-                        ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white shadow-lg"
-                        : "text-white/70 hover:text-white hover:bg-white/5"
-                    )}
-                  >
-                    <item.icon className={cn("h-5 w-5", isActive && "text-white")} />
-                    {item.title}
-                  </Link>
+                  {hasSubmenu ? (
+                    <div>
+                      <Link
+                        href={item.href}
+                        onClick={() => onClose()}
+                        className={cn(
+                          "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                          isActive || isSubmenuActive
+                            ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white shadow-lg"
+                            : "text-white/70 hover:text-white hover:bg-white/5"
+                        )}
+                      >
+                        <item.icon className={cn("h-5 w-5", (isActive || isSubmenuActive) && "text-white")} />
+                        {item.title}
+                      </Link>
+                      {/* Submenu */}
+                      <ul className="ml-6 mt-1 space-y-0.5">
+                        {item.submenu?.map((subitem) => {
+                          const isSubActive = pathname === subitem.href || pathname.startsWith(subitem.href + "/")
+                          return (
+                            <li key={subitem.href}>
+                              <Link
+                                href={subitem.href}
+                                onClick={() => onClose()}
+                                className={cn(
+                                  "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all",
+                                  isSubActive
+                                    ? "bg-[#7C3AED]/20 text-purple-300 font-medium"
+                                    : "text-white/50 hover:text-white/80 hover:bg-white/5"
+                                )}
+                              >
+                                {isSubActive && (
+                                  <div className="w-1 h-1 rounded-full bg-purple-400" />
+                                )}
+                                {subitem.title}
+                              </Link>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    </div>
+                  ) : (
+                    <Link
+                      href={item.href}
+                      onClick={() => onClose()}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                        isActive
+                          ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white shadow-lg"
+                          : "text-white/70 hover:text-white hover:bg-white/5"
+                      )}
+                    >
+                      <item.icon className={cn("h-5 w-5", isActive && "text-white")} />
+                      {item.title}
+                    </Link>
+                  )}
                 </li>
               )
             })}
