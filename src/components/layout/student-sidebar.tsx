@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { HeaderLogo, FooterBranding } from "./logo"
 import { 
   LayoutDashboard, BookOpen, Award, User, Settings,
-  Heart, Clock, X, Menu, Map, HelpCircle, Brain
+  Heart, Clock, X, Menu, Map, HelpCircle, Brain, ChevronDown
 } from "lucide-react"
 
 const menuItems = [
@@ -16,9 +16,15 @@ const menuItems = [
   { title: "My Learning Paths", href: "/dashboard/learning-paths", icon: Map },
   { title: "Practice & Quizzes", href: "/dashboard/quizzes", icon: Brain },
   { title: "Certificates", href: "/dashboard/certificates", icon: Award },
+]
+
+const secondaryMenuItems = [
   { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
   { title: "Help & Support", href: "/dashboard/support", icon: HelpCircle },
+]
+
+const bottomMenuItems = [
   { title: "Profile", href: "/dashboard/profile", icon: User },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
@@ -33,20 +39,87 @@ export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: 
       )}
 
       <aside className={cn(
-        "fixed left-0 top-0 z-50 h-screen w-[280px] bg-white dark:bg-[#1a1a2e] border-r border-gray-200 dark:border-white/10 flex flex-col",
+        "fixed left-0 top-0 z-50 h-screen w-[260px] bg-white dark:bg-[#0f0f1a] border-r border-gray-100 dark:border-white/5 flex flex-col",
         "lg:translate-x-0 lg:static lg:z-auto",
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
-        <div className="flex items-center justify-between h-16 px-4 border-b border-gray-200 dark:border-white/10">
-          <HeaderLogo />
-          <button onClick={onClose} className="lg:hidden text-gray-500 dark:text-white/60">
+        {/* Header */}
+        <div className="flex items-center justify-between h-14 px-5 border-b border-gray-100 dark:border-white/5">
+          <Link href="/dashboard" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-purple to-brand-blue flex items-center justify-center">
+              <span className="text-white font-bold text-sm">IO</span>
+            </div>
+            <span className="font-semibold text-gray-900 dark:text-white">InnovaSci</span>
+          </Link>
+          <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <X className="h-5 w-5" />
           </button>
         </div>
 
+        {/* Main Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <ul className="space-y-1">
-            {menuItems.map((item) => {
+          <div className="mb-6">
+            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Learning
+            </p>
+            <ul className="space-y-0.5">
+              {menuItems.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
+                      )}
+                    >
+                      <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-white")} />
+                      {item.title}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+
+          {/* Secondary Navigation */}
+          <div className="mb-6">
+            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+              Account
+            </p>
+            <ul className="space-y-0.5">
+              {secondaryMenuItems.map((item) => {
+                const isActive = pathname === item.href
+                return (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      onClick={onClose}
+                      className={cn(
+                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                        isActive
+                          ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
+                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
+                      )}
+                    >
+                      <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-white")} />
+                      {item.title}
+                    </Link>
+                  </li>
+                )
+              })}
+            </ul>
+          </div>
+        </nav>
+
+        {/* Bottom Navigation */}
+        <div className="border-t border-gray-100 dark:border-white/5 py-3 px-3">
+          <ul className="space-y-0.5">
+            {bottomMenuItems.map((item) => {
               const isActive = pathname === item.href
               return (
                 <li key={item.href}>
@@ -54,20 +127,20 @@ export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: 
                     href={item.href}
                     onClick={onClose}
                     className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                       isActive
-                        ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white shadow-lg"
-                        : "text-gray-600 dark:text-white/70 hover:bg-gray-100 dark:hover:bg-white/5"
+                        ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
+                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
                     )}
                   >
-                    <item.icon className="h-5 w-5" />
+                    <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-white")} />
                     {item.title}
                   </Link>
                 </li>
               )
             })}
           </ul>
-        </nav>
+        </div>
 
         <FooterBranding />
       </aside>
