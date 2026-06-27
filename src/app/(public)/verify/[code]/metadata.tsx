@@ -3,7 +3,8 @@ import { Metadata } from "next"
 // This is a dynamic metadata function that will be called for each certificate verification page
 export async function generateMetadata({ params }: { params: Promise<{ code: string }> }): Promise<Metadata> {
   const { code } = await params
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://innovasci-open-academy.vercel.app'
+  // Dynamic base URL - supports custom domain via NEXT_PUBLIC_BASE_URL env var
+  const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || 'https://innovasci.com'
   const verifyUrl = `${baseUrl}/verify/${code}`
   const academyName = "InnovaSci Open Academy"
   

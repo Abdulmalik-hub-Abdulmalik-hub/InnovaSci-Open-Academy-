@@ -90,7 +90,7 @@ export default function VerifyCertificatePage({
   // Generate LinkedIn share URL
   const getLinkedInShareUrl = () => {
     if (typeof window === 'undefined') return ''
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://innovasci-open-academy.vercel.app'
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const verifyUrl = `${baseUrl}/verify/${code}`
     return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(verifyUrl)}`
   }

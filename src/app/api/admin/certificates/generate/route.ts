@@ -122,6 +122,9 @@ export async function POST(request: NextRequest) {
 
     // Generate certificate HTML
     const studentName = user.profile?.fullName || user.email || "Student"
+    // Dynamic base URL - supports custom domain via NEXT_PUBLIC_BASE_URL env var
+    const appUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin
+    const certVerifyUrl = `${appUrl}/verify/${certificateCode}`
     let certificateHtml: string
 
     if (course.certificateTemplate) {
@@ -144,7 +147,8 @@ export async function POST(request: NextRequest) {
         studentName,
         courseName: course.title,
         verificationCode,
-        issuedAt: new Date()
+        issuedAt: new Date(),
+        verifyUrl: certVerifyUrl
       })
     } else {
       // Default template
@@ -152,7 +156,8 @@ export async function POST(request: NextRequest) {
         studentName,
         courseName: course.title,
         verificationCode,
-        issuedAt: new Date()
+        issuedAt: new Date(),
+        verifyUrl: certVerifyUrl
       })
     }
 
@@ -203,14 +208,14 @@ export async function POST(request: NextRequest) {
     } : null
 
     // Create IssuedCertificate with template snapshot
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://innovasci.com"
+    // appUrl is defined above with dynamic base URL support
     await prisma.issuedCertificate.create({
       data: {
         certificateId: certificate.id,
         studentId: userId, courseId,
         certificateCode,
         pdfUrl: certificateUrl,
-        verificationUrl: `${appUrl}/verify/${certificateCode}`,
+        verificationUrl: certVerifyUrl,
         templateSnapshot: templateSnapshot as any
       }
     })
@@ -252,6 +257,7 @@ interface TemplateCertData {
     certificateIdX: number; certificateIdY: number; certificateIdSize: number; certificateIdFont: string
   }
   studentName: string; courseName: string; verificationCode: string; issuedAt: Date
+  verifyUrl: string
 }
 
 function generateTemplateCertificateHtml(data: TemplateCertData): string {
@@ -281,6 +287,7 @@ body{font-family:Segoe UI,sans-serif;background:#f0f0f0;min-height:100vh;display
 
 interface DefaultCertData {
   studentName: string; courseName: string; verificationCode: string; issuedAt: Date
+  verifyUrl: string
 }
 
 function generateDefaultCertificateHtml(data: DefaultCertData): string {
@@ -314,6 +321,6 @@ h1{font-size:42px;color:#1a1a2e;margin:20px 0;font-weight:normal}
 <div class="certificate">
 <div class="header"><div class="logo">INNOVASCI OPEN ACADEMY</div><h1>Certificate of Completion</h1><p class="subtitle">This certificate is proudly presented to</p></div>
 <div class="body"><p class="present">This certifies that</p><p class="name">${data.studentName}</p><p class="course-text">has successfully completed the course</p><p class="course-name">${data.courseName}</p><p class="date">Issued on ${formattedDate}</p></div>
-<div class="footer"><div class="signature"><div class="sig-line"></div><p class="sig-name">Academic Director</p></div><div class="verify"><p class="verify-code">${data.verificationCode}</p><p class="verify-text">Verify at innovasci.com/verify</p></div></div>
+<div class="footer"><div class="signature"><div class="sig-line"></div><p class="sig-name">Academic Director</p></div><div class="verify"><p class="verify-code">${data.verificationCode}</p><p class="verify-text">Verify at ${data.verifyUrl}</p></div></div>
 </div></body></html>`
 }
