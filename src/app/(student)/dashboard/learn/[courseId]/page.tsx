@@ -2,12 +2,13 @@
 
 import { useState, useEffect, useRef, use, useCallback } from "react"
 import Link from "next/link"
+import { VideoPlayer } from "@/components/VideoPlayer"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 import { 
-  Play, Pause, Volume2, VolumeX, Maximize, ChevronLeft,
+  Play, Maximize, ChevronLeft,
   ChevronRight, CheckCircle2, Circle, ChevronDown, Menu,
   X, Clock, BookOpen, Lock, Settings, SkipForward, 
   List, RotateCcw, Loader2
@@ -89,22 +90,17 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
   const [course, setCourse] = useState(mockCourseData)
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null)
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0)
-  const [isPlaying, setIsPlaying] = useState(false)
-  const [isMuted, setIsMuted] = useState(false)
   const [played, setPlayed] = useState(0)
-  const [loaded, setLoaded] = useState(0)
   const [duration, setDuration] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(true)
   const [expandedModules, setExpandedModules] = useState<string[]>(["m1", "m2"])
   const [showMarkComplete, setShowMarkComplete] = useState(false)
   const [isMarkingComplete, setIsMarkingComplete] = useState(false)
   const [isAutoAdvancing, setIsAutoAdvancing] = useState(false)
-  const [seeking, setSeeking] = useState(false)
   const [showControls, setShowControls] = useState(true)
+  const [isPlaying, setIsPlaying] = useState(false)
   
-  const playerRef = useRef<HTMLVideoElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
-  const progressUpdateInterval = useRef<NodeJS.Timeout>()
   const controlsTimeout = useRef<NodeJS.Timeout>()
 
   // Calculate total progress
@@ -147,43 +143,8 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
     }
   }, [course, findFirstIncompleteLesson])
 
-  // Progress tracking - send to API every 15 seconds
-  useEffect(() => {
-    if (isPlaying && currentLesson && playerRef.current) {
-      progressUpdateInterval.current = setInterval(() => {
-        if (playerRef.current) {
-          const currentTime = playerRef.current.currentTime
-          const videoDuration = playerRef.current.duration
-          const progressPercent = videoDuration > 0 ? (currentTime / videoDuration) * 100 : 0
-          
-          // Send progress to API (debounced)
-          fetch('/api/student/progress', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              lessonId: currentLesson.id,
-              courseId: courseId,
-              watchTime: Math.floor(currentTime),
-              lastPosition: Math.floor(currentTime),
-              completed: false
-            })
-          }).catch(console.error)
-          
-          // Auto-advance at 90%
-          if (progressPercent >= 90 && !currentLesson.completed && !isAutoAdvancing) {
-            setIsAutoAdvancing(true)
-            handleMarkComplete(true)
-          }
-        }
-      }, 15000) // Every 15 seconds
-    }
-
-    return () => {
-      if (progressUpdateInterval.current) {
-        clearInterval(progressUpdateInterval.current)
-      }
-    }
-  }, [isPlaying, currentLesson, courseId, isAutoAdvancing])
+  // Progress tracking - VideoPlayer handles progress updates via onProgress callback
+  // Auto-advance at 90% is handled in VideoPlayer's onComplete callback
 
   // Toggle module expansion
   const toggleModule = (moduleId: string) => {
@@ -212,45 +173,9 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
     }
   }
 
-  // Handle progress update from player
-  const handleProgress = (state: { played: number; loaded: number }) => {
-    if (!seeking) {
-      setPlayed(state.played * 100)
-      setLoaded(state.loaded * 100)
-    }
-  }
-
   // Handle seek
   const handleSeekChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setPlayed(parseFloat(e.target.value))
-  }
-
-  const handleSeekMouseDown = () => {
-    setSeeking(true)
-  }
-
-  const handleSeekMouseUp = (e: React.MouseEvent<HTMLInputElement>) => {
-    setSeeking(false)
-    if (playerRef.current) {
-      const seekPercent = parseFloat(e.currentTarget.value)
-      playerRef.current.currentTime = (seekPercent / 100) * playerRef.current.duration
-    }
-    
-    // Send progress update on seek
-    if (currentLesson && playerRef.current) {
-      const seekTime = (parseFloat(e.currentTarget.value) / 100) * duration
-      fetch('/api/student/progress', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          lessonId: currentLesson.id,
-          courseId: courseId,
-          watchTime: Math.floor(seekTime),
-          lastPosition: Math.floor(seekTime),
-          completed: false
-        })
-      }).catch(console.error)
-    }
   }
 
   // Mark lesson as complete
@@ -520,24 +445,29 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
           onMouseMove={handleMouseMove}
           onMouseLeave={() => isPlaying && setShowControls(false)}
         >
-          <video
-            ref={playerRef}
-            src={currentLesson?.videoUrl || "https://www.w3schools.com/html/mov_bbb.mp4"}
-            className="w-full h-full"
-            onTimeUpdate={() => {
-              if (playerRef.current && !seeking) {
-                const progress = (playerRef.current.currentTime / playerRef.current.duration) * 100
-                setPlayed(progress)
+          {/* Use VideoPlayer component for lesson videos */}
+          <VideoPlayer
+            videoId={currentLesson?.id || ""}
+            videoUrl={currentLesson?.videoUrl || undefined}
+            onProgress={(progress) => {
+              setPlayed(progress)
+              // Send progress to API
+              if (currentLesson) {
+                fetch('/api/student/progress', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    lessonId: currentLesson.id,
+                    courseId: courseId,
+                    watchTime: Math.floor((progress / 100) * duration),
+                    lastPosition: Math.floor((progress / 100) * duration),
+                    completed: false
+                  })
+                }).catch(console.error)
               }
             }}
-            onLoadedMetadata={() => {
-              if (playerRef.current) {
-                setDuration(playerRef.current.duration)
-              }
-            }}
-            onPlay={() => setIsPlaying(true)}
-            onPause={() => setIsPlaying(false)}
-            onEnded={handleVideoEnd}
+            onComplete={handleVideoEnd}
+            className="w-full"
           />
 
           {/* Mobile Toggle Button */}
@@ -550,72 +480,13 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
             </button>
           )}
 
-          {/* Center Play Button Overlay */}
-          {!isPlaying && (
-            <div 
-              className="absolute inset-0 flex items-center justify-center cursor-pointer"
-              onClick={() => {
-                if (playerRef.current) {
-                  playerRef.current.play()
-                }
-              }}
-            >
-              <div className="w-20 h-20 rounded-full bg-white/90 hover:bg-white flex items-center justify-center shadow-2xl transition-all transform hover:scale-105">
-                <Play className="h-8 w-8 text-gray-900 ml-1" />
-              </div>
-            </div>
-          )}
-
-          {/* Controls Overlay */}
+          {/* Controls Overlay - Quick Actions */}
           <div className={cn(
-            "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-20 pb-4 px-4 transition-opacity duration-300",
+            "absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/90 via-black/50 to-transparent pt-16 pb-4 px-4 transition-opacity duration-300",
             showControls || !isPlaying ? "opacity-100" : "opacity-0"
           )}>
-            {/* Progress Bar */}
-            <div className="mb-3 group/progress">
-              <input
-                type="range"
-                min={0}
-                max={100}
-                value={played}
-                onChange={handleSeekChange}
-                onMouseDown={handleSeekMouseDown}
-                onMouseUp={handleSeekMouseUp}
-                className="w-full h-1 bg-gray-600 rounded-lg appearance-none cursor-pointer accent-brand-purple hover:h-2 transition-all [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-3 [&::-webkit-slider-thumb]:h-3 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-white [&::-webkit-slider-thumb]:cursor-pointer [&::-webkit-slider-thumb]:opacity-0 [&::-webkit-slider-thumb]:group-hover/progress:opacity-100"
-                style={{
-                  background: `linear-gradient(to right, #7C3AED ${played}%, #4B5563 ${played}%)`
-                }}
-              />
-              {/* Buffered Progress */}
-              <div 
-                className="h-1 bg-gray-500/50 rounded-full -mt-1 pointer-events-none"
-                style={{ width: `${loaded}%` }}
-              />
-            </div>
-
-            {/* Controls Row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1">
-                {/* Play/Pause */}
-                <button
-                  onClick={() => {
-                    if (playerRef.current) {
-                      if (isPlaying) {
-                        playerRef.current.pause()
-                      } else {
-                        playerRef.current.play()
-                      }
-                    }
-                  }}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  {isPlaying ? (
-                    <Pause className="h-5 w-5 text-white" />
-                  ) : (
-                    <Play className="h-5 w-5 text-white" />
-                  )}
-                </button>
-
                 {/* Previous */}
                 <button
                   onClick={handlePrevLesson}
@@ -632,26 +503,9 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
                   <SkipForward className="h-4 w-4 text-white" />
                 </button>
 
-                {/* Volume */}
-                <button
-                  onClick={() => {
-                    if (playerRef.current) {
-                      playerRef.current.muted = !isMuted
-                      setIsMuted(!isMuted)
-                    }
-                  }}
-                  className="p-2 hover:bg-white/20 rounded-lg transition-colors"
-                >
-                  {isMuted ? (
-                    <VolumeX className="h-5 w-5 text-white" />
-                  ) : (
-                    <Volume2 className="h-5 w-5 text-white" />
-                  )}
-                </button>
-
-                {/* Time */}
+                {/* Time Display */}
                 <span className="text-sm text-white/80 ml-2 tabular-nums">
-                  {formatDuration(currentTime)} / {formatDuration(duration)}
+                  {formatDuration(duration)}
                 </span>
               </div>
 
