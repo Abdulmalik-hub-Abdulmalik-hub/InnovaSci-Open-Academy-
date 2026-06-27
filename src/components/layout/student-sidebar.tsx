@@ -7,15 +7,18 @@ import { cn } from "@/lib/utils"
 import { HeaderLogo, FooterBranding } from "./logo"
 import { 
   LayoutDashboard, BookOpen, Award, User, Settings,
-  Heart, Clock, X, Menu
+  Heart, Clock, X, Menu, Map, HelpCircle, Brain
 } from "lucide-react"
 
 const menuItems = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
+  { title: "My Learning Paths", href: "/dashboard/learning-paths", icon: Map },
+  { title: "Practice & Quizzes", href: "/dashboard/quizzes", icon: Brain },
   { title: "Certificates", href: "/dashboard/certificates", icon: Award },
   { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
+  { title: "Help & Support", href: "/dashboard/support", icon: HelpCircle },
   { title: "Profile", href: "/dashboard/profile", icon: User },
   { title: "Settings", href: "/dashboard/settings", icon: Settings },
 ]
