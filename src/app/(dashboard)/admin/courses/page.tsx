@@ -5,10 +5,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { CertificateTemplateSelector } from "@/components/admin/CertificateTemplateSelector"
 import { useCourses, Course } from "@/hooks/useCourses"
 import { 
   Search, Plus, Edit, Trash2, Eye, Loader2, RefreshCw, X,
-  BookOpen, Users, DollarSign, GraduationCap
+  BookOpen, Users, DollarSign, GraduationCap, Award
 } from "lucide-react"
 
 const statusColors: Record<string, string> = {
@@ -38,6 +39,7 @@ function CourseModal({
     difficultyLevel: course?.difficultyLevel || "",
     durationHours: course?.durationHours || 0,
     thumbnailUrl: course?.thumbnailUrl || "",
+    certificateTemplateId: (course as any)?.certificateTemplateId || null,
   })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
@@ -204,6 +206,17 @@ function CourseModal({
                   onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
                   className="bg-white/5 border-white/10 text-white"
                   placeholder="https://..."
+                />
+              </div>
+
+              <div className="col-span-2">
+                <div className="flex items-center gap-2 mb-2">
+                  <Award className="h-4 w-4 text-purple-400" />
+                  <label className="text-sm text-white/70">Certificate Template</label>
+                </div>
+                <CertificateTemplateSelector
+                  value={formData.certificateTemplateId}
+                  onChange={(templateId) => setFormData({ ...formData, certificateTemplateId: templateId })}
                 />
               </div>
 

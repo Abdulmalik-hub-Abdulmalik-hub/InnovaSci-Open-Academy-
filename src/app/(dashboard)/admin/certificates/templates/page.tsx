@@ -528,7 +528,7 @@ export default function CertificateTemplatesPage() {
                   <p className="text-sm text-white/50 mb-3 line-clamp-2">{template.description}</p>
                 )}
                 <div className="flex items-center justify-between text-sm">
-                  <span className="text-white/60">
+                  <span className={`${template.coursesCount > 0 ? "text-yellow-400" : "text-white/60"}`}>
                     Used by {template.coursesCount} course{template.coursesCount !== 1 ? "s" : ""}
                   </span>
                   <div className="flex gap-1">
@@ -544,7 +544,9 @@ export default function CertificateTemplatesPage() {
                       variant="ghost" 
                       size="sm"
                       onClick={() => setDeleteConfirm(template.id)}
-                      className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
+                      disabled={template.coursesCount > 0}
+                      title={template.coursesCount > 0 ? `This template is used by ${template.coursesCount} courses` : "Delete template"}
+                      className={`${template.coursesCount > 0 ? "opacity-50 cursor-not-allowed" : "text-red-400 hover:text-red-300 hover:bg-red-500/10"}`}
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
@@ -557,39 +559,69 @@ export default function CertificateTemplatesPage() {
       )}
 
       {/* Delete Confirmation */}
-      {deleteConfirm && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="bg-[#1a1a2e] border-white/10 w-full max-w-sm">
-            <CardHeader>
-              <CardTitle className="text-white flex items-center gap-2">
-                <AlertCircle className="h-5 w-5 text-red-400" />
-                Delete Template?
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-white/60 mb-4">
-                Are you sure you want to delete this template? This action cannot be undone.
-              </p>
-              <div className="flex gap-3">
-                <Button 
-                  variant="outline" 
-                  onClick={() => setDeleteConfirm(null)}
-                  className="flex-1 border-white/20 text-white"
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  onClick={() => handleDelete(deleteConfirm)}
-                  className="flex-1 bg-red-600 hover:bg-red-700"
-                >
-                  Delete
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
+      {deleteConfirm && (() => {
+        const templateToDelete = templates.find(t => t.id === deleteConfirm)
+        const isInUse = templateToDelete && templateToDelete.coursesCount > 0
+        
+        return (
+          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+            <Card className="bg-[#1a1a2e] border-white/10 w-full max-w-sm">
+              <CardHeader>
+                <CardTitle className="text-white flex items-center gap-2">
+                  <AlertCircle className={`h-5 w-5 ${isInUse ? "text-yellow-400" : "text-red-400"}`} />
+                  {isInUse ? "Cannot Delete Template" : "Delete Template?"}
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {isInUse ? (
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-lg bg-yellow-500/20 border border-yellow-500/30">
+                      <p className="text-yellow-400 text-sm font-medium mb-1">
+                        Template is in use
+                      </p>
+                      <p className="text-white/60 text-sm">
+                        This template is used by {templateToDelete.coursesCount} course{templateToDelete.coursesCount !== 1 ? "s" : ""}. 
+                        Remove it from all courses before deleting.
+                      </p>
+                    </div>
+                    <div className="flex justify-end">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setDeleteConfirm(null)}
+                        className="border-white/20 text-white"
+                      >
+                        Close
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <p className="text-white/60 mb-4">
+                      Are you sure you want to delete this template? This action cannot be undone.
+                    </p>
+                    <div className="flex gap-3">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setDeleteConfirm(null)}
+                        className="flex-1 border-white/20 text-white"
+                      >
+                        Cancel
+                      </Button>
+                      <Button 
+                        variant="destructive" 
+                        onClick={() => handleDelete(deleteConfirm)}
+                        className="flex-1 bg-red-600 hover:bg-red-700"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )
+      })()}
     </div>
   )
 }

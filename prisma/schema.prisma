@@ -355,6 +355,11 @@ model IssuedCertificate {
   certificateCode String    @unique // Human-readable code (CERT-2026-XXXX)
   pdfUrl          String?   @db.Text // URL to generated PDF
   verificationUrl String    @db.Text // Public verification URL
+  
+  // Template snapshot for historical consistency
+  // Stores the template configuration at the time of certificate generation
+  templateSnapshot Json?    // Snapshot of CertificateTemplate at generation time (stored as JSON)
+  
   issuedAt        DateTime  @default(now())
   revokedAt       DateTime?
   revokeReason    String?

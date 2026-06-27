@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
       price: Number(course.price),
       isFree: course.isFree,
       thumbnailUrl: course.thumbnailUrl,
+      certificateTemplateId: course.certificateTemplateId,
       createdAt: course.createdAt.toISOString(),
       updatedAt: course.updatedAt.toISOString(),
       stats: {
@@ -181,7 +182,8 @@ export async function POST(request: NextRequest) {
       promoVideoUrl,
       price,
       isFree,
-      status
+      status,
+      certificateTemplateId
     } = body
 
     // Validation
@@ -252,6 +254,7 @@ export async function POST(request: NextRequest) {
         price: price || 0,
         isFree: isFree !== undefined ? isFree : true,
         status: status || "draft",
+        certificateTemplateId: certificateTemplateId || null,
       },
       include: {
         modules: {

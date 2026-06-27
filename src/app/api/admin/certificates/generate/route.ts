@@ -168,7 +168,41 @@ export async function POST(request: NextRequest) {
       }
     })
 
-    // Create IssuedCertificate
+    // Create template snapshot for historical consistency
+    const templateSnapshot = course.certificateTemplate ? {
+      templateId: course.certificateTemplate.id,
+      templateName: course.certificateTemplate.name,
+      backgroundUrl: course.certificateTemplate.backgroundUrl,
+      width: course.certificateTemplate.width,
+      height: course.certificateTemplate.height,
+      textColor: course.certificateTemplate.textColor,
+      studentName: {
+        x: course.certificateTemplate.studentNameX,
+        y: course.certificateTemplate.studentNameY,
+        size: course.certificateTemplate.studentNameSize,
+        font: course.certificateTemplate.studentNameFont
+      },
+      courseName: {
+        x: course.certificateTemplate.courseNameX,
+        y: course.certificateTemplate.courseNameY,
+        size: course.certificateTemplate.courseNameSize,
+        font: course.certificateTemplate.courseNameFont
+      },
+      issueDate: {
+        x: course.certificateTemplate.issueDateX,
+        y: course.certificateTemplate.issueDateY,
+        size: course.certificateTemplate.issueDateSize,
+        font: course.certificateTemplate.issueDateFont
+      },
+      certificateId: {
+        x: course.certificateTemplate.certificateIdX,
+        y: course.certificateTemplate.certificateIdY,
+        size: course.certificateTemplate.certificateIdSize,
+        font: course.certificateTemplate.certificateIdFont
+      }
+    } : null
+
+    // Create IssuedCertificate with template snapshot
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://innovasci.com"
     await prisma.issuedCertificate.create({
       data: {
@@ -176,7 +210,8 @@ export async function POST(request: NextRequest) {
         studentId: userId, courseId,
         certificateCode,
         pdfUrl: certificateUrl,
-        verificationUrl: `${appUrl}/verify/${certificateCode}`
+        verificationUrl: `${appUrl}/verify/${certificateCode}`,
+        templateSnapshot: templateSnapshot as any
       }
     })
 
@@ -185,7 +220,13 @@ export async function POST(request: NextRequest) {
       await prisma.auditLog.create({
         data: {
           action: "CREATE", module: "CERTIFICATES", userId: auth.userId,
-          details: { certificateId: certificate.id, certificateCode, studentName, courseName: course.title }
+          details: { 
+            certificateId: certificate.id, 
+            certificateCode, 
+            studentName, 
+            courseName: course.title,
+            templateUsed: course.certificateTemplate?.name || "Default"
+          }
         }
       })
     } catch (e) { console.error("Audit log error:", e) }

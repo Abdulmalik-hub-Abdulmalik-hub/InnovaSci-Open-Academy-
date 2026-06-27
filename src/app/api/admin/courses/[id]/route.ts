@@ -103,6 +103,7 @@ export async function GET(
       price: Number(course.price),
       isFree: course.isFree,
       status: course.status,
+      certificateTemplateId: course.certificateTemplateId,
       createdAt: course.createdAt.toISOString(),
       updatedAt: course.updatedAt.toISOString(),
       modules: course.modules.map((m: { 
@@ -237,6 +238,7 @@ export async function PUT(
         price: body.price !== undefined ? body.price : existingCourse.price,
         isFree: body.isFree !== undefined ? body.isFree : existingCourse.isFree,
         status: body.status ?? existingCourse.status,
+        certificateTemplateId: body.certificateTemplateId !== undefined ? body.certificateTemplateId : existingCourse.certificateTemplateId,
       }
     })
 
