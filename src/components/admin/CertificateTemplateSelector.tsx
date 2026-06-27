@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Loader2, Award, ExternalLink } from "lucide-react"
+import { Loader2, Award, ExternalLink, AlertCircle, Plus } from "lucide-react"
 import Link from "next/link"
 
 interface CertificateTemplate {
@@ -35,13 +35,25 @@ export function CertificateTemplateSelector({
         const response = await fetch("/api/admin/certificate-templates")
         const data = await response.json()
         
-        if (data.success) {
-          setTemplates(data.data.templates)
+        if (response.ok && data && typeof data.success !== 'undefined') {
+          if (data.success) {
+            setTemplates(data.data?.templates || [])
+          } else {
+            // API returned an error response
+            console.error("Certificate templates API error:", data.error)
+            setError(data.error || "Failed to load templates")
+          }
+        } else if (response.ok) {
+          // API returned 200 but unexpected format - treat as empty
+          setTemplates([])
         } else {
-          setError(data.error || "Failed to load templates")
+          // Non-OK response
+          console.error("Certificate templates API status:", response.status)
+          setError(`Server error (${response.status})`)
         }
       } catch (err) {
-        setError("Failed to load templates")
+        console.error("Certificate templates fetch error:", err)
+        setError("Network error - please try again")
       } finally {
         setLoading(false)
       }
@@ -61,8 +73,18 @@ export function CertificateTemplateSelector({
 
   if (error) {
     return (
-      <div className="text-red-400 text-sm">
-        {error}
+      <div className="space-y-2">
+        <div className="flex items-center gap-2 p-2 rounded bg-red-500/10 border border-red-500/20">
+          <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0" />
+          <span className="text-red-400 text-sm">{error}</span>
+        </div>
+        <Link 
+          href="/admin/certificates/templates" 
+          className="text-xs text-purple-400 hover:text-purple-300 flex items-center gap-1"
+        >
+          <ExternalLink className="h-3 w-3" />
+          Open Certificate Templates
+        </Link>
       </div>
     )
   }

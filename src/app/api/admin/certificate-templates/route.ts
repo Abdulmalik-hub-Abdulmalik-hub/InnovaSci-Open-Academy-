@@ -82,8 +82,10 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Get templates error:", error)
+    // Return a more helpful error message
+    const errorMessage = error instanceof Error ? error.message : "Database error"
     return NextResponse.json(
-      { success: false, error: "Failed to fetch certificate templates" },
+      { success: false, error: `Failed to fetch templates: ${errorMessage}` },
       { status: 500 }
     )
   }
