@@ -8,7 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 import { 
   Award, Download, ExternalLink, Search, Calendar,
-  CheckCircle2, ChevronRight, Copy, Check
+  CheckCircle2, ChevronRight, Copy, Check, Linkedin
 } from "lucide-react"
 
 export default function CertificatesPage() {
@@ -25,6 +25,14 @@ export default function CertificatesPage() {
     navigator.clipboard.writeText(code)
     setCopiedId(id)
     setTimeout(() => setCopiedId(null), 2000)
+  }
+
+  // Share certificate to LinkedIn
+  const shareToLinkedIn = (verificationCode: string) => {
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    const verifyUrl = `${baseUrl}/verify/${verificationCode}`
+    const linkedInUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(verifyUrl)}`
+    window.open(linkedInUrl, '_blank', 'width=600,height=600')
   }
 
   if (loading && certificates.length === 0) {
@@ -161,8 +169,13 @@ export default function CertificatesPage() {
                       <Download className="h-4 w-4 mr-2" />
                       Download PDF
                     </Button>
-                    <Button variant="ghost" size="sm">
-                      <ExternalLink className="h-4 w-4 mr-2" />
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={() => shareToLinkedIn(cert.verificationCode)}
+                      className="border-[#0077B5] text-[#0077B5] hover:bg-[#0077B5] hover:text-white"
+                    >
+                      <Linkedin className="h-4 w-4 mr-2" />
                       Share
                     </Button>
                   </div>
