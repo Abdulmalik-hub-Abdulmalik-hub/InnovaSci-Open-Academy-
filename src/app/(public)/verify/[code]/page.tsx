@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { 
   CheckCircle, XCircle, Award, Search, Loader2, 
-  GraduationCap, Calendar, User, BookOpen, Download, AlertTriangle
+  GraduationCap, Calendar, User, BookOpen, Download, AlertTriangle,
+  Linkedin, Share2
 } from "lucide-react"
 
 interface VerificationResult {
@@ -20,8 +21,6 @@ interface VerificationResult {
   pdfUrl?: string
   issuedAt: string
   studentName: string
-  studentEmail?: string
-  studentAvatar?: string
   courseName: string
   courseThumbnail?: string
   revoked?: boolean
@@ -86,6 +85,20 @@ export default function VerifyCertificatePage({
       month: "long",
       day: "numeric"
     })
+  }
+
+  // Generate LinkedIn share URL
+  const getLinkedInShareUrl = () => {
+    if (typeof window === 'undefined') return ''
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://innovasci-open-academy.vercel.app'
+    const verifyUrl = `${baseUrl}/verify/${code}`
+    return `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(verifyUrl)}`
+  }
+
+  // Share to LinkedIn
+  const shareToLinkedIn = () => {
+    const linkedInUrl = getLinkedInShareUrl()
+    window.open(linkedInUrl, '_blank', 'width=600,height=600')
   }
 
   // Normalize result for backward compatibility
@@ -189,9 +202,6 @@ export default function VerifyCertificatePage({
                     <div>
                       <p className="text-white/50 text-sm">Graduate</p>
                       <p className="text-white text-lg font-medium">{normalizedResult.studentName}</p>
-                      {normalizedResult.studentEmail && (
-                        <p className="text-white/50 text-sm">{normalizedResult.studentEmail}</p>
-                      )}
                     </div>
                   </div>
                   
@@ -220,17 +230,27 @@ export default function VerifyCertificatePage({
                   </div>
                 </div>
                 
-                {normalizedResult.pdfUrl && (
+                {/* Action Buttons */}
+                <div className="flex gap-3 mt-4">
+                  {normalizedResult.pdfUrl && (
+                    <Button
+                      asChild
+                      className="flex-1 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                    >
+                      <a href={normalizedResult.pdfUrl} download>
+                        <Download className="h-5 w-5 mr-2" />
+                        Download PDF
+                      </a>
+                    </Button>
+                  )}
                   <Button
-                    asChild
-                    className="w-full mt-4 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                    onClick={shareToLinkedIn}
+                    className="flex-1 bg-[#0077B5] hover:bg-[#006097] text-white"
                   >
-                    <a href={normalizedResult.pdfUrl} download>
-                      <Download className="h-5 w-5 mr-2" />
-                      Download Certificate PDF
-                    </a>
+                    <Linkedin className="h-5 w-5 mr-2" />
+                    Share on LinkedIn
                   </Button>
-                )}
+                </div>
                 
                 <div className="mt-6 p-4 bg-green-500/10 border border-green-500/30 rounded-lg">
                   <p className="text-green-400 text-center">

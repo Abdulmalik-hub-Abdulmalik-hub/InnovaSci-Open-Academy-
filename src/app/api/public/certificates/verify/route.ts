@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
           pdfUrl: issuedCert.pdfUrl,
           issuedAt: issuedCert.issuedAt.toISOString(),
           studentName: issuedCert.student.profile?.fullName || issuedCert.student.email,
-          studentEmail: issuedCert.student.email,
+          // Note: studentAvatar is safe to expose as it's already public
           studentAvatar: issuedCert.student.profile?.avatarUrl,
           courseName: issuedCert.course.title,
           courseThumbnail: issuedCert.course.thumbnailUrl,
@@ -117,7 +117,6 @@ export async function GET(request: NextRequest) {
         pdfUrl: certificate.pdfUrl,
         issuedAt: certificate.issuedAt.toISOString(),
         studentName: certificate.user.profile?.fullName || certificate.user.email,
-        studentEmail: certificate.user.email,
         studentAvatar: certificate.user.profile?.avatarUrl,
         courseName: certificate.course.title,
         courseThumbnail: certificate.course.thumbnailUrl,
