@@ -25,8 +25,7 @@ const secondaryMenuItems = [
 ]
 
 const bottomMenuItems = [
-  { title: "Profile", href: "/dashboard/profile", icon: User },
-  { title: "Settings", href: "/dashboard/settings", icon: Settings },
+  { title: "Settings", href: "/dashboard/settings/profile", icon: Settings },
 ]
 
 export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
