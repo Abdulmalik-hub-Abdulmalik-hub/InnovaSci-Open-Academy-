@@ -1,5 +1,5 @@
 -- Create forum_threads table
-CREATE TABLE "forum_threads" (
+CREATE TABLE IF NOT EXISTS "forum_threads" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "title" VARCHAR(255) NOT NULL,
     "content" TEXT NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE "forum_threads" (
 );
 
 -- Create forum_replies table
-CREATE TABLE "forum_replies" (
+CREATE TABLE IF NOT EXISTS "forum_replies" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "content" TEXT NOT NULL,
     "authorId" UUID NOT NULL,
@@ -27,22 +27,34 @@ CREATE TABLE "forum_replies" (
     CONSTRAINT "forum_replies_pkey" PRIMARY KEY ("id")
 );
 
--- Add foreign key constraints
-ALTER TABLE "forum_threads" ADD CONSTRAINT "forum_threads_authorId_fkey" 
-    FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE;
+-- Add foreign key constraints (use IF NOT EXISTS for safety)
+DO $$ BEGIN
+    ALTER TABLE "forum_threads" ADD CONSTRAINT "forum_threads_authorId_fkey" 
+        FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE "forum_replies" ADD CONSTRAINT "forum_replies_authorId_fkey" 
-    FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "forum_replies" ADD CONSTRAINT "forum_replies_authorId_fkey" 
+        FOREIGN KEY ("authorId") REFERENCES "users"("id") ON DELETE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
-ALTER TABLE "forum_replies" ADD CONSTRAINT "forum_replies_threadId_fkey" 
-    FOREIGN KEY ("threadId") REFERENCES "forum_threads"("id") ON DELETE CASCADE;
+DO $$ BEGIN
+    ALTER TABLE "forum_replies" ADD CONSTRAINT "forum_replies_threadId_fkey" 
+        FOREIGN KEY ("threadId") REFERENCES "forum_threads"("id") ON DELETE CASCADE;
+EXCEPTION
+    WHEN duplicate_object THEN NULL;
+END $$;
 
--- Create indexes
-CREATE INDEX "forum_threads_category_idx" ON "forum_threads"("category");
-CREATE INDEX "forum_threads_authorId_idx" ON "forum_threads"("authorId");
-CREATE INDEX "forum_threads_createdAt_idx" ON "forum_threads"("createdAt");
-CREATE INDEX "forum_threads_isPinned_idx" ON "forum_threads"("isPinned");
+-- Create indexes (IF NOT EXISTS for idempotency)
+CREATE INDEX IF NOT EXISTS "forum_threads_category_idx" ON "forum_threads"("category");
+CREATE INDEX IF NOT EXISTS "forum_threads_authorId_idx" ON "forum_threads"("authorId");
+CREATE INDEX IF NOT EXISTS "forum_threads_createdAt_idx" ON "forum_threads"("createdAt");
+CREATE INDEX IF NOT EXISTS "forum_threads_isPinned_idx" ON "forum_threads"("isPinned");
 
-CREATE INDEX "forum_replies_threadId_idx" ON "forum_replies"("threadId");
-CREATE INDEX "forum_replies_authorId_idx" ON "forum_replies"("authorId");
-CREATE INDEX "forum_replies_createdAt_idx" ON "forum_replies"("createdAt");
+CREATE INDEX IF NOT EXISTS "forum_replies_threadId_idx" ON "forum_replies"("threadId");
+CREATE INDEX IF NOT EXISTS "forum_replies_authorId_idx" ON "forum_replies"("authorId");
+CREATE INDEX IF NOT EXISTS "forum_replies_createdAt_idx" ON "forum_replies"("createdAt");
