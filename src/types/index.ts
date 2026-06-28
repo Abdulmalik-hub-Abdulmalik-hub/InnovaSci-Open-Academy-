@@ -49,10 +49,30 @@ export interface Lesson {
   title: string
   description?: string
   orderIndex: number
+  lessonType?: string
+  duration?: number
+  videoUrl?: string
+  isPreview?: boolean
+  isFree: boolean
   materials?: Material[]
   videos?: Video[]
   createdAt: Date
   updatedAt: Date
+}
+
+export interface Module {
+  id: string
+  courseId: string
+  title: string
+  description?: string
+  orderIndex: number
+  lessons: Lesson[]
+}
+
+export interface CourseCurriculum {
+  modules: Module[]
+  totalLessons: number
+  totalDuration: number
 }
 
 export interface Material {

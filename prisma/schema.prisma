@@ -153,6 +153,7 @@ model Lesson {
   duration    Int? // Duration in seconds
   videoUrl    String?
   isPreview   Boolean  @default(false)
+  isFree      Boolean  @default(false) // Free lessons are accessible without enrollment
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 

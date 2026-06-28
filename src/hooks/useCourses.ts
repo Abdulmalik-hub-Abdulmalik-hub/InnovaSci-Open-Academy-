@@ -38,6 +38,7 @@ export interface ModuleLesson {
   duration: number | null
   videoUrl: string | null
   isPreview: boolean
+  isFree: boolean
   materialsCount: number
   videosCount: number
 }
@@ -61,6 +62,48 @@ export interface CoursesResponse {
   }
   filters: {
     categories: string[]
+  }
+}
+
+export interface CurriculumLesson {
+  id: string
+  title: string
+  description?: string
+  orderIndex: number
+  lessonType: string
+  duration?: number
+  videoUrl?: string
+  isPreview?: boolean
+  isFree: boolean
+  isAccessible?: boolean
+}
+
+export interface CurriculumModule {
+  id: string
+  title: string
+  description?: string
+  orderIndex: number
+  lessons: CurriculumLesson[]
+}
+
+export interface CourseCurriculum {
+  course: {
+    id: string
+    title: string
+    slug: string
+    isFree: boolean
+    price?: number
+  }
+  isEnrolled: boolean
+  enrollment?: {
+    progressPercent: number
+    completed: boolean
+    enrolledAt: string
+  } | null
+  curriculum: {
+    modules: CurriculumModule[]
+    totalLessons: number
+    totalDuration: number
   }
 }
 
