@@ -39,6 +39,8 @@ model User {
   Role                 Role?                  @relation(fields: [roleId], references: [id])
   roleId               String?
   IssuedCertificate    IssuedCertificate[]
+  forumThreads         ForumThread[]
+  forumReplies         ForumReply[]
 
   @@map("users")
 }
@@ -769,4 +771,54 @@ model UserRole {
 
   @@unique([userId, roleId])
   @@map("user_roles")
+}
+
+// ============================================
+// 30. FORUM THREADS - Community discussions
+// ============================================
+
+model ForumThread {
+  id          String        @id @default(uuid())
+  title       String
+  content     String        @db.Text
+  category    String        @default("general") // general, course-help, announcements, off-topic
+  authorId    String
+  isPinned    Boolean       @default(false)
+  isResolved  Boolean       @default(false)
+  viewCount   Int           @default(0)
+  replyCount  Int           @default(0)
+  lastReplyAt DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  author  User          @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  replies ForumReply[]
+
+  @@index([category])
+  @@index([authorId])
+  @@index([createdAt])
+  @@index([isPinned])
+  @@map("forum_threads")
+}
+
+// ============================================
+// 31. FORUM REPLIES - Thread responses
+// ============================================
+
+model ForumReply {
+  id        String      @id @default(uuid())
+  content   String      @db.Text
+  authorId  String
+  threadId  String
+  isAccepted Boolean    @default(false) // Marked as accepted answer
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+
+  author User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  thread ForumThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId])
+  @@index([authorId])
+  @@index([createdAt])
+  @@map("forum_replies")
 }
