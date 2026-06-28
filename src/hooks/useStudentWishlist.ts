@@ -1,0 +1,107 @@
+"use client"
+
+import { useState, useEffect, useCallback } from "react"
+
+export interface WishlistItem {
+  id: string
+  courseId: string
+  addedAt: string
+  course: {
+    id: string
+    title: string
+    slug: string
+    thumbnailUrl: string | null
+    category: string | null
+    shortDescription: string | null
+    durationHours: number | null
+    difficultyLevel: string | null
+    price: number | null
+    isFree: boolean
+    totalLessons: number
+  }
+}
+
+export function useStudentWishlist() {
+  const [wishlist, setWishlist] = useState<WishlistItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [pagination, setPagination] = useState({
+    page: 1,
+    limit: 20,
+    total: 0,
+    totalPages: 0
+  })
+
+  const fetchWishlist = useCallback(async (options?: { page?: number }) => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const params = new URLSearchParams()
+      if (options?.page) params.set("page", options.page.toString())
+      
+      const response = await fetch(`/api/student/wishlist?${params}`)
+      const data = await response.json()
+      
+      if (data.success) {
+        setWishlist(data.data.wishlist)
+        setPagination(data.data.pagination)
+      } else {
+        setError(data.error || "Failed to fetch wishlist")
+      }
+    } catch (err) {
+      setError("Network error. Please try again.")
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const toggleWishlist = async (courseId: string) => {
+    try {
+      const response = await fetch("/api/student/wishlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ courseId })
+      })
+      
+      const data = await response.json()
+      
+      if (data.success) {
+        if (data.data.action === "added") {
+          // Refresh to get full course data
+          await fetchWishlist()
+        } else {
+          // Remove from local state
+          setWishlist(prev => prev.filter(item => item.courseId !== courseId))
+          setPagination(prev => ({
+            ...prev,
+            total: prev.total - 1
+          }))
+        }
+        return data.data.inWishlist
+      }
+      return null
+    } catch (err) {
+      console.error("Wishlist toggle error:", err)
+      return null
+    }
+  }
+
+  const removeFromWishlist = async (courseId: string) => {
+    return toggleWishlist(courseId)
+  }
+
+  useEffect(() => {
+    fetchWishlist()
+  }, [fetchWishlist])
+
+  return {
+    wishlist,
+    loading,
+    error,
+    pagination,
+    fetchWishlist,
+    toggleWishlist,
+    removeFromWishlist
+  }
+}
