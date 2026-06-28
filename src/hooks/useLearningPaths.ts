@@ -5,8 +5,14 @@ import { useState, useEffect, useCallback } from "react"
 export interface LearningPathCourse {
   id: string
   title: string
-  thumbnailUrl: string | null
   slug: string
+  thumbnailUrl: string | null
+  price: number
+  isFree: boolean
+  orderIndex: number
+  isRequired: boolean
+  stepTitle: string | null
+  totalLessons: number | null
   durationHours: number | null
   enrolled: boolean
   progressPercent: number
@@ -16,14 +22,19 @@ export interface LearningPathCourse {
 export interface LearningPath {
   id: string
   title: string
+  slug: string
+  subtitle: string | null
   description: string | null
   thumbnailUrl: string | null
+  difficultyLevel: string
+  estimatedHours: number | null
   courses: LearningPathCourse[]
   stats: {
     totalCourses: number
     completedCourses: number
     enrolledCourses: number
     overallProgress: number
+    isCompleted: boolean
   }
 }
 
@@ -33,6 +44,7 @@ interface UseLearningPathsReturn {
   error: string | null
   fetchLearningPaths: () => Promise<void>
   refresh: () => void
+  activePath: LearningPath | null
 }
 
 export function useLearningPaths(): UseLearningPathsReturn {
@@ -65,11 +77,17 @@ export function useLearningPaths(): UseLearningPathsReturn {
     fetchLearningPaths()
   }, [fetchLearningPaths])
 
+  // Get the active path (in progress, not completed)
+  const activePath = learningPaths.find(
+    p => p.stats.enrolledCourses > 0 && !p.stats.isCompleted
+  ) || null
+
   return {
     learningPaths,
     loading,
     error,
     fetchLearningPaths,
     refresh: fetchLearningPaths,
+    activePath,
   }
 }

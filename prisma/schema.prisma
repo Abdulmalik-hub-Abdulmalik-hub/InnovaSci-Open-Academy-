@@ -464,14 +464,17 @@ model Subscription {
 // ============================================
 
 model LearningPath {
-  id           String   @id @default(uuid())
-  name         String
-  slug         String   @unique
-  description  String?  @db.Text
-  thumbnailUrl String?
-  isPublished  Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(uuid())
+  title            String
+  slug             String   @unique
+  subtitle         String?
+  description      String?  @db.Text
+  thumbnailUrl     String?
+  difficultyLevel  String   @default("beginner") // beginner, intermediate, advanced
+  estimatedHours   Int?     // Total estimated hours
+  isPublished      Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   pathCourses  LearningPathCourse[]
   userProgress LearningPathProgress[]
@@ -489,6 +492,7 @@ model LearningPathCourse {
   courseId       String
   orderIndex     Int      @default(0)
   isRequired     Boolean  @default(true)
+  stepTitle      String?  // e.g., "Step 1: HTML/CSS"
   createdAt      DateTime @default(now())
 
   learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
