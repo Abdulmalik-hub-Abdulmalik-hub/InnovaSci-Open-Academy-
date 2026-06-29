@@ -3,7 +3,23 @@ import { prisma } from "@/lib/prisma"
 
 // GET /api/admin/dashboard - Get dashboard statistics
 export async function GET() {
+  const endpoint = "/api/admin/dashboard"
+  const method = "GET"
+  
   try {
+    // Check database connection first
+    if (!process.env.DATABASE_URL) {
+      console.error(`[${endpoint}] DATABASE_URL not configured`)
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Database configuration missing",
+          code: "DATABASE_NOT_READY"
+        },
+        { status: 503 }
+      )
+    }
+
     let stats = {
       totalUsers: 0,
       activeUsers: 0,
@@ -37,8 +53,19 @@ export async function GET() {
         completedEnrollments: completedCount,
         totalRevenue: Number(revenueAgg._sum?.amount) || 0
       }
-    } catch (e) {
-      console.log("Database queries failed, returning default stats")
+    } catch (dbError) {
+      // Database query failed, but we can still return default stats
+      console.error(`[${endpoint}] Database query failed:`, dbError)
+      // Return with default stats, but indicate partial failure
+      return NextResponse.json({
+        success: true,
+        data: {
+          stats,
+          recentActivity: [],
+          topCourses: []
+        },
+        warning: "Some statistics may not be up to date due to database issues"
+      })
     }
 
     return NextResponse.json({
@@ -50,9 +77,13 @@ export async function GET() {
       }
     })
   } catch (error) {
-    console.error("Dashboard API error:", error)
+    console.error(`[${endpoint}] [${method}] Unexpected error:`, error)
     return NextResponse.json(
-      { success: false, error: "Failed to fetch dashboard" },
+      { 
+        success: false, 
+        error: "Failed to fetch dashboard data",
+        code: "INTERNAL_ERROR"
+      },
       { status: 500 }
     )
   }

@@ -3,7 +3,23 @@ import { prisma } from "@/lib/prisma"
 
 // GET /api/student/dashboard - Get student dashboard data
 export async function GET(request: NextRequest) {
+  const endpoint = "/api/student/dashboard"
+  const method = "GET"
+  
   try {
+    // Check database connection first
+    if (!process.env.DATABASE_URL) {
+      console.error(`[${endpoint}] DATABASE_URL not configured`)
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Database configuration missing",
+          code: "DATABASE_NOT_READY"
+        },
+        { status: 503 }
+      )
+    }
+
     // For demo purposes, we'll use a mock user ID
     // In production, this would come from the authenticated session
     const userId = request.headers.get("x-user-id") || "demo-user-id"
@@ -51,29 +67,94 @@ export async function GET(request: NextRequest) {
     const currentEnrollment = coursesWithProgress.find(e => !e.completed)
     
     // Fetch recent certificates
-    const issuedCerts = await prisma.issuedCertificate.findMany({
-      where: { studentId: userId },
-      include: {
-        course: {
-          select: {
-            id: true,
-            title: true,
-            thumbnailUrl: true
-          }
-        }
-      },
-      orderBy: { issuedAt: "desc" },
-      take: 5
-    })
+    let certificates: any[] = []
+    let recommendedCourses: any[] = []
+    let recentActivity: any[] = []
 
-    // Map certificates to the expected format
-    const certificates = issuedCerts.map(cert => ({
-      id: cert.id,
-      verificationCode: cert.certificateCode,
-      certificateUrl: cert.pdfUrl,
-      issuedAt: cert.issuedAt,
-      course: cert.course
-    }))
+    try {
+      const issuedCerts = await prisma.issuedCertificate.findMany({
+        where: { studentId: userId },
+        include: {
+          course: {
+            select: {
+              id: true,
+              title: true,
+              thumbnailUrl: true
+            }
+          }
+        },
+        orderBy: { issuedAt: "desc" },
+        take: 5
+      })
+
+      certificates = issuedCerts.map(cert => ({
+        id: cert.id,
+        verificationCode: cert.certificateCode,
+        certificateUrl: cert.pdfUrl,
+        issuedAt: cert.issuedAt,
+        course: cert.course
+      }))
+    } catch (e) {
+      console.error(`[${endpoint}] Failed to fetch certificates:`, e)
+    }
+
+    try {
+      // Fetch recommended courses (courses not enrolled in)
+      const enrolledCourseIds = enrollments.map(e => e.courseId)
+      const recCourses = await prisma.course.findMany({
+        where: {
+          status: "published",
+          id: { notIn: enrolledCourseIds }
+        },
+        select: {
+          id: true,
+          title: true,
+          thumbnailUrl: true,
+          shortDescription: true,
+          category: true,
+          durationHours: true,
+          _count: {
+            select: { enrollments: true }
+          }
+        },
+        orderBy: { enrollments: { _count: "desc" } },
+        take: 4
+      })
+
+      recommendedCourses = recCourses.map(c => ({
+        id: c.id,
+        title: c.title,
+        thumbnailUrl: c.thumbnailUrl,
+        shortDescription: c.shortDescription,
+        category: c.category,
+        durationHours: c.durationHours,
+        studentCount: c._count.enrollments
+      }))
+    } catch (e) {
+      console.error(`[${endpoint}] Failed to fetch recommended courses:`, e)
+    }
+
+    try {
+      // Fetch recent activity
+      const recentProgress = await prisma.learningProgress.findMany({
+        where: { userId },
+        include: {
+          course: { select: { title: true } },
+          lesson: { select: { title: true } }
+        },
+        orderBy: { updatedAt: "desc" },
+        take: 10
+      })
+
+      recentActivity = recentProgress.map(p => ({
+        type: "lesson_completed",
+        course: p.course.title,
+        lesson: p.lesson.title,
+        timestamp: p.updatedAt.toISOString()
+      }))
+    } catch (e) {
+      console.error(`[${endpoint}] Failed to fetch recent activity:`, e)
+    }
 
     // Calculate stats
     const totalEnrolled = enrollments.length
@@ -81,46 +162,6 @@ export async function GET(request: NextRequest) {
     const totalHoursLearned = enrollments.reduce((acc, e) => {
       return acc + ((e.course.durationHours || 0) * e.progressPercent / 100)
     }, 0)
-
-    // Fetch recommended courses (courses not enrolled in)
-    const enrolledCourseIds = enrollments.map(e => e.courseId)
-    const recommendedCourses = await prisma.course.findMany({
-      where: {
-        status: "published",
-        id: { notIn: enrolledCourseIds }
-      },
-      select: {
-        id: true,
-        title: true,
-        thumbnailUrl: true,
-        shortDescription: true,
-        category: true,
-        durationHours: true,
-        _count: {
-          select: { enrollments: true }
-        }
-      },
-      orderBy: { enrollments: { _count: "desc" } },
-      take: 4
-    })
-
-    // Fetch recent activity
-    const recentProgress = await prisma.learningProgress.findMany({
-      where: { userId },
-      include: {
-        course: { select: { title: true } },
-        lesson: { select: { title: true } }
-      },
-      orderBy: { updatedAt: "desc" },
-      take: 10
-    })
-
-    const recentActivity = recentProgress.map(p => ({
-      type: "lesson_completed",
-      course: p.course.title,
-      lesson: p.lesson.title,
-      timestamp: p.updatedAt.toISOString()
-    }))
 
     return NextResponse.json({
       success: true,
@@ -141,15 +182,7 @@ export async function GET(request: NextRequest) {
           enrolledAt: e.enrolledAt
         })),
         certificates,
-        recommendedCourses: recommendedCourses.map(c => ({
-          id: c.id,
-          title: c.title,
-          thumbnailUrl: c.thumbnailUrl,
-          shortDescription: c.shortDescription,
-          category: c.category,
-          durationHours: c.durationHours,
-          studentCount: c._count.enrollments
-        })),
+        recommendedCourses,
         recentActivity,
         stats: {
           totalEnrolled,
@@ -160,9 +193,13 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error("Dashboard API error:", error)
+    console.error(`[${endpoint}] [${method}] Unexpected error:`, error)
     return NextResponse.json(
-      { success: false, error: "Failed to fetch dashboard data" },
+      { 
+        success: false, 
+        error: "Failed to fetch dashboard data",
+        code: "INTERNAL_ERROR"
+      },
       { status: 500 }
     )
   }
