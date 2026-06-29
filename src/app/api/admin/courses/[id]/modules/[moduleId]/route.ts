@@ -91,6 +91,10 @@ export async function GET(
           duration: l.duration,
           videoUrl: l.videoUrl,
           isPreview: l.isPreview,
+          isExercise: l.isExercise,
+          exerciseDescription: l.exerciseDescription,
+          exerciseFilesUrl: l.exerciseFilesUrl,
+          solutionVideoUrl: l.solutionVideoUrl,
           materials: l.materials,
           videos: l.videos,
         }))

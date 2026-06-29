@@ -249,17 +249,41 @@ const getLessonIcon = (type: string, isAccessible: boolean, isFree: boolean, isE
 }
 
 export default function CourseDetailsPage() {
-  const [expandedModules, setExpandedModules] = useState<string[]>(["m1"])
+  const params = useParams()
+  const slug = params.slug as string
+  
+  const [expandedModules, setExpandedModules] = useState<string[]>([])
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [isWishlisted, setIsWishlisted] = useState(false)
   const [showEnrollmentModal, setShowEnrollmentModal] = useState(false)
   const [lockedLessonId, setLockedLessonId] = useState<string | null>(null)
   const [courseData, setCourseData] = useState<CourseData | null>(null)
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    // Simulate fetching course data
-    setCourseData(mockCourseData)
-  }, [])
+    async function fetchCourse() {
+      if (!slug) return
+      
+      try {
+        const response = await fetch(`/api/public/courses/${slug}`)
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          setCourseData(result.data)
+          // Expand first module by default
+          if (result.data.modules?.length > 0) {
+            setExpandedModules([result.data.modules[0].id])
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch course:", error)
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchCourse()
+  }, [slug])
 
   const toggleModule = (moduleId: string) => {
     setExpandedModules(prev => 
