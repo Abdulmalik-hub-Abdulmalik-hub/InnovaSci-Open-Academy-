@@ -14,12 +14,15 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
 import { cn } from "@/lib/utils"
 
-// Navigation items - Mosh-style hierarchy
+// Navigation items - Landing Page Global Navigation
+// This is the ONLY place for platform-level navigation
+// Completely independent from Student Dashboard navigation
 const navItems = [
   { href: "/", label: "Home", icon: Home },
   { href: "/courses", label: "Courses", icon: BookText },
   { href: "/membership", label: "Membership", icon: CreditCard },
   { href: "/learning-paths", label: "Learning Paths", icon: Compass },
+  { href: "/forum", label: "Forum", icon: MessageSquare },
   { href: "/contact", label: "Contact", icon: Mail },
 ]
 

@@ -1,14 +1,12 @@
 "use client"
 
-import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { FooterBranding } from "./logo"
 import { 
-  LayoutDashboard, BookOpen, Award, User, Settings,
-  Heart, Clock, X, Menu, Map, HelpCircle,
-  ChevronDown, Home, Users, Mail, MessageSquare, CreditCard, GraduationCap
+  BookOpen, Award, Settings,
+  Heart, Clock, X, HelpCircle
 } from "lucide-react"
 
 interface MenuItem {
@@ -18,19 +16,14 @@ interface MenuItem {
   badge?: string
 }
 
-// Main navigation items (global sidebar - always visible)
-// These are the core platform sections - NOT student dashboard features
-const mainNavItems: MenuItem[] = [
-  { title: "Home", href: "/", icon: Home },
-  { title: "Courses", href: "/courses", icon: GraduationCap },
-  { title: "Membership", href: "/membership", icon: Users },
-  { title: "Learning Path", href: "/learning-paths", icon: Map },
-  { title: "Forum", href: "/forum", icon: MessageSquare },
-  { title: "Contact", href: "/contact", icon: Mail },
-]
+// =============================================================================
+// STUDENT DASHBOARD SIDEBAR - INDEPENDENT FROM LANDING PAGE NAVIGATION
+// =============================================================================
+// This sidebar ONLY contains student-specific features.
+// It does NOT share any navigation with the Landing Page.
+// =============================================================================
 
-// Quick access items - These are the student dashboard features
-// Only include user-specific learning features here
+// Quick access items - Student Dashboard features ONLY
 const quickAccessItems: MenuItem[] = [
   { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
   { title: "Certificates", href: "/dashboard/certificates", icon: Award },
@@ -124,12 +117,8 @@ export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: 
           </button>
         </div>
 
-        {/* Main Navigation - Always Visible */}
+        {/* Student Dashboard Navigation - Independent from Landing Page */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <MenuSection title="Navigation" items={mainNavItems} onClose={onClose} />
-          
-          <div className="h-px bg-gray-100 dark:bg-white/10 my-4" />
-          
           <MenuSection title="Quick Access" items={quickAccessItems} onClose={onClose} showTitle />
           
           <div className="h-px bg-gray-100 dark:bg-white/10 my-4" />
