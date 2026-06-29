@@ -79,11 +79,11 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
         if (result.success && result.data) {
           setCourse(result.data)
           // Initialize with first incomplete lesson
-          const modules = result.data.curriculum?.modules || []
+          const modules: Module[] = result.data.curriculum?.modules || []
           const firstIncomplete = findFirstIncompleteLesson(modules)
           if (firstIncomplete) {
-            const moduleIndex = modules.findIndex(m => 
-              m.lessons.some(l => l.id === firstIncomplete.id)
+            const moduleIndex = modules.findIndex((m: Module) => 
+              m.lessons.some((l: Lesson) => l.id === firstIncomplete.id)
             )
             setCurrentLesson(firstIncomplete)
             setCurrentModuleIndex(moduleIndex >= 0 ? moduleIndex : 0)
