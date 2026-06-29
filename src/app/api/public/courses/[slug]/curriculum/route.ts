@@ -4,10 +4,10 @@ import { prisma } from "@/lib/prisma"
 // GET /api/public/courses/[slug]/curriculum - Get course curriculum with modules and lessons
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
   try {
-    const { slug } = params
+    const { slug } = await params
 
     const course = await prisma.course.findUnique({
       where: { slug },
@@ -15,6 +15,8 @@ export async function GET(
         id: true,
         title: true,
         slug: true,
+        thumbnailUrl: true,
+        introVideoUrl: true,
         isFree: true,
       },
     })
@@ -43,6 +45,11 @@ export async function GET(
             videoUrl: true,
             isPreview: true,
             isFree: true,
+            // Include exercise fields
+            isExercise: true,
+            exerciseDescription: true,
+            exerciseFilesUrl: true,
+            solutionVideoUrl: true,
           },
         },
       },
@@ -57,18 +64,40 @@ export async function GET(
 
     const totalLessons = modules.reduce((acc, module) => acc + module.lessons.length, 0)
 
+    // Format for course player page
+    const formattedModules = modules.map(m => ({
+      id: m.id,
+      title: m.title,
+      description: m.description,
+      orderIndex: m.orderIndex,
+      lessonsCount: m.lessons.length,
+      lessons: m.lessons.map(l => ({
+        id: l.id,
+        title: l.title,
+        description: l.description,
+        orderIndex: l.orderIndex,
+        lessonType: l.lessonType,
+        duration: l.duration,
+        videoUrl: l.videoUrl,
+        isPreview: l.isPreview,
+        completed: false, // Will be set based on enrollment
+      }))
+    }))
+
     return NextResponse.json({
       success: true,
       data: {
-        course: {
-          id: course.id,
-          title: course.title,
-          slug: course.slug,
-          isFree: course.isFree,
-        },
-        modules,
+        id: course.id,
+        title: course.title,
+        thumbnailUrl: course.thumbnailUrl,
+        introVideoUrl: course.introVideoUrl,
         totalLessons,
-        totalDuration,
+        completedLessons: 0,
+        curriculum: {
+          modules: formattedModules,
+          totalLessons,
+          totalDuration,
+        },
       },
     })
   } catch (error) {

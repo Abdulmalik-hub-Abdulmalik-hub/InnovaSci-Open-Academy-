@@ -181,6 +181,7 @@ export async function POST(request: NextRequest) {
       durationHours,
       thumbnailUrl,
       promoVideoUrl,
+      introVideoUrl,
       price,
       isFree,
       status,
@@ -252,6 +253,7 @@ export async function POST(request: NextRequest) {
         durationHours: durationHours || null,
         thumbnailUrl: thumbnailUrl || null,
         promoVideoUrl: promoVideoUrl || null,
+        introVideoUrl: introVideoUrl || null,
         price: price || 0,
         isFree: isFree !== undefined ? isFree : true,
         isActive: true, // Default to active

@@ -21,6 +21,7 @@ export interface Course {
   isFree: boolean
   status: string
   thumbnailUrl: string | null
+  introVideoUrl: string | null
   difficultyLevel: string | null
   durationHours: number | null
   language: string | null
@@ -39,6 +40,10 @@ export interface ModuleLesson {
   videoUrl: string | null
   isPreview: boolean
   isFree: boolean
+  isExercise: boolean
+  exerciseDescription: string | null
+  exerciseFilesUrl: string | null
+  solutionVideoUrl: string | null
   materialsCount: number
   videosCount: number
 }
@@ -133,7 +138,7 @@ interface UseCoursesReturn {
   updateModule: (courseId: string, moduleId: string, data: { title?: string; description?: string }) => Promise<{ success: boolean; error?: string }>
   deleteModule: (courseId: string, moduleId: string) => Promise<{ success: boolean; error?: string }>
   reorderModules: (courseId: string, moduleIds: string[]) => Promise<{ success: boolean; error?: string }>
-  createLesson: (courseId: string, moduleId: string, data: { title: string; description?: string; lessonType?: string; duration?: number; videoUrl?: string; isPreview?: boolean }) => Promise<{ success: boolean; error?: string; lesson?: ModuleLesson }>
+  createLesson: (courseId: string, moduleId: string, data: { title: string; description?: string; lessonType?: string; duration?: number; videoUrl?: string; isPreview?: boolean; isExercise?: boolean; exerciseDescription?: string; exerciseFilesUrl?: string; solutionVideoUrl?: string }) => Promise<{ success: boolean; error?: string; lesson?: ModuleLesson }>
   refresh: () => void
 }
 
@@ -379,6 +384,10 @@ export function useCourses(): UseCoursesReturn {
       duration?: number
       videoUrl?: string
       isPreview?: boolean
+      isExercise?: boolean
+      exerciseDescription?: string
+      exerciseFilesUrl?: string
+      solutionVideoUrl?: string
     }
   ): Promise<{ success: boolean; error?: string; lesson?: ModuleLesson }> => {
     try {

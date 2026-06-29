@@ -39,6 +39,7 @@ function CourseModal({
     difficultyLevel: course?.difficultyLevel || "",
     durationHours: course?.durationHours || 0,
     thumbnailUrl: course?.thumbnailUrl || "",
+    introVideoUrl: (course as any)?.introVideoUrl || "",
     certificateTemplateId: (course as any)?.certificateTemplateId || null,
   })
   const [saving, setSaving] = useState(false)
@@ -205,7 +206,17 @@ function CourseModal({
                   value={formData.thumbnailUrl}
                   onChange={(e) => setFormData({ ...formData, thumbnailUrl: e.target.value })}
                   className="bg-white/5 border-white/10 text-white"
-                  placeholder="https://..."
+                  placeholder="https://... (used as course card image)"
+                />
+              </div>
+
+              <div className="col-span-2">
+                <label className="text-sm text-white/70 mb-1 block">Introduction Video URL</label>
+                <Input
+                  value={formData.introVideoUrl}
+                  onChange={(e) => setFormData({ ...formData, introVideoUrl: e.target.value })}
+                  className="bg-white/5 border-white/10 text-white"
+                  placeholder="https://... (trailer/intro video for course landing page)"
                 />
               </div>
 

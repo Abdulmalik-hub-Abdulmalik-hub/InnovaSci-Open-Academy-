@@ -8,8 +8,7 @@ import { FooterBranding } from "./logo"
 import { 
   LayoutDashboard, BookOpen, Award, User, Settings,
   Heart, Clock, X, Menu, Map, HelpCircle,
-  ChevronDown,
-  MessageSquare, Users, Mail
+  ChevronDown, Home, Users, Mail, MessageSquare, CreditCard, GraduationCap
 } from "lucide-react"
 
 interface MenuItem {
@@ -19,45 +18,49 @@ interface MenuItem {
   badge?: string
 }
 
-const learningMenuItems: MenuItem[] = [
-  { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
-  { title: "My Learning Paths", href: "/dashboard/learning-paths", icon: Map },
-  { title: "Certificates", href: "/dashboard/certificates", icon: Award },
+// Main navigation items (global sidebar - always visible)
+const mainNavItems: MenuItem[] = [
+  { title: "Home", href: "/dashboard", icon: Home },
+  { title: "Courses", href: "/dashboard/courses", icon: GraduationCap },
+  { title: "Membership", href: "/dashboard/membership", icon: Users },
+  { title: "Learning Path", href: "/dashboard/learning-paths", icon: Map },
+  { title: "Forum", href: "/dashboard/forum", icon: MessageSquare },
+  { title: "Contact", href: "/contact", icon: Mail },
 ]
 
-const communityMenuItems: MenuItem[] = [
-  { title: "Community Forum", href: "/dashboard/forum", icon: MessageSquare },
-  { title: "Membership Plans", href: "/dashboard/membership", icon: Users },
-]
-
-const accountMenuItems: MenuItem[] = [
-  { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
+// Quick access items
+const quickAccessItems: MenuItem[] = [
+  { title: "My Certificates", href: "/dashboard/certificates", icon: Award },
+  { title: "My Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
-  { title: "Help & Support", href: "/dashboard/support", icon: HelpCircle },
-  { title: "Contact Us", href: "/contact", icon: Mail },
 ]
 
-const bottomMenuItems: MenuItem[] = [
+// Support items
+const supportItems: MenuItem[] = [
+  { title: "Help & Support", href: "/dashboard/support", icon: HelpCircle },
   { title: "Settings", href: "/dashboard/settings/profile", icon: Settings },
 ]
 
 function MenuSection({ 
   title, 
   items, 
-  onClose 
+  onClose,
+  showTitle = true
 }: { 
   title: string
   items: MenuItem[]
   onClose: () => void
+  showTitle?: boolean
 }) {
   const pathname = usePathname()
 
   return (
-    <div className="mb-6">
-      <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-        {title}
-      </p>
+    <div className="mb-4">
+      {showTitle && title && (
+        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+          {title}
+        </p>
+      )}
       <ul className="space-y-0.5">
         {items.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
@@ -118,17 +121,18 @@ export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: 
           </button>
         </div>
 
-        {/* Main Navigation */}
+        {/* Main Navigation - Always Visible */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <MenuSection title="Learning" items={learningMenuItems} onClose={onClose} />
-          <MenuSection title="Community" items={communityMenuItems} onClose={onClose} />
-          <MenuSection title="Account" items={accountMenuItems} onClose={onClose} />
+          <MenuSection title="Navigation" items={mainNavItems} onClose={onClose} />
+          
+          <div className="h-px bg-gray-100 dark:bg-white/10 my-4" />
+          
+          <MenuSection title="Quick Access" items={quickAccessItems} onClose={onClose} showTitle />
+          
+          <div className="h-px bg-gray-100 dark:bg-white/10 my-4" />
+          
+          <MenuSection title="Support" items={supportItems} onClose={onClose} showTitle />
         </nav>
-
-        {/* Bottom Navigation */}
-        <div className="border-t border-gray-100 dark:border-white/5 py-3 px-3">
-          <MenuSection title="" items={bottomMenuItems} onClose={onClose} />
-        </div>
 
         <FooterBranding />
       </aside>

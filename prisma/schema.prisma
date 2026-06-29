@@ -91,6 +91,7 @@ model Course {
   durationHours    Int?
   thumbnailUrl     String?
   promoVideoUrl    String?
+  introVideoUrl    String?  // Introduction video for course landing page
   price            Decimal  @default(0) // Legacy single price
   pricing          Json? // Multi-currency: { "NGN": { "amount": 50000 }, "USD": { "amount": 100 } }
   isFree           Boolean  @default(true)

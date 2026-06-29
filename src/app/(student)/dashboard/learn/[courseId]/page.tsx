@@ -11,7 +11,7 @@ import {
   Play, Maximize, ChevronLeft,
   ChevronRight, CheckCircle2, Circle, ChevronDown, Menu,
   X, Clock, BookOpen, Lock, Settings, SkipForward, 
-  List, RotateCcw, Loader2
+  List, RotateCcw, Loader2, Video, ArrowLeft
 } from "lucide-react"
 
 interface Module {
@@ -35,91 +35,85 @@ interface Lesson {
   completed: boolean
 }
 
-// Mock course data
-const mockCourseData = {
-  id: "course-1",
-  title: "Introduction to Machine Learning",
-  thumbnailUrl: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=300&fit=crop",
-  totalLessons: 45,
-  completedLessons: 35,
-  modules: [
-    {
-      id: "m1",
-      title: "Getting Started",
-      description: "Introduction to the course",
-      orderIndex: 0,
-      lessonsCount: 3,
-      lessons: [
-        { id: "l1", title: "Welcome to the Course", description: "An overview of what you'll learn in this comprehensive machine learning course.", orderIndex: 0, lessonType: "video", duration: 300, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: true, completed: true },
-        { id: "l2", title: "Course Overview", description: "Deep dive into the course structure and learning path.", orderIndex: 1, lessonType: "video", duration: 600, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: true, completed: true },
-        { id: "l3", title: "Setting Up Your Environment", description: "Configure your development environment for ML coding.", orderIndex: 2, lessonType: "video", duration: 900, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: false, completed: true },
-      ]
-    },
-    {
-      id: "m2",
-      title: "Fundamentals of ML",
-      description: "Core concepts",
-      orderIndex: 1,
-      lessonsCount: 4,
-      lessons: [
-        { id: "l4", title: "What is Machine Learning?", description: "Understanding the fundamentals of ML and its applications.", orderIndex: 0, lessonType: "video", duration: 720, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: false, completed: true },
-        { id: "l5", title: "Types of Machine Learning", description: "Supervised, unsupervised, and reinforcement learning explained.", orderIndex: 1, lessonType: "video", duration: 840, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: false, completed: true },
-        { id: "l6", title: "Supervised vs Unsupervised", description: "Comparing the two main approaches to machine learning.", orderIndex: 2, lessonType: "video", duration: 660, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: false, completed: true },
-        { id: "l7", title: "ML Workflow", description: "The complete workflow from data to deployed model.", orderIndex: 3, lessonType: "video", duration: 780, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: false, completed: false },
-      ]
-    },
-    {
-      id: "m3",
-      title: "Neural Network Basics",
-      description: "Deep learning fundamentals",
-      orderIndex: 2,
-      lessonsCount: 3,
-      lessons: [
-        { id: "l8", title: "Introduction to Neural Networks", description: "Understanding how neural networks work.", orderIndex: 0, lessonType: "video", duration: 900, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: false, completed: false },
-        { id: "l9", title: "Perceptrons", description: "The building blocks of neural networks.", orderIndex: 1, lessonType: "video", duration: 720, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: false, completed: false },
-        { id: "l10", title: "Activation Functions", description: "Understanding ReLU, Sigmoid, and other activation functions.", orderIndex: 2, lessonType: "video", duration: 600, videoUrl: "https://www.w3schools.com/html/mov_bbb.mp4", isPreview: false, completed: false },
-      ]
-    }
-  ] as Module[]
+interface CourseData {
+  id: string
+  title: string
+  thumbnailUrl: string | null
+  introVideoUrl: string | null
+  totalLessons: number
+  completedLessons: number
+  modules: Module[]
 }
 
 export default function CoursePlayerPage({ params }: { params: Promise<{ courseId: string }> }) {
   const resolvedParams = use(params)
   const courseId = resolvedParams.courseId
   
-  const [course, setCourse] = useState(mockCourseData)
+  const [course, setCourse] = useState<CourseData | null>(null)
+  const [loading, setLoading] = useState(true)
   const [currentLesson, setCurrentLesson] = useState<Lesson | null>(null)
   const [currentModuleIndex, setCurrentModuleIndex] = useState(0)
   const [played, setPlayed] = useState(0)
   const [duration, setDuration] = useState(0)
   const [sidebarOpen, setSidebarOpen] = useState(true)
-  const [expandedModules, setExpandedModules] = useState<string[]>(["m1", "m2"])
+  const [expandedModules, setExpandedModules] = useState<string[]>([])
   const [showMarkComplete, setShowMarkComplete] = useState(false)
   const [isMarkingComplete, setIsMarkingComplete] = useState(false)
   const [isAutoAdvancing, setIsAutoAdvancing] = useState(false)
   const [showControls, setShowControls] = useState(true)
+  const [showIntroVideo, setShowIntroVideo] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [isPlaying, setIsPlaying] = useState(false)
   
   const containerRef = useRef<HTMLDivElement>(null)
   const controlsTimeout = useRef<NodeJS.Timeout>()
 
-  // Calculate total progress
-  const getTotalProgress = useCallback((): number => {
-    const total = course.modules.reduce((acc, m) => acc + m.lessons.length, 0)
-    const completed = course.modules.reduce((acc, m) => 
-      acc + m.lessons.filter(l => l.completed).length, 0
-    )
-    return total > 0 ? Math.round((completed / total) * 100) : 0
-  }, [course.modules])
+  // Fetch course data from API
+  useEffect(() => {
+    async function fetchCourse() {
+      try {
+        setLoading(true)
+        const response = await fetch(`/api/public/courses/${courseId}/curriculum`)
+        const result = await response.json()
+        
+        if (result.success && result.data) {
+          setCourse(result.data)
+          // Initialize with first incomplete lesson
+          const modules = result.data.curriculum?.modules || []
+          const firstIncomplete = findFirstIncompleteLesson(modules)
+          if (firstIncomplete) {
+            const moduleIndex = modules.findIndex(m => 
+              m.lessons.some(l => l.id === firstIncomplete.id)
+            )
+            setCurrentLesson(firstIncomplete)
+            setCurrentModuleIndex(moduleIndex >= 0 ? moduleIndex : 0)
+            // Expand the module containing this lesson
+            if (moduleIndex >= 0) {
+              setExpandedModules([modules[moduleIndex].id])
+            }
+          } else if (modules[0]?.lessons[0]) {
+            setCurrentLesson(modules[0].lessons[0])
+            if (modules[0]) {
+              setExpandedModules([modules[0].id])
+            }
+          }
+        } else {
+          setError(result.error || "Failed to load course")
+        }
+      } catch (err) {
+        console.error("Failed to fetch course:", err)
+        setError("Failed to load course")
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchCourse()
+  }, [courseId])
 
-  // Get current lesson index
-  const getCurrentLessonIndex = useCallback((): number => {
-    return course.modules.flatMap(m => m.lessons).findIndex(l => l.id === currentLesson?.id)
-  }, [course.modules, currentLesson?.id])
-
-  // Find first incomplete lesson
-  const findFirstIncompleteLesson = useCallback((): Lesson | null => {
-    for (const module of course.modules) {
+  // Find first incomplete lesson helper
+  const findFirstIncompleteLesson = (modules: Module[]): Lesson | null => {
+    for (const module of modules) {
       for (const lesson of module.lessons) {
         if (!lesson.completed) {
           return lesson
@@ -127,21 +121,37 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
       }
     }
     return null
-  }, [course.modules])
+  }
 
-  // Initialize with first incomplete lesson
+  // Calculate total progress
+  const getTotalProgress = useCallback((): number => {
+    if (!course?.modules) return 0
+    const total = course.modules.reduce((acc, m) => acc + m.lessons.length, 0)
+    const completed = course.modules.reduce((acc, m) => 
+      acc + m.lessons.filter(l => l.completed).length, 0
+    )
+    return total > 0 ? Math.round((completed / total) * 100) : 0
+  }, [course?.modules])
+
+  // Get current lesson index
+  const getCurrentLessonIndex = useCallback((): number => {
+    if (!course?.modules) return 0
+    return course.modules.flatMap(m => m.lessons).findIndex(l => l.id === currentLesson?.id)
+  }, [course?.modules, currentLesson?.id])
+
+  // Update effect for course changes
   useEffect(() => {
-    const firstIncomplete = findFirstIncompleteLesson()
-    if (firstIncomplete) {
-      const moduleIndex = course.modules.findIndex(m => 
-        m.lessons.some(l => l.id === firstIncomplete.id)
-      )
-      setCurrentLesson(firstIncomplete)
-      setCurrentModuleIndex(moduleIndex >= 0 ? moduleIndex : 0)
-    } else if (course.modules[0]?.lessons[0]) {
-      setCurrentLesson(course.modules[0].lessons[0])
+    if (course?.modules && course.modules.length > 0) {
+      const firstIncomplete = findFirstIncompleteLesson(course.modules)
+      if (firstIncomplete) {
+        const moduleIndex = course.modules.findIndex(m => 
+          m.lessons.some(l => l.id === firstIncomplete.id)
+        )
+        setCurrentLesson(firstIncomplete)
+        setCurrentModuleIndex(moduleIndex >= 0 ? moduleIndex : 0)
+      }
     }
-  }, [course, findFirstIncompleteLesson])
+  }, [course])
 
   // Progress tracking - VideoPlayer handles progress updates via onProgress callback
   // Auto-advance at 90% is handled in VideoPlayer's onComplete callback
@@ -163,9 +173,10 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
     setIsPlaying(false)
     setIsAutoAdvancing(false)
     setShowMarkComplete(false)
+    setShowIntroVideo(false)
     
     // Expand the module containing this lesson
-    if (!expandedModules.includes(lesson.id.split('-')[0] + '-' + lesson.id.split('-')[1])) {
+    if (course?.modules && moduleIndex >= 0) {
       const moduleId = course.modules[moduleIndex].id
       if (!expandedModules.includes(moduleId)) {
         setExpandedModules(prev => [...prev, moduleId])
@@ -180,7 +191,7 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
 
   // Mark lesson as complete
   const handleMarkComplete = async (auto = false) => {
-    if (!currentLesson || isMarkingComplete) return
+    if (!currentLesson || isMarkingComplete || !course) return
     
     setIsMarkingComplete(true)
     
@@ -221,6 +232,7 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
 
   // Go to next lesson
   const handleNextLesson = useCallback(() => {
+    if (!course?.modules) return
     const allLessons = course.modules.flatMap(m => m.lessons)
     const currentIndex = getCurrentLessonIndex()
     
@@ -239,10 +251,11 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
         }
       }
     }
-  }, [course.modules, getCurrentLessonIndex, expandedModules])
+  }, [course?.modules, getCurrentLessonIndex, expandedModules])
 
   // Go to previous lesson
   const handlePrevLesson = useCallback(() => {
+    if (!course?.modules) return
     const allLessons = course.modules.flatMap(m => m.lessons)
     const currentIndex = getCurrentLessonIndex()
     
@@ -253,7 +266,7 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
       )
       selectLesson(prevLesson, prevModuleIndex)
     }
-  }, [course.modules, getCurrentLessonIndex])
+  }, [course?.modules, getCurrentLessonIndex])
 
   // Handle video end
   const handleVideoEnd = () => {
@@ -286,6 +299,39 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
   }
 
   const currentTime = duration * (played / 100)
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-900 dark:bg-[#0a0a0f] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-12 w-12 animate-spin text-brand-purple" />
+          <p className="text-gray-400">Loading course...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error || !course) {
+    return (
+      <div className="min-h-screen bg-gray-900 dark:bg-[#0a0a0f] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center">
+          <div className="w-16 h-16 rounded-full bg-red-500/20 flex items-center justify-center">
+            <X className="h-8 w-8 text-red-400" />
+          </div>
+          <h2 className="text-xl font-semibold text-white">Failed to Load Course</h2>
+          <p className="text-gray-400 max-w-md">{error || "The course you're looking for doesn't exist or you don't have access."}</p>
+          <Link href="/dashboard/courses">
+            <Button variant="outline" className="border-white/20 text-white">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to My Courses
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="min-h-screen bg-gray-900 dark:bg-[#0a0a0f] text-white flex">
@@ -438,6 +484,47 @@ export default function CoursePlayerPage({ params }: { params: Promise<{ courseI
         "flex-1 flex flex-col min-h-screen transition-all duration-300",
         sidebarOpen ? "lg:ml-80" : ""
       )}>
+        {/* Introduction Video (shown at top if exists) */}
+        {course.introVideoUrl && (
+          <div className="bg-gray-900 border-b border-gray-800">
+            <div className="max-w-5xl mx-auto p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2">
+                  <Video className="h-5 w-5 text-brand-purple" />
+                  <h3 className="text-white font-medium">Course Introduction</h3>
+                </div>
+                {showIntroVideo ? (
+                  <button
+                    onClick={() => setShowIntroVideo(false)}
+                    className="text-sm text-gray-400 hover:text-white flex items-center gap-1"
+                  >
+                    <X className="h-4 w-4" />
+                    Hide
+                  </button>
+                ) : (
+                  <button
+                    onClick={() => setShowIntroVideo(true)}
+                    className="text-sm text-brand-purple hover:text-brand-purple/80 flex items-center gap-1"
+                  >
+                    <Play className="h-4 w-4" />
+                    Play Intro
+                  </button>
+                )}
+              </div>
+              {showIntroVideo && (
+                <div className="aspect-video rounded-lg overflow-hidden bg-black">
+                  <VideoPlayer
+                    videoId="intro-video"
+                    videoUrl={course.introVideoUrl}
+                    onComplete={() => setShowIntroVideo(false)}
+                    className="w-full"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Video Player Area */}
         <div 
           ref={containerRef}
