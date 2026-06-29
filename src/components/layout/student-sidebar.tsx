@@ -4,13 +4,21 @@ import { useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { HeaderLogo, FooterBranding } from "./logo"
+import { FooterBranding } from "./logo"
 import { 
   LayoutDashboard, BookOpen, Award, User, Settings,
-  Heart, Clock, X, Menu, Map, HelpCircle, Brain, ChevronDown
+  Heart, Clock, X, Menu, Map, HelpCircle, Brain, ChevronDown,
+  MessageSquare, Users, Mail, FileText
 } from "lucide-react"
 
-const menuItems = [
+interface MenuItem {
+  title: string
+  href: string
+  icon: React.ElementType
+  badge?: string
+}
+
+const learningMenuItems: MenuItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
   { title: "My Learning Paths", href: "/dashboard/learning-paths", icon: Map },
@@ -18,15 +26,70 @@ const menuItems = [
   { title: "Certificates", href: "/dashboard/certificates", icon: Award },
 ]
 
-const secondaryMenuItems = [
+const communityMenuItems: MenuItem[] = [
+  { title: "Community Forum", href: "/dashboard/forum", icon: MessageSquare },
+  { title: "Membership Plans", href: "/dashboard/membership", icon: Users },
+]
+
+const accountMenuItems: MenuItem[] = [
   { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
   { title: "Help & Support", href: "/dashboard/support", icon: HelpCircle },
+  { title: "Contact Us", href: "/contact", icon: Mail },
 ]
 
-const bottomMenuItems = [
+const bottomMenuItems: MenuItem[] = [
   { title: "Settings", href: "/dashboard/settings/profile", icon: Settings },
 ]
+
+function MenuSection({ 
+  title, 
+  items, 
+  onClose 
+}: { 
+  title: string
+  items: MenuItem[]
+  onClose: () => void
+}) {
+  const pathname = usePathname()
+
+  return (
+    <div className="mb-6">
+      <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        {title}
+      </p>
+      <ul className="space-y-0.5">
+        {items.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
+          return (
+            <li key={item.href}>
+              <Link
+                href={item.href}
+                onClick={onClose}
+                className={cn(
+                  "flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
+                  isActive
+                    ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
+                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
+                )}
+              >
+                <span className="flex items-center gap-3">
+                  <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-white")} />
+                  {item.title}
+                </span>
+                {item.badge && (
+                  <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
+              </Link>
+            </li>
+          )
+        })}
+      </ul>
+    </div>
+  )
+}
 
 export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
   const pathname = usePathname()
@@ -57,88 +120,14 @@ export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: 
 
         {/* Main Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3">
-          <div className="mb-6">
-            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-              Learning
-            </p>
-            <ul className="space-y-0.5">
-              {menuItems.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={onClose}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                        isActive
-                          ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
-                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
-                      )}
-                    >
-                      <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-white")} />
-                      {item.title}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-
-          {/* Secondary Navigation */}
-          <div className="mb-6">
-            <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
-              Account
-            </p>
-            <ul className="space-y-0.5">
-              {secondaryMenuItems.map((item) => {
-                const isActive = pathname === item.href
-                return (
-                  <li key={item.href}>
-                    <Link
-                      href={item.href}
-                      onClick={onClose}
-                      className={cn(
-                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                        isActive
-                          ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
-                          : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
-                      )}
-                    >
-                      <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-white")} />
-                      {item.title}
-                    </Link>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
+          <MenuSection title="Learning" items={learningMenuItems} onClose={onClose} />
+          <MenuSection title="Community" items={communityMenuItems} onClose={onClose} />
+          <MenuSection title="Account" items={accountMenuItems} onClose={onClose} />
         </nav>
 
         {/* Bottom Navigation */}
         <div className="border-t border-gray-100 dark:border-white/5 py-3 px-3">
-          <ul className="space-y-0.5">
-            {bottomMenuItems.map((item) => {
-              const isActive = pathname === item.href
-              return (
-                <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    onClick={onClose}
-                    className={cn(
-                      "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
-                      isActive
-                        ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
-                        : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
-                    )}
-                  >
-                    <item.icon className={cn("h-[18px] w-[18px]", isActive && "text-white")} />
-                    {item.title}
-                  </Link>
-                </li>
-              )
-            })}
-          </ul>
+          <MenuSection title="" items={bottomMenuItems} onClose={onClose} />
         </div>
 
         <FooterBranding />

@@ -105,6 +105,7 @@ export async function GET(request: NextRequest) {
       difficultyLevel: course.difficultyLevel,
       price: Number(course.price),
       isFree: course.isFree,
+      isActive: course.isActive,
       thumbnailUrl: course.thumbnailUrl,
       certificateTemplateId: course.certificateTemplateId,
       createdAt: course.createdAt.toISOString(),
@@ -253,6 +254,7 @@ export async function POST(request: NextRequest) {
         promoVideoUrl: promoVideoUrl || null,
         price: price || 0,
         isFree: isFree !== undefined ? isFree : true,
+        isActive: true, // Default to active
         status: status || "draft",
         certificateTemplateId: certificateTemplateId || null,
       },

@@ -94,6 +94,7 @@ model Course {
   price            Decimal  @default(0) // Legacy single price
   pricing          Json? // Multi-currency: { "NGN": { "amount": 50000 }, "USD": { "amount": 100 } }
   isFree           Boolean  @default(true)
+  isActive         Boolean  @default(true) // Admin toggle for visibility
   status           String   @default("draft") // draft, published, archived
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -156,6 +157,7 @@ model Lesson {
   videoUrl    String?
   isPreview   Boolean  @default(false)
   isFree      Boolean  @default(false) // Free lessons are accessible without enrollment
+  isActive    Boolean  @default(true) // Admin toggle for visibility
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -472,6 +474,7 @@ model LearningPath {
   thumbnailUrl     String?
   difficultyLevel  String   @default("beginner") // beginner, intermediate, advanced
   estimatedHours   Int?     // Total estimated hours
+  isActive         Boolean  @default(true) // Admin toggle for visibility
   isPublished      Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -787,6 +790,7 @@ model ForumThread {
   content     String        @db.Text
   category    String        @default("general") // general, course-help, announcements, off-topic
   authorId    String
+  isActive    Boolean       @default(true) // Admin toggle for visibility
   isPinned    Boolean       @default(false)
   isResolved  Boolean       @default(false)
   viewCount   Int           @default(0)
@@ -814,6 +818,7 @@ model ForumReply {
   content   String      @db.Text
   authorId  String
   threadId  String
+  isActive    Boolean    @default(true) // Admin toggle for visibility
   isAccepted Boolean    @default(false) // Marked as accepted answer
   createdAt DateTime    @default(now())
   updatedAt DateTime    @updatedAt
