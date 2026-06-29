@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 // System Admin IDs that cannot be deleted or demoted
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
 const SYSTEM_ADMIN_IDS = [
   "d2b7ac6d-0e84-4be7-89bd-4f93b15a2b51",
   // Add more system admin IDs as needed

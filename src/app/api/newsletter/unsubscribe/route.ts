@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import { sendUnsubscribeConfirmation } from "@/lib/email"
 
 // GET /api/newsletter/unsubscribe - Get unsubscribe confirmation page
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url)
   const email = searchParams.get("email")

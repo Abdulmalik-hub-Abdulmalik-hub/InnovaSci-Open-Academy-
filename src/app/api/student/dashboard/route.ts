@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
+
 // GET /api/student/dashboard - Get student dashboard data
 export async function GET(request: NextRequest) {
   const endpoint = "/api/student/dashboard"

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
 
 // Protected tables that require special handling
 const PROTECTED_TABLES = ["User", "AuditLog", "Subscription", "Payment"]

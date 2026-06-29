@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
 import { createAuditLog } from "@/lib/audit"
 import { authorize, getAuthenticatedUser } from "@/lib/authorize"
 import { PERMISSIONS } from "@/lib/permissions"

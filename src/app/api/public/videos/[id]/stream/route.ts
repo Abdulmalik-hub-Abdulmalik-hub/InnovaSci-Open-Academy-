@@ -3,6 +3,8 @@ import { prisma } from "@/lib/prisma"
 import crypto from "crypto"
 
 // Generate a signed URL that expires after a specified time
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
 function generateSignedUrl(videoUrl: string, expiresIn: number = 3600): string {
   const expiry = Math.floor(Date.now() / 1000) + expiresIn
   const signature = crypto

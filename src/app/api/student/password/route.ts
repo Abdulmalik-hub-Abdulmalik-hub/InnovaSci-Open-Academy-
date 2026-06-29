@@ -4,6 +4,8 @@ import { createServerClient } from "@/lib/supabase"
 import { hash } from "bcryptjs"
 
 // PUT /api/student/password - Update password
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
 export async function PUT(request: NextRequest) {
   try {
     const userId = request.headers.get("x-user-id") || "demo-user-id"

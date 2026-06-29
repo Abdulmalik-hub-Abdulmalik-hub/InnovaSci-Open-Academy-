@@ -2,6 +2,8 @@ import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 // GET /api/student/courses/[slug]/curriculum - Get course curriculum with enrollment status
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
 export async function GET(
   request: Request,
   { params }: { params: { slug: string } }

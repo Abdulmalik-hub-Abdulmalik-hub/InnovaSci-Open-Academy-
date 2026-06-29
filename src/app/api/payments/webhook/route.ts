@@ -15,6 +15,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { fromKobo } from '@/lib/paystack'
 
 // Type definitions for webhook data
+// Force dynamic rendering - API routes that use request properties must be dynamic
+export const dynamic = 'force-dynamic';
 interface WebhookMetadata {
   user_id: string
   type: string
