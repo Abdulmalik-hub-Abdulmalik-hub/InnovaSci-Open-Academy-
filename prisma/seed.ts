@@ -47,6 +47,55 @@ async function main() {
     })
     console.log("✓ Student user:", student.email)
 
+    // Create Learning Paths
+    const learningPath1 = await prisma.learningPath.upsert({
+      where: { slug: "full-stack-web-development" },
+      update: {},
+      create: {
+        title: "Full-Stack Web Development",
+        slug: "full-stack-web-development",
+        subtitle: "Master modern web development from front-end to back-end",
+        description: "This comprehensive learning path takes you from HTML basics to deploying full-stack applications. You'll learn React, Node.js, databases, and deployment strategies.",
+        difficultyLevel: "intermediate",
+        estimatedHours: 120,
+        isPublished: true,
+        isActive: true,
+      },
+    })
+    console.log("✓ Learning Path:", learningPath1.title)
+
+    const learningPath2 = await prisma.learningPath.upsert({
+      where: { slug: "data-science-fundamentals" },
+      update: {},
+      create: {
+        title: "Data Science Fundamentals",
+        slug: "data-science-fundamentals",
+        subtitle: "Learn data analysis, visualization, and machine learning",
+        description: "Start your data science journey with this structured path covering Python, statistics, data visualization, and machine learning basics.",
+        difficultyLevel: "beginner",
+        estimatedHours: 80,
+        isPublished: true,
+        isActive: true,
+      },
+    })
+    console.log("✓ Learning Path:", learningPath2.title)
+
+    const learningPath3 = await prisma.learningPath.upsert({
+      where: { slug: "mobile-app-development" },
+      update: {},
+      create: {
+        title: "Mobile App Development",
+        slug: "mobile-app-development",
+        subtitle: "Build cross-platform mobile applications",
+        description: "Learn to build iOS and Android apps using React Native. This path covers mobile UI design, navigation, state management, and app store deployment.",
+        difficultyLevel: "intermediate",
+        estimatedHours: 60,
+        isPublished: true,
+        isActive: true,
+      },
+    })
+    console.log("✓ Learning Path:", learningPath3.title)
+
     // Create Demo Courses
     const course1 = await prisma.course.upsert({
       where: { slug: "introduction-to-data-science" },
@@ -147,6 +196,79 @@ async function main() {
       },
     })
     console.log("✓ Module and lessons created for:", course1.title)
+
+    // Link courses to learning paths
+    await prisma.learningPathCourse.upsert({
+      where: {
+        learningPathId_courseId: {
+          learningPathId: learningPath1.id,
+          courseId: course2.id,
+        }
+      },
+      update: {},
+      create: {
+        learningPathId: learningPath1.id,
+        courseId: course2.id,
+        orderIndex: 0,
+        isRequired: true,
+        stepTitle: "Step 1: Web Development Basics",
+      },
+    })
+    console.log("✓ Linked Web Development Masterclass to Full-Stack Path")
+
+    await prisma.learningPathCourse.upsert({
+      where: {
+        learningPathId_courseId: {
+          learningPathId: learningPath1.id,
+          courseId: course3.id,
+        }
+      },
+      update: {},
+      create: {
+        learningPathId: learningPath1.id,
+        courseId: course3.id,
+        orderIndex: 1,
+        isRequired: false,
+        stepTitle: "Step 2: Mobile App Integration",
+      },
+    })
+    console.log("✓ Linked Mobile App Development to Full-Stack Path")
+
+    await prisma.learningPathCourse.upsert({
+      where: {
+        learningPathId_courseId: {
+          learningPathId: learningPath2.id,
+          courseId: course1.id,
+        }
+      },
+      update: {},
+      create: {
+        learningPathId: learningPath2.id,
+        courseId: course1.id,
+        orderIndex: 0,
+        isRequired: true,
+        stepTitle: "Step 1: Introduction to Data Science",
+      },
+    })
+    console.log("✓ Linked Data Science course to Data Science Fundamentals Path")
+
+    await prisma.learningPathCourse.upsert({
+      where: {
+        learningPathId_courseId: {
+          learningPathId: learningPath3.id,
+          courseId: course3.id,
+        }
+      },
+      update: {},
+      create: {
+        learningPathId: learningPath3.id,
+        courseId: course3.id,
+        orderIndex: 0,
+        isRequired: true,
+        stepTitle: "Step 1: React Native Fundamentals",
+      },
+    })
+    console.log("✓ Linked Mobile App Development to Mobile App Development Path")
 
     // Enroll student in courses
     await prisma.enrollment.upsert({
