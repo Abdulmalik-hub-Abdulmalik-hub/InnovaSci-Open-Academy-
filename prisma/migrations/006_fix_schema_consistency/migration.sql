@@ -53,48 +53,97 @@ ALTER TABLE learning_path_courses ADD COLUMN IF NOT EXISTS "stepTitle" VARCHAR(2
 -- The Prisma schema expects userId to reference users(id), but raw SQL has it pointing to profiles(id)
 -- ================================================================================
 
--- Helper function to fix foreign keys
-CREATE OR REPLACE FUNCTION fix_fk_to_users(table_name TEXT, delete_action TEXT)
-RETURNS void AS $$
+-- Fix each table's foreign key directly (without helper function to avoid syntax issues)
+DO $$
 DECLARE
     fk_name TEXT;
 BEGIN
-    -- Find constraint pointing to profiles
-    SELECT conname INTO fk_name
-    FROM pg_constraint
-    WHERE contype = 'f'
-    AND confrelid = 'profiles'::regclass
-    AND conrelid = table_name::regclass;
-    
+    -- enrollments
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'enrollments'::regclass;
     IF fk_name IS NOT NULL THEN
-        EXECUTE 'ALTER TABLE ' || table_name || ' DROP CONSTRAINT ' || fk_name;
-        EXECUTE 'ALTER TABLE ' || table_name || ' ADD CONSTRAINT ' || table_name || '_user_fk 
-                 FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE ' || delete_action;
-        RAISE NOTICE 'Fixed FK in: %', table_name;
-    ELSE
-        RAISE NOTICE 'No FK to profiles in: %', table_name;
+        EXECUTE format('ALTER TABLE enrollments DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE enrollments ADD CONSTRAINT enrollments_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
     END IF;
-EXCEPTION WHEN OTHERS THEN
-    RAISE NOTICE 'FK fix skipped for: % - %', table_name, SQLERRM;
-END;
-$$ LANGUAGE plpgsql;
-
--- Fix each table's foreign key
-SELECT fix_fk_to_users('enrollments', 'CASCADE');
-SELECT fix_fk_to_users('learning_progress', 'CASCADE');
-SELECT fix_fk_to_users('user_lecture_progress', 'CASCADE');
-SELECT fix_fk_to_users('certificates', 'CASCADE');
-SELECT fix_fk_to_users('payments', 'CASCADE');
-SELECT fix_fk_to_users('subscriptions', 'CASCADE');
-SELECT fix_fk_to_users('wishlists', 'CASCADE');
-SELECT fix_fk_to_users('notifications', 'CASCADE');
-SELECT fix_fk_to_users('audit_logs', 'SET NULL');
-SELECT fix_fk_to_users('support_tickets', 'SET NULL');
-SELECT fix_fk_to_users('ticket_comments', 'SET NULL');
-SELECT fix_fk_to_users('learning_path_progress', 'CASCADE');
-
--- Clean up helper function
-DROP FUNCTION IF EXISTS fix_fk_to_users(TEXT, TEXT);
+    
+    -- learning_progress
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'learning_progress'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE learning_progress DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE learning_progress ADD CONSTRAINT learning_progress_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
+    END IF;
+    
+    -- user_lecture_progress
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'user_lecture_progress'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE user_lecture_progress DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE user_lecture_progress ADD CONSTRAINT user_lecture_progress_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
+    END IF;
+    
+    -- certificates
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'certificates'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE certificates DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE certificates ADD CONSTRAINT certificates_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
+    END IF;
+    
+    -- payments
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'payments'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE payments DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE payments ADD CONSTRAINT payments_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
+    END IF;
+    
+    -- subscriptions
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'subscriptions'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE subscriptions DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE subscriptions ADD CONSTRAINT subscriptions_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
+    END IF;
+    
+    -- wishlists
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'wishlists'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE wishlists DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE wishlists ADD CONSTRAINT wishlists_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
+    END IF;
+    
+    -- notifications
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'notifications'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE notifications DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE notifications ADD CONSTRAINT notifications_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
+    END IF;
+    
+    -- audit_logs
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'audit_logs'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE audit_logs DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE audit_logs ADD CONSTRAINT audit_logs_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE SET NULL');
+    END IF;
+    
+    -- support_tickets
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'support_tickets'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE support_tickets DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE support_tickets ADD CONSTRAINT support_tickets_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE SET NULL');
+    END IF;
+    
+    -- ticket_comments
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'ticket_comments'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE ticket_comments DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE ticket_comments ADD CONSTRAINT ticket_comments_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE SET NULL');
+    END IF;
+    
+    -- learning_path_progress
+    SELECT conname INTO fk_name FROM pg_constraint WHERE contype = 'f' AND confrelid = 'profiles'::regclass AND conrelid = 'learning_path_progress'::regclass;
+    IF fk_name IS NOT NULL THEN
+        EXECUTE format('ALTER TABLE learning_path_progress DROP CONSTRAINT %I', fk_name);
+        EXECUTE format('ALTER TABLE learning_path_progress ADD CONSTRAINT learning_path_progress_user_fk FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE CASCADE');
+    END IF;
+    
+    RAISE NOTICE 'All foreign keys fixed successfully';
+END $$;
 
 -- ================================================================================
 -- STEP 3: Create indexes
