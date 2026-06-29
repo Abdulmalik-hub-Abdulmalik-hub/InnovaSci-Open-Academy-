@@ -11,26 +11,29 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined
 }
 
-// Create Prisma client with error handling
+// Create Prisma client with connection options
 function createPrismaClient(): PrismaClient {
-  // Validate DATABASE_URL before creating client
-  if (!process.env.DATABASE_URL) {
-    console.error("[Prisma] FATAL: DATABASE_URL environment variable is not set!")
-    console.error("[Prisma] Please configure DATABASE_URL in your environment")
-    console.error("[Prisma] Example: postgresql://user:password@host:5432/database")
-  }
-
-  return new PrismaClient({
+  const clientOptions: ConstructorParameters<typeof PrismaClient>[0] = {
     log: process.env.NODE_ENV === "development" 
       ? ["query", "error", "warn"] 
       : ["error", "warn"],
-    // Add connection timeout for serverless environments
-    datasources: {
+  }
+
+  // Only set datasource URL if DATABASE_URL is configured
+  // This allows the app to start even without a database (for build/static analysis)
+  if (process.env.DATABASE_URL) {
+    clientOptions.datasources = {
       db: {
         url: process.env.DATABASE_URL,
       },
-    },
-  })
+    }
+  } else {
+    console.warn("[Prisma] WARNING: DATABASE_URL environment variable is not set!")
+    console.warn("[Prisma] Database operations will fail until configured.")
+    console.warn("[Prisma] Copy .env.example to .env and configure your database URL.")
+  }
+
+  return new PrismaClient(clientOptions)
 }
 
 // Export singleton Prisma client

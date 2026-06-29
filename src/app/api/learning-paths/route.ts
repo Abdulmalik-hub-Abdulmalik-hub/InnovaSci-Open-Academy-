@@ -1,6 +1,21 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+// Helper to check if error is a Prisma initialization error
+function isPrismaInitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase()
+    return (
+      message.includes('prismaclientinitializationerror') ||
+      message.includes('database_url') ||
+      message.includes("can't reach database") ||
+      message.includes('connection refused') ||
+      message.includes('invalid datasource url')
+    )
+  }
+  return false
+}
+
 // GET /api/learning-paths - Get all published learning paths with courses
 export async function GET() {
   try {
@@ -66,6 +81,15 @@ export async function GET() {
     return NextResponse.json({ learningPaths: transformedPaths })
   } catch (error) {
     console.error("Error fetching learning paths:", error)
+    
+    // Provide specific error message for database connection issues
+    if (isPrismaInitError(error)) {
+      return NextResponse.json(
+        { error: "Database connection unavailable. Please check server configuration." },
+        { status: 503 }
+      )
+    }
+    
     return NextResponse.json(
       { error: "Failed to fetch learning paths" },
       { status: 500 }

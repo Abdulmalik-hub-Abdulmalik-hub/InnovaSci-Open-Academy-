@@ -6,6 +6,21 @@ import { authOptions } from "@/lib/auth"
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
 
+// Helper to check if error is a Prisma initialization error
+function isPrismaInitError(error: unknown): boolean {
+  if (error instanceof Error) {
+    const message = error.message.toLowerCase()
+    return (
+      message.includes('prismaclientinitializationerror') ||
+      message.includes('database_url') ||
+      message.includes("can't reach database") ||
+      message.includes('connection refused') ||
+      message.includes('invalid datasource url')
+    )
+  }
+  return false
+}
+
 // GET /api/student/learning-paths - Get user's learning paths with progress
 export async function GET(request: NextRequest) {
   try {
@@ -105,6 +120,15 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Learning paths API error:", error)
+    
+    // Provide specific error message for database connection issues
+    if (isPrismaInitError(error)) {
+      return NextResponse.json(
+        { success: false, error: "Database connection unavailable. Please check server configuration." },
+        { status: 503 }
+      )
+    }
+    
     return NextResponse.json(
       { success: false, error: "Failed to fetch learning paths" },
       { status: 500 }
