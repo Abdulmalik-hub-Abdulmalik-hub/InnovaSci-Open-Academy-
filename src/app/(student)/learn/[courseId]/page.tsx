@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import { useParams } from "next/navigation"
+import Link from "next/link"
 import { motion, AnimatePresence } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -62,7 +63,13 @@ interface Course {
   slug: string
   introVideoUrl?: string
   thumbnailUrl?: string
-  modules: Module[]
+  totalLessons?: number
+  completedLessons?: number
+  curriculum?: {
+    modules: Module[]
+    totalLessons: number
+    totalDuration: number
+  }
 }
 
 type TabType = "materials" | "questions" | null
@@ -161,10 +168,10 @@ export default function CoursePlayerPage() {
 
   // Mark lesson complete
   const markComplete = () => {
-    if (!currentLesson || !course) return
+    if (!currentLesson || !course || !course.curriculum) return
     
     setCourse(prev => {
-      if (!prev) return prev
+      if (!prev || !prev.curriculum) return prev
       
       return {
         ...prev,
