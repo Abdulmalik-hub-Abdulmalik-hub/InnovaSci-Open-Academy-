@@ -64,8 +64,8 @@ export async function GET(request: NextRequest) {
     if (search) {
       where.OR = [
         { verificationCode: { contains: search, mode: "insensitive" } },
-        { user: { name: { contains: search, mode: "insensitive" } } },
         { user: { email: { contains: search, mode: "insensitive" } } },
+        { user: { profile: { fullName: { contains: search, mode: "insensitive" } } } },
         { course: { title: { contains: search, mode: "insensitive" } } },
       ]
     }
