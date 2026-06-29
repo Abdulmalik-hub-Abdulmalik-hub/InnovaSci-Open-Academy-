@@ -129,8 +129,14 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Get certificates error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : "UNKNOWN"
     return NextResponse.json(
-      { success: false, error: "Failed to fetch certificates" },
+      { 
+        success: false, 
+        error: `Failed to fetch certificates: ${errorMessage}`,
+        code: errorCode 
+      },
       { status: 500 }
     )
   }
