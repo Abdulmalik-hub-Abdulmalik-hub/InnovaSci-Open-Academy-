@@ -19,19 +19,22 @@ interface MenuItem {
 }
 
 // Main navigation items (global sidebar - always visible)
+// These are the core platform sections - NOT student dashboard features
 const mainNavItems: MenuItem[] = [
-  { title: "Home", href: "/dashboard", icon: Home },
-  { title: "Courses", href: "/dashboard/courses", icon: GraduationCap },
-  { title: "Membership", href: "/dashboard/membership", icon: Users },
-  { title: "Learning Path", href: "/dashboard/learning-paths", icon: Map },
-  { title: "Forum", href: "/dashboard/forum", icon: MessageSquare },
+  { title: "Home", href: "/", icon: Home },
+  { title: "Courses", href: "/courses", icon: GraduationCap },
+  { title: "Membership", href: "/membership", icon: Users },
+  { title: "Learning Path", href: "/learning-paths", icon: Map },
+  { title: "Forum", href: "/forum", icon: MessageSquare },
   { title: "Contact", href: "/contact", icon: Mail },
 ]
 
-// Quick access items
+// Quick access items - These are the student dashboard features
+// Only include user-specific learning features here
 const quickAccessItems: MenuItem[] = [
-  { title: "My Certificates", href: "/dashboard/certificates", icon: Award },
-  { title: "My Wishlist", href: "/dashboard/wishlist", icon: Heart },
+  { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
+  { title: "Certificates", href: "/dashboard/certificates", icon: Award },
+  { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
 ]
 
