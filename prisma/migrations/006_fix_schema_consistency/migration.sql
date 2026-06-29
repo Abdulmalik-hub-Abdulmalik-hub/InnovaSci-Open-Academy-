@@ -48,6 +48,10 @@ ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS "estimatedHours" INTEGER;
 -- Add missing fields to learning_path_courses table
 ALTER TABLE learning_path_courses ADD COLUMN IF NOT EXISTS "stepTitle" VARCHAR(255);
 
+-- Add missing fields to certificates table
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS "pdfUrl" TEXT;
+ALTER TABLE certificates ADD COLUMN IF NOT EXISTS "verificationUrl" TEXT;
+
 -- ================================================================================
 -- STEP 2: Fix Foreign Key Constraints (CRITICAL!)
 -- The Prisma schema expects userId to reference users(id), but raw SQL has it pointing to profiles(id)
