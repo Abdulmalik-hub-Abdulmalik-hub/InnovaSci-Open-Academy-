@@ -1,36 +1,8 @@
 -- ================================================================================
 -- FIX SCHEMA INCONSISTENCIES
--- This migration fixes columns and foreign keys that are inconsistent between
--- the Prisma schema and the raw SQL migrations
+-- This migration fixes columns that are missing in the database
+-- but expected by the Prisma schema
 -- ================================================================================
-
--- ------------------------------------------------------------------------------
--- Helper function to drop and recreate foreign key constraints
--- ------------------------------------------------------------------------------
-CREATE OR REPLACE FUNCTION fix_user_foreign_key(table_name TEXT, delete_action TEXT)
-RETURNS VOID AS $$
-DECLARE
-    constraint_name TEXT;
-BEGIN
-    -- Find existing constraint referencing profiles table
-    SELECT conname INTO constraint_name
-    FROM pg_constraint
-    WHERE confrelid = 'profiles'::regclass
-    AND conrelid = table_name::regclass
-    AND contype = 'f';
-    
-    IF constraint_name IS NOT NULL THEN
-        EXECUTE format('ALTER TABLE %I DROP CONSTRAINT %I', table_name, constraint_name);
-        EXECUTE format(
-            'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY ("userId") REFERENCES users(id) ON DELETE %s',
-            table_name, table_name || '_userId_fkey', delete_action
-        );
-        RAISE NOTICE 'Fixed foreign key in table: %', table_name;
-    ELSE
-        RAISE NOTICE 'No profiles foreign key found in table: %', table_name;
-    END IF;
-END;
-$$ LANGUAGE plpgsql;
 
 -- ------------------------------------------------------------------------------
 -- 1. Fix lessons table - Add missing columns
@@ -43,80 +15,47 @@ ALTER TABLE lessons ADD COLUMN IF NOT EXISTS "exerciseFilesUrl" VARCHAR(500);
 ALTER TABLE lessons ADD COLUMN IF NOT EXISTS "solutionVideoUrl" VARCHAR(500);
 
 -- ------------------------------------------------------------------------------
--- 2. Fix enrollments table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('enrollments', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 3. Fix learning_progress table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('learning_progress', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 4. Fix user_lecture_progress table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('user_lecture_progress', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 5. Fix certificates table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('certificates', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 6. Fix payments table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('payments', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 7. Fix subscriptions table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('subscriptions', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 8. Fix wishlists table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('wishlists', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 9. Fix notifications table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('notifications', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 10. Fix audit_logs table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('audit_logs', 'SET NULL');
-
--- ------------------------------------------------------------------------------
--- 11. Fix support_tickets table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('support_tickets', 'SET NULL');
-
--- ------------------------------------------------------------------------------
--- 12. Fix ticket_comments table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('ticket_comments', 'SET NULL');
-
--- ------------------------------------------------------------------------------
--- 13. Fix learning_path_progress table - Correct foreign key reference
--- ------------------------------------------------------------------------------
-SELECT fix_user_foreign_key('learning_path_progress', 'CASCADE');
-
--- ------------------------------------------------------------------------------
--- 14. Add missing fields to courses table (from course_metadata migration)
+-- 2. Add missing fields to courses table
 -- ------------------------------------------------------------------------------
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS "introVideoUrl" VARCHAR(500);
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS "pricing" JSONB;
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS "certificateTemplateId" VARCHAR(255);
 ALTER TABLE courses ADD COLUMN IF NOT EXISTS "certificateTemplateUrl" VARCHAR(500);
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true;
 
 -- ------------------------------------------------------------------------------
--- 15. Add missing fields to learning_paths table
+-- 3. Add missing fields to learning_paths table
 -- ------------------------------------------------------------------------------
+-- First check if title column exists, if not rename name to title
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.columns 
+        WHERE table_name = 'learning_paths' AND column_name = 'title'
+    ) THEN
+        IF EXISTS (
+            SELECT 1 FROM information_schema.columns 
+            WHERE table_name = 'learning_paths' AND column_name = 'name'
+        ) THEN
+            ALTER TABLE learning_paths RENAME COLUMN name TO title;
+            RAISE NOTICE 'Renamed name to title in learning_paths table';
+        END IF;
+    END IF;
+END $$;
+
+-- Add isActive column
 ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS "isActive" BOOLEAN NOT NULL DEFAULT true;
+ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS "subtitle" VARCHAR(255);
+ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS "difficultyLevel" VARCHAR(50) NOT NULL DEFAULT 'beginner';
+ALTER TABLE learning_paths ADD COLUMN IF NOT EXISTS "estimatedHours" INTEGER;
 
 -- ------------------------------------------------------------------------------
--- 16. Create missing indexes for better query performance
+-- 4. Add missing fields to learning_path_courses table
+-- ------------------------------------------------------------------------------
+ALTER TABLE learning_path_courses ADD COLUMN IF NOT EXISTS "stepTitle" VARCHAR(255);
+
+-- ------------------------------------------------------------------------------
+-- 5. Create missing indexes for better query performance
 -- ------------------------------------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_lessons_courseId ON lessons("courseId");
 CREATE INDEX IF NOT EXISTS idx_lessons_moduleId ON lessons("moduleId");
@@ -129,38 +68,63 @@ CREATE INDEX IF NOT EXISTS idx_learning_path_courses_courseId ON learning_path_c
 CREATE INDEX IF NOT EXISTS idx_courses_status ON courses(status);
 
 -- ------------------------------------------------------------------------------
--- 17. Drop helper function
+-- 6. Seed learning paths if none exist
 -- ------------------------------------------------------------------------------
-DROP FUNCTION IF EXISTS fix_user_foreign_key(TEXT, TEXT);
-
--- ================================================================================
--- VERIFICATION
--- ================================================================================
 DO $$
+DECLARE
+    path_count INTEGER;
 BEGIN
-    -- Verify lessons columns
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'lessons' AND column_name = 'isFree'
-    ) THEN
-        RAISE WARNING 'Column isFree may not exist in lessons table';
-    END IF;
+    SELECT COUNT(*) INTO path_count FROM learning_paths;
     
-    -- Verify learning_paths columns
-    IF NOT EXISTS (
-        SELECT 1 FROM information_schema.columns 
-        WHERE table_name = 'learning_paths' AND column_name = 'title'
-    ) THEN
-        -- If title doesn't exist, try to rename name to title
-        IF EXISTS (
-            SELECT 1 FROM information_schema.columns 
-            WHERE table_name = 'learning_paths' AND column_name = 'name'
-        ) THEN
-            ALTER TABLE learning_paths RENAME COLUMN name TO title;
-            RAISE NOTICE 'Renamed name to title in learning_paths table';
-        END IF;
+    IF path_count = 0 THEN
+        INSERT INTO learning_paths (title, slug, subtitle, description, difficultyLevel, estimatedHours, "isActive", "isPublished")
+        VALUES 
+            ('Data Science Foundations', 'data-science-foundations', 'Master the fundamentals of data science', 
+             'Learn data analysis, visualization, and machine learning basics with Python and R', 
+             'beginner', 40, true, true),
+            ('Web Development Mastery', 'web-development-mastery', 'Build modern web applications', 
+             'From HTML basics to full-stack development with React and Node.js', 
+             'intermediate', 60, true, true),
+            ('Mobile App Development', 'mobile-app-development', 'Create cross-platform apps', 
+             'Build iOS and Android apps using React Native', 
+             'intermediate', 45, true, true);
+        
+        RAISE NOTICE 'Seeded 3 learning paths';
+    ELSE
+        -- Update existing paths to have isActive if missing
+        UPDATE learning_paths SET "isActive" = true WHERE "isActive" IS NULL;
+        UPDATE learning_paths SET difficultyLevel = 'beginner' WHERE difficultyLevel IS NULL;
+        RAISE NOTICE 'Updated existing learning paths';
+    END IF;
+END $$;
+
+-- ------------------------------------------------------------------------------
+-- 7. Seed courses if none exist
+-- ------------------------------------------------------------------------------
+DO $$
+DECLARE
+    course_count INTEGER;
+BEGIN
+    SELECT COUNT(*) INTO course_count FROM courses;
+    
+    IF course_count = 0 THEN
+        INSERT INTO courses (title, slug, category, "shortDescription", "difficultyLevel", "durationHours", price, "isFree", status, "isActive")
+        VALUES 
+            ('Introduction to Data Science', 'introduction-to-data-science', 'Data Science', 
+             'Learn the fundamentals of data science with Python', 'beginner', 40, 99.99, false, 'published', true),
+            ('Web Development Masterclass', 'web-development-masterclass', 'Web Development', 
+             'Full-stack web development with React and Node.js', 'intermediate', 60, 149.99, false, 'published', true),
+            ('Mobile App Development with React Native', 'mobile-app-development', 'Mobile Development', 
+             'Build cross-platform mobile apps', 'intermediate', 45, 0, true, 'published', true);
+        
+        RAISE NOTICE 'Seeded 3 courses';
+    ELSE
+        -- Update existing courses to have isActive if missing
+        UPDATE courses SET "isActive" = true WHERE "isActive" IS NULL;
+        RAISE NOTICE 'Updated existing courses';
     END IF;
 END $$;
 
 -- Report status
 SELECT 'Schema fix migration completed successfully!' as status;
+SELECT 'Tables updated: lessons, courses, learning_paths, learning_path_courses' as summary;
