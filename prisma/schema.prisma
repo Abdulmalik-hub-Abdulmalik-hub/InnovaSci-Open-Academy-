@@ -152,7 +152,7 @@ model Lesson {
   title       String
   description String?  @db.Text
   orderIndex  Int      @default(0)
-  lessonType  String   @default("video") // video, quiz, lab, reading
+  lessonType  String   @default("video") // video, reading, exercise
   duration    Int? // Duration in seconds
   videoUrl    String?
   isPreview   Boolean  @default(false)
@@ -160,6 +160,12 @@ model Lesson {
   isActive    Boolean  @default(true) // Admin toggle for visibility
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+
+  // Exercise-specific fields
+  isExercise          Boolean  @default(false) // Mark this as an exercise/project lesson
+  exerciseDescription String?  @db.Text // Markdown description with instructions
+  exerciseFilesUrl    String? // URL to downloadable starter files
+  solutionVideoUrl    String? // URL to solution walkthrough video
 
   course          Course                @relation(fields: [courseId], references: [id], onDelete: Cascade)
   module          Module?               @relation(fields: [moduleId], references: [id], onDelete: SetNull)

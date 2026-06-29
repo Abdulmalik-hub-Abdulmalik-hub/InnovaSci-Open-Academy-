@@ -7,8 +7,9 @@ import { cn } from "@/lib/utils"
 import { FooterBranding } from "./logo"
 import { 
   LayoutDashboard, BookOpen, Award, User, Settings,
-  Heart, Clock, X, Menu, Map, HelpCircle, Brain, ChevronDown,
-  MessageSquare, Users, Mail, FileText
+  Heart, Clock, X, Menu, Map, HelpCircle,
+  ChevronDown,
+  MessageSquare, Users, Mail
 } from "lucide-react"
 
 interface MenuItem {
@@ -22,7 +23,6 @@ const learningMenuItems: MenuItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
   { title: "My Learning Paths", href: "/dashboard/learning-paths", icon: Map },
-  { title: "Practice & Quizzes", href: "/dashboard/quizzes", icon: Brain },
   { title: "Certificates", href: "/dashboard/certificates", icon: Award },
 ]
 

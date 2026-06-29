@@ -40,6 +40,10 @@ interface Lesson {
   duration?: number
   isFree: boolean
   isAccessible?: boolean
+  isExercise?: boolean
+  exerciseDescription?: string
+  exerciseFilesUrl?: string
+  solutionVideoUrl?: string
 }
 
 interface Module {
@@ -107,7 +111,19 @@ Our curriculum covers supervised and unsupervised learning, neural networks, dee
       lessons: [
         { id: "l1", title: "Welcome to the Course", orderIndex: 0, lessonType: "video", duration: 330, isFree: true },
         { id: "l2", title: "Course Overview & Roadmap", orderIndex: 1, lessonType: "video", duration: 765, isFree: true },
-        { id: "l3", title: "Setting Up Your Environment", orderIndex: 2, lessonType: "video", duration: 1100, isFree: false },
+        { id: "l3", title: "Setting Up Your Environment", orderIndex: 2, lessonType: "video", duration: 1100, isFree: true },
+        { 
+          id: "l4", 
+          title: "Project: Build a ML Environment", 
+          orderIndex: 3, 
+          lessonType: "exercise", 
+          duration: 0, 
+          isFree: true,
+          isExercise: true,
+          exerciseDescription: "Set up your Python environment with all the necessary libraries for machine learning.\n\n## Objectives\n- Install Python 3.8+\n- Set up virtual environment\n- Install NumPy, Pandas, Scikit-learn, TensorFlow\n- Verify installation with a test script",
+          exerciseFilesUrl: "https://example.com/starter-files/ml-env-setup.zip",
+          solutionVideoUrl: "https://www.youtube.com/watch?v=example"
+        },
       ]
     },
     {
@@ -116,10 +132,20 @@ Our curriculum covers supervised and unsupervised learning, neural networks, dee
       description: "Core concepts and mathematics",
       orderIndex: 1,
       lessons: [
-        { id: "l4", title: "What is Machine Learning?", orderIndex: 0, lessonType: "video", duration: 900, isFree: true },
-        { id: "l5", title: "Types of Machine Learning", orderIndex: 1, lessonType: "video", duration: 1350, isFree: false },
-        { id: "l6", title: "Mathematics Review", orderIndex: 2, lessonType: "reading", duration: 0, isFree: false },
-        { id: "l7", title: "ML Fundamentals Quiz", orderIndex: 3, lessonType: "quiz", duration: 600, isFree: false },
+        { id: "l5", title: "What is Machine Learning?", orderIndex: 0, lessonType: "video", duration: 900, isFree: false },
+        { id: "l6", title: "Types of Machine Learning", orderIndex: 1, lessonType: "video", duration: 1350, isFree: false },
+        { id: "l7", title: "Mathematics Review", orderIndex: 2, lessonType: "reading", duration: 0, isFree: false },
+        { 
+          id: "l8", 
+          title: "Exercise: ML Concepts Quiz", 
+          orderIndex: 3, 
+          lessonType: "exercise", 
+          duration: 600, 
+          isFree: false,
+          isExercise: true,
+          exerciseDescription: "Test your understanding of ML fundamentals with this exercise.\n\n## Tasks\n1. Identify the type of ML problem\n2. Choose appropriate algorithms\n3. Explain your reasoning",
+          solutionVideoUrl: "https://www.youtube.com/watch?v=example2"
+        },
       ]
     },
     {
@@ -128,10 +154,21 @@ Our curriculum covers supervised and unsupervised learning, neural networks, dee
       description: "Regression and classification",
       orderIndex: 2,
       lessons: [
-        { id: "l8", title: "Linear Regression", orderIndex: 0, lessonType: "video", duration: 1500, isFree: false },
-        { id: "l9", title: "Logistic Regression", orderIndex: 1, lessonType: "video", duration: 1710, isFree: false },
-        { id: "l10", title: "Decision Trees", orderIndex: 2, lessonType: "video", duration: 1935, isFree: false },
-        { id: "l11", title: "Code Lab: Supervised Learning", orderIndex: 3, lessonType: "lab", duration: 2700, isFree: false },
+        { id: "l9", title: "Linear Regression", orderIndex: 0, lessonType: "video", duration: 1500, isFree: false },
+        { id: "l10", title: "Logistic Regression", orderIndex: 1, lessonType: "video", duration: 1710, isFree: false },
+        { id: "l11", title: "Decision Trees", orderIndex: 2, lessonType: "video", duration: 1935, isFree: false },
+        { 
+          id: "l12", 
+          title: "Project: Build a Prediction Model", 
+          orderIndex: 3, 
+          lessonType: "exercise", 
+          duration: 2700, 
+          isFree: false,
+          isExercise: true,
+          exerciseDescription: "Build a complete supervised learning pipeline from scratch.\n\n## Project Requirements\n- Load and preprocess the dataset\n- Split data into train/test sets\n- Train a model\n- Evaluate performance\n- Make predictions\n\n## Bonus\n- Try different algorithms\n- Tune hyperparameters\n- Visualize results",
+          exerciseFilesUrl: "https://example.com/starter-files/supervised-learning.zip",
+          solutionVideoUrl: "https://www.youtube.com/watch?v=example3"
+        },
       ]
     },
     {
@@ -140,9 +177,21 @@ Our curriculum covers supervised and unsupervised learning, neural networks, dee
       description: "Clustering and dimensionality reduction",
       orderIndex: 3,
       lessons: [
-        { id: "l12", title: "K-Means Clustering", orderIndex: 0, lessonType: "video", duration: 1800, isFree: false },
-        { id: "l13", title: "Hierarchical Clustering", orderIndex: 1, lessonType: "video", duration: 1545, isFree: false },
-        { id: "l14", title: "PCA & Dimensionality Reduction", orderIndex: 2, lessonType: "video", duration: 1800, isFree: false },
+        { id: "l13", title: "K-Means Clustering", orderIndex: 0, lessonType: "video", duration: 1800, isFree: false },
+        { id: "l14", title: "Hierarchical Clustering", orderIndex: 1, lessonType: "video", duration: 1545, isFree: false },
+        { id: "l15", title: "PCA & Dimensionality Reduction", orderIndex: 2, lessonType: "video", duration: 1800, isFree: false },
+        { 
+          id: "l16", 
+          title: "Project: Customer Segmentation", 
+          orderIndex: 3, 
+          lessonType: "exercise", 
+          duration: 2400, 
+          isFree: false,
+          isExercise: true,
+          exerciseDescription: "Segment customers using clustering algorithms.\n\n## Steps\n1. Load customer data\n2. Preprocess and scale features\n3. Apply K-Means clustering\n4. Analyze and visualize clusters\n5. Generate insights",
+          exerciseFilesUrl: "https://example.com/starter-files/clustering.zip",
+          solutionVideoUrl: "https://www.youtube.com/watch?v=example4"
+        },
       ]
     },
     {
@@ -151,9 +200,20 @@ Our curriculum covers supervised and unsupervised learning, neural networks, dee
       description: "Deep learning fundamentals",
       orderIndex: 4,
       lessons: [
-        { id: "l15", title: "Introduction to Neural Networks", orderIndex: 0, lessonType: "video", duration: 2100, isFree: false },
-        { id: "l16", title: "Backpropagation", orderIndex: 1, lessonType: "video", duration: 2400, isFree: false },
-        { id: "l17", title: "Building Your First Neural Network", orderIndex: 2, lessonType: "lab", duration: 3000, isFree: false },
+        { id: "l17", title: "Introduction to Neural Networks", orderIndex: 0, lessonType: "video", duration: 2100, isFree: false },
+        { id: "l18", title: "Backpropagation", orderIndex: 1, lessonType: "video", duration: 2400, isFree: false },
+        { 
+          id: "l19", 
+          title: "Project: Build a Neural Network", 
+          orderIndex: 2, 
+          lessonType: "exercise", 
+          duration: 3000, 
+          isFree: false,
+          isExercise: true,
+          exerciseDescription: "Build a neural network from scratch using only NumPy.\n\n## Your Task\nImplement forward propagation\nImplement backward propagation\nTrain on sample data\nEvaluate performance\n\n## Hints\n- Start with a simple architecture\n- Use gradient descent for optimization\n- Monitor loss during training",
+          exerciseFilesUrl: "https://example.com/starter-files/neural-network.zip",
+          solutionVideoUrl: "https://www.youtube.com/watch?v=example5"
+        },
       ]
     }
   ]
@@ -168,19 +228,19 @@ const formatDuration = (seconds: number) => {
   return `${minutes}m`
 }
 
-const getLessonIcon = (type: string, isAccessible: boolean, isFree: boolean) => {
+const getLessonIcon = (type: string, isAccessible: boolean, isFree: boolean, isExercise?: boolean) => {
   const iconClass = cn(
     "w-4 h-4",
     isAccessible || isFree ? "text-emerald-500" : "text-slate-400"
   )
   
+  if (isExercise) {
+    return <Code className={iconClass} />
+  }
+  
   switch (type) {
     case "video":
       return <Video className={iconClass} />
-    case "quiz":
-      return <BarChart3 className={iconClass} />
-    case "lab":
-      return <Code className={iconClass} />
     case "reading":
       return <FileText className={iconClass} />
     default:

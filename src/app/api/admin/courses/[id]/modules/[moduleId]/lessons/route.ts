@@ -47,7 +47,18 @@ export async function POST(
   try {
     const { id: courseId, moduleId } = await params
     const body = await request.json()
-    const { title, description, lessonType, duration, videoUrl, isPreview } = body
+    const { 
+      title, 
+      description, 
+      lessonType, 
+      duration, 
+      videoUrl, 
+      isPreview,
+      isExercise,
+      exerciseDescription,
+      exerciseFilesUrl,
+      solutionVideoUrl
+    } = body
 
     // Validation
     if (!title || title.trim().length < 2) {
@@ -58,10 +69,18 @@ export async function POST(
     }
 
     // Validate lesson type
-    const validLessonTypes = ["video", "quiz", "lab", "reading"]
+    const validLessonTypes = ["video", "reading", "exercise"]
     if (lessonType && !validLessonTypes.includes(lessonType)) {
       return NextResponse.json(
         { success: false, error: `Invalid lesson type. Must be one of: ${validLessonTypes.join(", ")}` },
+        { status: 400 }
+      )
+    }
+
+    // If isExercise is true, exerciseDescription is required
+    if (isExercise && !exerciseDescription?.trim()) {
+      return NextResponse.json(
+        { success: false, error: "Exercise description is required when marking as exercise" },
         { status: 400 }
       )
     }
@@ -106,6 +125,11 @@ export async function POST(
         videoUrl: videoUrl || null,
         isPreview: isPreview ?? false,
         orderIndex,
+        // Exercise fields
+        isExercise: isExercise ?? false,
+        exerciseDescription: exerciseDescription?.trim() || null,
+        exerciseFilesUrl: exerciseFilesUrl || null,
+        solutionVideoUrl: solutionVideoUrl || null,
       }
     })
 
@@ -122,6 +146,7 @@ export async function POST(
             moduleId,
             moduleTitle: module.title,
             courseId,
+            isExercise: lesson.isExercise,
           },
         },
       })
@@ -140,6 +165,10 @@ export async function POST(
         videoUrl: lesson.videoUrl,
         isPreview: lesson.isPreview,
         orderIndex: lesson.orderIndex,
+        isExercise: lesson.isExercise,
+        exerciseDescription: lesson.exerciseDescription,
+        exerciseFilesUrl: lesson.exerciseFilesUrl,
+        solutionVideoUrl: lesson.solutionVideoUrl,
         materialsCount: 0,
         videosCount: 0,
       },

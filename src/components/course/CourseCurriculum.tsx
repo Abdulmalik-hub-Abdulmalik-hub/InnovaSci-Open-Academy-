@@ -28,6 +28,10 @@ export interface CurriculumLesson {
   duration?: number
   isFree: boolean
   isAccessible?: boolean
+  isExercise?: boolean
+  exerciseDescription?: string
+  exerciseFilesUrl?: string
+  solutionVideoUrl?: string
 }
 
 export interface CurriculumModule {
@@ -58,19 +62,19 @@ const formatDuration = (seconds: number) => {
   return `${minutes}m`
 }
 
-const getLessonIcon = (type: string, isAccessible: boolean, isFree: boolean) => {
+const getLessonIcon = (type: string, isAccessible: boolean, isFree: boolean, isExercise?: boolean) => {
   const iconClass = cn(
     "w-4 h-4",
     isAccessible || isFree ? "text-emerald-500" : "text-slate-400"
   )
   
+  if (isExercise) {
+    return <Code className={iconClass} />
+  }
+  
   switch (type) {
     case "video":
       return <Video className={iconClass} />
-    case "quiz":
-      return <BarChart3 className={iconClass} />
-    case "lab":
-      return <Code className={iconClass} />
     case "reading":
       return <FileText className={iconClass} />
     default:
@@ -198,8 +202,13 @@ export function CourseCurriculum({
                             {/* Icon */}
                             <div className="flex-shrink-0">
                               {isAccessible ? (
-                                <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
-                                  {getLessonIcon(lesson.lessonType, isAccessible, lesson.isFree)}
+                                <div className={cn(
+                                  "w-8 h-8 rounded-full flex items-center justify-center",
+                                  lesson.isExercise 
+                                    ? "bg-amber-100 dark:bg-amber-900/30" 
+                                    : "bg-emerald-100 dark:bg-emerald-900/30"
+                                )}>
+                                  {getLessonIcon(lesson.lessonType, isAccessible, lesson.isFree, lesson.isExercise)}
                                 </div>
                               ) : (
                                 <div className="w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center">
@@ -210,14 +219,25 @@ export function CourseCurriculum({
 
                             {/* Content */}
                             <div className="flex-1 min-w-0">
-                              <p className={cn(
-                                "font-medium truncate",
-                                !isAccessible && "text-muted-foreground"
-                              )}>
-                                {lesson.title}
-                              </p>
+                              <div className="flex items-center gap-2">
+                                <p className={cn(
+                                  "font-medium truncate",
+                                  !isAccessible && "text-muted-foreground"
+                                )}>
+                                  {lesson.title}
+                                </p>
+                                {lesson.isExercise && (
+                                  <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400 shrink-0">
+                                    Project
+                                  </Badge>
+                                )}
+                              </div>
                               <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                                <span className="capitalize">{lesson.lessonType}</span>
+                                <span className={cn(
+                                  lesson.isExercise ? "text-amber-600 dark:text-amber-400" : ""
+                                )}>
+                                  {lesson.isExercise ? "Exercise" : lesson.lessonType.charAt(0).toUpperCase() + lesson.lessonType.slice(1)}
+                                </span>
                                 {lesson.duration && lesson.duration > 0 && (
                                   <>
                                     <span>•</span>
@@ -235,9 +255,18 @@ export function CourseCurriculum({
                             {/* Action */}
                             <div className="flex-shrink-0">
                               {isAccessible ? (
-                                <Button variant="ghost" size="sm" className="gap-1">
-                                  <PlayCircle className="w-4 h-4" />
-                                  {isEnrolled ? "Play" : "Preview"}
+                                <Button variant="ghost" size="sm" className={cn("gap-1", lesson.isExercise && "text-amber-600 hover:text-amber-700 dark:text-amber-400")}>
+                                  {lesson.isExercise ? (
+                                    <>
+                                      <Code className="w-4 h-4" />
+                                      {isEnrolled ? "Start" : "Preview"}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <PlayCircle className="w-4 h-4" />
+                                      {isEnrolled ? "Play" : "Preview"}
+                                    </>
+                                  )}
                                 </Button>
                               ) : (
                                 <div className="flex items-center gap-2 text-sm text-muted-foreground">

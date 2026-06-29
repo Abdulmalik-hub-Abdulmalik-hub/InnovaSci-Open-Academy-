@@ -55,6 +55,7 @@ export async function GET(
       orderBy: { orderIndex: "asc" },
       include: {
         lessons: {
+          where: { isActive: true }, // Only active lessons
           orderBy: { orderIndex: "asc" },
           select: {
             id: true,
@@ -66,6 +67,12 @@ export async function GET(
             videoUrl: true,
             isPreview: true,
             isFree: true,
+            isActive: true,
+            // Exercise fields
+            isExercise: true,
+            exerciseDescription: true,
+            exerciseFilesUrl: true,
+            solutionVideoUrl: true,
           },
         },
       },
