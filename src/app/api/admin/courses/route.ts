@@ -36,6 +36,18 @@ async function checkAdminAuth(request: NextRequest): Promise<{ authorized: boole
 
 // GET /api/admin/courses - List all courses
 export async function GET(request: NextRequest) {
+  const endpoint = "/api/admin/courses"
+  
+  // Check DATABASE_URL first
+  if (!process.env.DATABASE_URL) {
+    console.error(`[${endpoint}] DATABASE_URL not configured`)
+    return NextResponse.json({
+      success: false,
+      error: "Database configuration missing",
+      code: "DATABASE_NOT_READY"
+    }, { status: 503 })
+  }
+
   // Check admin auth
   const auth = await checkAdminAuth(request)
   if (!auth.authorized) {
@@ -135,21 +147,34 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error) {
-    console.error("Courses API error:", error)
+    console.error(`[${endpoint}] Courses API error:`, error)
     return NextResponse.json({
       success: false,
-      error: "Database not ready",
+      error: "Failed to fetch courses",
+      code: error instanceof Error && error.message.includes("DATABASE_URL") ? "DATABASE_NOT_READY" : "QUERY_FAILED",
       data: {
         courses: [],
         pagination: { page: 1, limit: 20, total: 0, totalPages: 0 },
         filters: { categories: [] }
       }
-    })
+    }, { status: 503 })
   }
 }
 
 // POST /api/admin/courses - Create new course
 export async function POST(request: NextRequest) {
+  const endpoint = "/api/admin/courses"
+  
+  // Check DATABASE_URL first
+  if (!process.env.DATABASE_URL) {
+    console.error(`[${endpoint}] DATABASE_URL not configured`)
+    return NextResponse.json({
+      success: false,
+      error: "Database configuration missing",
+      code: "DATABASE_NOT_READY"
+    }, { status: 503 })
+  }
+
   // Check admin auth
   const auth = await checkAdminAuth(request)
   if (!auth.authorized) {
@@ -157,13 +182,6 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    // Check DATABASE_URL
-    if (!process.env.DATABASE_URL) {
-      return NextResponse.json(
-        { success: false, error: "Database configuration missing" },
-        { status: 500 }
-      )
-    }
 
     const body = await request.json()
     const {
