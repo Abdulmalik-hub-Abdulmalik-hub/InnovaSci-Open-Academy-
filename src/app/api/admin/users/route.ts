@@ -83,9 +83,12 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Users API error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : "UNKNOWN"
     return NextResponse.json({
       success: false,
-      error: "Database not ready",
+      error: `Failed to fetch users: ${errorMessage}`,
+      code: errorCode,
       data: { users: [], pagination: { page: 1, limit: 20, total: 0, totalPages: 0 } }
     })
   }
