@@ -3,7 +3,7 @@
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { FooterBranding } from "./logo"
+import { FooterBranding, AcademyLogo } from "./logo"
 import { 
   BookOpen, Award, Settings,
   Heart, Clock, X, HelpCircle
@@ -105,12 +105,9 @@ export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: 
         isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
       )}>
         {/* Header */}
-        <div className="flex items-center justify-between h-14 px-5 border-b border-gray-100 dark:border-white/5">
+        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100 dark:border-white/5">
           <Link href="/dashboard" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-purple to-brand-blue flex items-center justify-center">
-              <span className="text-white font-bold text-sm">IO</span>
-            </div>
-            <span className="font-semibold text-gray-900 dark:text-white">InnovaSci</span>
+            <AcademyLogo className="h-7 w-auto" />
           </Link>
           <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
             <X className="h-5 w-5" />

@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { GraduationCap, Mail, Lock, Eye, EyeOff, User, AlertCircle } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, User, AlertCircle } from "lucide-react"
+import { AcademyLogo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -58,10 +59,8 @@ export default function SignupPage() {
       >
         {/* Logo */}
         <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-3 mb-4">
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-brand-purple to-brand-blue">
-              <GraduationCap className="h-7 w-7 text-white" />
-            </div>
+          <Link href="/" className="inline-flex items-center mb-4">
+            <AcademyLogo className="h-12 w-auto" />
           </Link>
           <h1 className="text-2xl font-bold">Create an Account</h1>
           <p className="text-muted-foreground mt-1">Join InnovaSci Open Academy today</p>

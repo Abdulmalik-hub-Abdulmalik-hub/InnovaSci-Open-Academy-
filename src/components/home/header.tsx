@@ -5,10 +5,11 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
 import { 
-  Menu, X, Moon, Sun, GraduationCap, User, 
+  Menu, X, Moon, Sun, User, 
   LayoutDashboard, BookOpen, Settings, LogOut, ChevronDown,
   CreditCard, MessageSquare, Compass, Mail, Home, BookText
 } from "lucide-react"
+import { AcademyLogo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { useTheme } from "next-themes"
@@ -85,16 +86,8 @@ export function Header() {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-3 group">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-violet-600 to-blue-600 transition-transform group-hover:scale-105 shadow-lg shadow-violet-500/20">
-              <GraduationCap className="h-5 w-5 text-white" />
-            </div>
-            <div className="flex flex-col">
-              <span className="text-base sm:text-lg font-bold tracking-tight">
-                <span className="bg-gradient-to-r from-violet-600 to-blue-600 bg-clip-text text-transparent">InnovaSci</span>
-                <span className="text-foreground dark:text-white"> Open Academy</span>
-              </span>
-            </div>
+          <Link href="/" className="flex items-center gap-2">
+            <AcademyLogo className="h-8 w-auto" />
           </Link>
 
           {/* Desktop Navigation */}

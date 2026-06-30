@@ -13,6 +13,10 @@ export const metadata: Metadata = {
   description: "Democratizing high-quality scientific and technological education for learners worldwide. Powered by InnovaSci AI Labs.",
   keywords: ["LMS", "e-learning", "scientific education", "AI", "machine learning", "data science"],
   authors: [{ name: "InnovaSci AI Labs" }],
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
   openGraph: {
     title: "InnovaSci Open Academy",
     description: "World-class scientific learning platform powered by AI",

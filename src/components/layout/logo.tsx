@@ -3,54 +3,45 @@
 import Image from "next/image"
 import Link from "next/link"
 
-// Academy Logo Component
-export function AcademyLogo({ className = "h-10 w-10" }: { className?: string }) {
+// Official InnovaSci Open Academy Logo Component
+export function AcademyLogo({ className = "h-10 w-auto" }: { className?: string }) {
   return (
-    <div className={`${className} relative rounded-lg bg-gradient-to-br from-[#7C3AED] to-[#2563EB] flex items-center justify-center`}>
-      {/* Placeholder - Replace with actual logo */}
-      <svg 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        className="h-6 w-6 text-white"
-        stroke="currentColor"
-        strokeWidth="2"
-      >
-        <path d="M22 10v6M2 10l10-5 10 5-10 5z" />
-        <path d="M6 12v5c3 3 9 3 12 0v-5" />
-      </svg>
-    </div>
+    <Image 
+      src="/logo.png" 
+      alt="InnovaSci Open Academy"
+      width={180}
+      height={50}
+      className={className}
+      priority
+    />
   )
 }
 
 // InnovaSci AI Labs Logo Component  
 export function InnovaLabsLogo({ className = "h-6 w-6" }: { className?: string }) {
   return (
-    <div className={`${className} relative flex items-center justify-center`}>
-      {/* Placeholder - Replace with actual logo */}
-      <svg 
-        viewBox="0 0 24 24" 
-        fill="none" 
-        className="h-full w-full text-[#0D9488]"
-        stroke="currentColor"
-        strokeWidth="1.5"
-      >
-        <circle cx="12" cy="12" r="10" />
-        <path d="M8 12h8M12 8v8" />
-        <circle cx="12" cy="12" r="4" fill="currentColor" />
-      </svg>
-    </div>
+    <Image 
+      src="/logo.png" 
+      alt="InnovaSci"
+      width={24}
+      height={24}
+      className={className}
+    />
   )
 }
 
-// Combined Header Logo
+// Combined Header Logo for Admin
 export function HeaderLogo() {
   return (
     <Link href="/admin" className="flex items-center gap-2">
-      <AcademyLogo />
-      <div className="flex flex-col">
-        <span className="text-sm font-bold text-white">InnovaSci</span>
-        <span className="text-[10px] text-white/60">Open Academy</span>
-      </div>
+      <Image 
+        src="/logo.png" 
+        alt="InnovaSci Open Academy"
+        width={140}
+        height={40}
+        className="h-8 w-auto"
+        priority
+      />
     </Link>
   )
 }
@@ -60,15 +51,29 @@ export function FooterBranding() {
   return (
     <div className="p-4 border-t border-white/10">
       <div className="text-center space-y-2">
-        <p className="text-xs font-semibold text-white/90">InnovaSci Open Academy</p>
-        <div className="flex items-center justify-center gap-1.5">
-          <span className="text-[10px] text-white/50">Powered by</span>
-          <div className="w-4 h-4">
-            <InnovaLabsLogo />
-          </div>
-          <span className="text-[10px] text-[#0D9488] font-medium">InnovaSci AI Labs</span>
-        </div>
+        <Image 
+          src="/logo.png" 
+          alt="InnovaSci Open Academy"
+          width={120}
+          height={34}
+          className="h-7 w-auto mx-auto"
+        />
+        <p className="text-[10px] text-white/50">© 2024 InnovaSci Open Academy. All rights reserved.</p>
       </div>
     </div>
+  )
+}
+
+// Landing Page Logo (Full Logo with Text)
+export function LandingLogo({ className = "h-12 w-auto" }: { className?: string }) {
+  return (
+    <Image 
+      src="/logo.png" 
+      alt="InnovaSci Open Academy"
+      width={200}
+      height={56}
+      className={className}
+      priority
+    />
   )
 }

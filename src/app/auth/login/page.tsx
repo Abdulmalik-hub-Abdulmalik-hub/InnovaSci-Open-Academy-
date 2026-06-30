@@ -4,7 +4,8 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { GraduationCap, Mail, Lock, Eye, EyeOff, AlertCircle, Shield, User, Apple } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, AlertCircle, Shield, User, Apple } from "lucide-react"
+import { AcademyLogo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
@@ -97,13 +98,10 @@ export default function LoginPage() {
         <div className="bg-card rounded-2xl border shadow-lg overflow-hidden">
           {/* Header Banner */}
           <div className="bg-gradient-to-r from-[#7C3AED] to-[#2563EB] px-6 py-8 text-center">
-            <Link href="/" className="inline-flex items-center gap-3 mb-4">
-              <div className="flex h-14 w-14 items-center justify-center rounded-xl bg-white/20 backdrop-blur">
-                <GraduationCap className="h-8 w-8 text-white" />
-              </div>
+            <Link href="/" className="inline-flex items-center mb-4">
+              <AcademyLogo className="h-14 w-auto" />
             </Link>
-            <h1 className="text-2xl font-bold text-white">InnovaSci Open Academy</h1>
-            <p className="text-white/80 mt-1 text-sm">Your gateway to world-class scientific education</p>
+            <p className="text-white/80 mt-2 text-sm">Your gateway to world-class scientific education</p>
           </div>
 
           {/* Demo Credentials Section */}

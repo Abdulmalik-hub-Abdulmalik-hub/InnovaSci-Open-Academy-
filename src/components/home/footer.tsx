@@ -1,7 +1,8 @@
 "use client"
 
 import Link from "next/link"
-import { GraduationCap, Github, Twitter, Linkedin, Mail } from "lucide-react"
+import Image from "next/image"
+import { Github, Twitter, Linkedin, Mail } from "lucide-react"
 
 const footerLinks = {
   platform: [
@@ -34,15 +35,13 @@ export function Footer() {
           {/* Brand */}
           <div className="lg:col-span-2">
             <Link href="/" className="flex items-center gap-2 mb-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-gradient-to-br from-brand-purple to-brand-blue">
-                <GraduationCap className="h-6 w-6 text-white" />
-              </div>
-              <div className="flex flex-col">
-                <span className="text-lg font-bold bg-gradient-to-r from-brand-purple to-brand-blue bg-clip-text text-transparent">
-                  InnovaSci
-                </span>
-                <span className="text-xs text-muted-foreground">Open Academy</span>
-              </div>
+              <Image 
+                src="/logo.png" 
+                alt="InnovaSci Open Academy"
+                width={140}
+                height={40}
+                className="h-10 w-auto"
+              />
             </Link>
             <p className="text-muted-foreground mb-4 max-w-sm">
               Democratizing high-quality scientific and technological education for learners worldwide.
