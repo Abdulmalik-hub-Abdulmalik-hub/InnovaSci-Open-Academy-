@@ -70,3 +70,22 @@ CREATE TABLE IF NOT EXISTS "newsletter_subscribers" (
     "unsubscribedAt" TIMESTAMP,
     "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
+
+-- Create stored_files table
+CREATE TABLE IF NOT EXISTS "stored_files" (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    "originalName" VARCHAR(255) NOT NULL,
+    "storedName" VARCHAR(255) NOT NULL,
+    "fileUrl" TEXT NOT NULL,
+    "fileSize" BIGINT DEFAULT 0,
+    "mimeType" VARCHAR(100),
+    "fileType" VARCHAR(50),
+    "storageType" VARCHAR(50) DEFAULT 'local',
+    folder VARCHAR(255),
+    tags TEXT[],
+    "courseId" UUID,
+    "uploadedBy" UUID,
+    "isOrphaned" BOOLEAN DEFAULT false,
+    "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
