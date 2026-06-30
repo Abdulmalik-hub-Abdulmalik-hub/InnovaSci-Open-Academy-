@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { motion } from "framer-motion"
-import { Search, ChevronDown, BookOpen, Users, Award, Zap, Sparkles } from "lucide-react"
+import { Search, ChevronDown, BookOpen, Users, Award, Zap } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
 const categories = [
@@ -74,32 +74,11 @@ export function HeroSection() {
             </p>
           </motion.div>
 
-          {/* Brand Pillars */}
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.15 }}
-            className="flex flex-wrap justify-center gap-3 sm:gap-4 mb-8"
-          >
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-purple/10 text-brand-purple text-sm font-medium border border-brand-purple/20">
-              <Sparkles className="h-4 w-4" />
-              Innovation + Creativity
-            </span>
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-blue/10 text-brand-blue text-sm font-medium border border-brand-blue/20">
-              <Zap className="h-4 w-4" />
-              Trust + AI + Intelligence
-            </span>
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-brand-teal/10 text-brand-teal text-sm font-medium border border-brand-teal/20">
-              <BookOpen className="h-4 w-4" />
-              Science + Research
-            </span>
-          </motion.div>
-
           {/* Mission Statement */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.2 }}
+            transition={{ duration: 0.5, delay: 0.15 }}
             className="max-w-4xl mx-auto mb-12"
           >
             <div className="relative">
