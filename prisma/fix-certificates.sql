@@ -42,45 +42,31 @@ ALTER TABLE plans ADD COLUMN IF NOT EXISTS "sortOrder" INTEGER DEFAULT 0;
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP;
 
--- Create newsletter_campaigns table
-CREATE TABLE IF NOT EXISTS newsletter_campaigns (
+-- Create newsletter_campaigns table (with snake_case names)
+CREATE TABLE IF NOT EXISTS "newsletter_campaigns" (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     title VARCHAR(255) NOT NULL,
     subject VARCHAR(500) NOT NULL,
     content TEXT,
     status VARCHAR(50) DEFAULT 'draft',
-    recipientType VARCHAR(50) DEFAULT 'all',
-    recipientCourseId UUID,
-    scheduledAt TIMESTAMP,
-    sentAt TIMESTAMP,
-    totalRecipients INTEGER DEFAULT 0,
-    successfulSends INTEGER DEFAULT 0,
-    failedSends INTEGER DEFAULT 0,
-    createdBy UUID,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updatedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    "recipientType" VARCHAR(50) DEFAULT 'all',
+    "recipientCourseId" UUID,
+    "scheduledAt" TIMESTAMP,
+    "sentAt" TIMESTAMP,
+    "totalRecipients" INTEGER DEFAULT 0,
+    "successfulSends" INTEGER DEFAULT 0,
+    "failedSends" INTEGER DEFAULT 0,
+    "createdBy" UUID,
+    "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create newsletter_subscribers table
-CREATE TABLE IF NOT EXISTS newsletter_subscribers (
+-- Create newsletter_subscribers table (with snake_case names)
+CREATE TABLE IF NOT EXISTS "newsletter_subscribers" (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     email VARCHAR(255) UNIQUE NOT NULL,
-    name VARCHAR(255),
-    isActive BOOLEAN DEFAULT true,
-    subscribedAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    unsubscribedAt TIMESTAMP,
-    createdAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-
--- Create newsletter_sent_logs table
-CREATE TABLE IF NOT EXISTS newsletter_sent_logs (
-    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    campaignId UUID REFERENCES newsletter_campaigns(id) ON DELETE CASCADE,
-    subscriberId UUID REFERENCES newsletter_subscribers(id) ON DELETE CASCADE,
-    sentAt TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    deliveredAt TIMESTAMP,
-    openedAt TIMESTAMP,
-    clickedAt TIMESTAMP,
-    status VARCHAR(50) DEFAULT 'pending',
-    errorMessage TEXT
+    "isActive" BOOLEAN DEFAULT true,
+    "subscribedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    "unsubscribedAt" TIMESTAMP,
+    "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
