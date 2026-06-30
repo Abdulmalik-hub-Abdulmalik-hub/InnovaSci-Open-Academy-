@@ -45,15 +45,17 @@ const config: Config = {
         },
         // InnovaSci Brand Colors
         brand: {
-          purple: "#7C3AED",
+          purple: "#7C3AED",   // Purple - Primary
           "purple-light": "#8B5CF6",
           "purple-dark": "#6D28D9",
-          blue: "#2563EB",
+          blue: "#2563EB",     // Blue - Secondary
           "blue-light": "#3B82F6",
           "blue-dark": "#1D4ED8",
-          teal: "#0D9488",
+          teal: "#0D9488",    // Teal - Tertiary
           "teal-light": "#14B8A6",
           "teal-dark": "#0F766E",
+          black: "#0F172A",   // Black - Text/Background
+          grey: "#64748B",    // Grey - Muted
         },
       },
       borderRadius: {

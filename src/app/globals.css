@@ -26,12 +26,18 @@
     --radius: 0.75rem;
     
     /* Brand Colors - InnovaSci Palette */
+    /* Purple - Primary Brand Color */
     --brand-purple: 262 83% 58%;
     --brand-purple-foreground: 210 40% 98%;
+    /* Blue - Secondary Brand Color */
     --brand-blue: 217 91% 60%;
     --brand-blue-foreground: 210 40% 98%;
+    /* Teal - Tertiary Brand Color */
     --brand-teal: 175 80% 32%;
     --brand-teal-foreground: 210 40% 98%;
+    /* Black/Grey - Text/Background */
+    --brand-black: 222 47% 11%;
+    --brand-grey: 215 16% 47%;
   }
 
   .dark {
