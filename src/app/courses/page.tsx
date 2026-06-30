@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import { useSearchParams } from "next/navigation"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useSearchParams } from "next/navigation"
 import { Search, Filter, Loader2, BookOpen, Users, Clock, ChevronDown } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -36,7 +36,21 @@ const difficultyColors = {
   Advanced: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 }
 
-export default function CoursesPage() {
+const categories = [
+  "All Categories",
+  "Artificial Intelligence",
+  "Data Science",
+  "Machine Learning",
+  "Computational Biology",
+  "Quantum Computing",
+  "Drug Discovery",
+  "Web Development",
+  "Cloud Computing",
+]
+
+const difficulties = ["All Levels", "Beginner", "Intermediate", "Advanced"]
+
+function CoursesContent() {
   const searchParams = useSearchParams()
   const [courses, setCourses] = useState<Course[]>([])
   const [loading, setLoading] = useState(true)
@@ -48,7 +62,7 @@ export default function CoursesPage() {
 
   useEffect(() => {
     fetchCourses()
-  }, [searchParams])
+  }, [])
 
   const fetchCourses = async () => {
     setLoading(true)
@@ -58,7 +72,10 @@ export default function CoursesPage() {
       const category = searchParams.get("category")
       const difficulty = searchParams.get("difficulty")
 
-      if (q) params.set("q", q)
+      if (q) {
+        setSearchQuery(q)
+        params.set("q", q)
+      }
       if (category) {
         setSelectedCategory(category)
         params.set("category", category)
@@ -67,7 +84,6 @@ export default function CoursesPage() {
         setSelectedDifficulty(difficulty)
         params.set("difficulty", difficulty)
       }
-      if (searchQuery) params.set("q", searchQuery)
 
       const response = await fetch(`/api/public/courses?${params.toString()}`)
       const result = await response.json()
@@ -94,20 +110,6 @@ export default function CoursesPage() {
     window.location.href = newUrl
   }
 
-  const categories = [
-    "All Categories",
-    "Artificial Intelligence",
-    "Data Science",
-    "Machine Learning",
-    "Computational Biology",
-    "Quantum Computing",
-    "Drug Discovery",
-    "Web Development",
-    "Cloud Computing",
-  ]
-
-  const difficulties = ["All Levels", "Beginner", "Intermediate", "Advanced"]
-
   const filteredCourses = courses.filter(course => {
     if (selectedCategory !== "All Categories" && course.category !== selectedCategory) return false
     if (selectedDifficulty !== "All Levels" && course.difficulty !== selectedDifficulty) return false
@@ -115,7 +117,7 @@ export default function CoursesPage() {
   })
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-900 dark:to-purple-900/20">
+    <>
       {/* Hero Section */}
       <div className="bg-gradient-to-r from-purple-600 to-blue-600 text-white py-16 px-4">
         <div className="max-w-6xl mx-auto text-center">
@@ -166,7 +168,6 @@ export default function CoursesPage() {
 
           {/* Desktop Filters */}
           <div className="hidden lg:flex items-center gap-4">
-            {/* Category Filter */}
             <div className="relative">
               <button
                 onClick={() => setSelectedCategory(selectedCategory === "All Categories" ? categories[1] : selectedCategory)}
@@ -177,7 +178,6 @@ export default function CoursesPage() {
               </button>
             </div>
 
-            {/* Difficulty Filter */}
             <div className="relative">
               <button
                 onClick={() => setSelectedDifficulty(selectedDifficulty === "All Levels" ? "Beginner" : selectedDifficulty)}
@@ -237,7 +237,6 @@ export default function CoursesPage() {
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {filteredCourses.map((course) => (
               <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
-                {/* Thumbnail */}
                 <div className="relative aspect-video">
                   {course.thumbnailUrl ? (
                     <Image
@@ -274,7 +273,6 @@ export default function CoursesPage() {
                     <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{course.description}</p>
                   )}
                   
-                  {/* Course Meta */}
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
                     {course.duration && (
                       <div className="flex items-center gap-1">
@@ -306,6 +304,24 @@ export default function CoursesPage() {
           </div>
         )}
       </div>
+    </>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-900 dark:to-purple-900/20 flex items-center justify-center">
+      <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
     </div>
+  )
+}
+
+export default function CoursesPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-900 dark:to-purple-900/20">
+        <CoursesContent />
+      </div>
+    </Suspense>
   )
 }
