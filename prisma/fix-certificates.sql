@@ -23,6 +23,7 @@ END $$;
 
 -- Add missing columns to plans table
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS "planType" VARCHAR(50) DEFAULT 'subscription';
+ALTER TABLE plans ADD COLUMN IF NOT EXISTS "billingCycle" VARCHAR(50) DEFAULT 'monthly';
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS "pricing" JSONB;
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS "stripePriceId" VARCHAR(255);
 ALTER TABLE plans ADD COLUMN IF NOT EXISTS "paystackPlanId" VARCHAR(255);
