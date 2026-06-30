@@ -86,10 +86,10 @@ export function HeroSection() {
               <div className="hidden lg:block absolute left-0 top-0 bottom-0 w-1 bg-gradient-to-b from-brand-purple via-brand-blue to-brand-teal rounded-full" />
               
               <p className="text-lg sm:text-xl md:text-2xl text-muted-foreground leading-relaxed px-4 lg:px-8">
-                <span className="font-semibold text-foreground">Our Mission:</span> Democratizing scientific and technological education through open-access learning — 
-                <span className="text-brand-purple font-medium"> empowering innovation</span>, 
-                <span className="text-brand-blue font-medium"> advancing AI literacy</span>, and 
-                <span className="text-brand-teal font-medium"> driving scientific discovery</span> for a global community of innovators.
+                <span className="font-semibold text-foreground">Our Mission:</span> { " " }
+                <span className="font-medium">
+                  To democratize high-quality scientific and technological education through open-access learning. We are dedicated to empowering a global community of innovators, researchers, and learners with the skills and knowledge needed to solve complex real-world challenges.
+                </span>
               </p>
             </div>
           </motion.div>
