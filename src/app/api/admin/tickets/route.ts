@@ -10,7 +10,13 @@ import { sendTicketReplyNotification, sendTicketStatusNotification, sendTicketCr
 // GET /api/admin/tickets - Get all tickets
 export async function GET(request: NextRequest) {
   const auth = await authorize(PERMISSIONS.SUPPORT_VIEW)(request)
-  if ("status" in auth) return auth
+  if ("status" in auth) {
+    const errorMsg = auth.headers?.get("x-auth-error") || "Authentication required"
+    return NextResponse.json(
+      { success: false, error: errorMsg },
+      { status: 401 }
+    )
+  }
 
   try {
     const { searchParams } = new URL(request.url)
@@ -134,8 +140,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Get tickets error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { success: false, error: "Failed to fetch tickets" },
+      { success: false, error: `Failed to fetch tickets: ${errorMessage}` },
       { status: 500 }
     )
   }
