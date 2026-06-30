@@ -276,13 +276,13 @@ export async function GET(request: NextRequest) {
         where[safeField] = { contains: filterValue }
       }
 
-      // Fetch rows with pagination
+      // Fetch rows with pagination - use id as fallback orderBy
       const [rows, total] = await Promise.all([
         model.findMany({
           where,
           skip,
           take: limit,
-          orderBy: { createdAt: "desc" }
+          orderBy: { id: "desc" }
         }),
         model.count({ where })
       ])
