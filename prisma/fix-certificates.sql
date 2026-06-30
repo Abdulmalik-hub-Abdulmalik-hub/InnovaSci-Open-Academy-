@@ -140,4 +140,5 @@ ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "resolvedAt" TIMESTAMP;
 ALTER TABLE "system_settings" ADD COLUMN IF NOT EXISTS "category" VARCHAR(100) DEFAULT 'general';
 ALTER TABLE "system_settings" ADD COLUMN IF NOT EXISTS "description" TEXT;
 ALTER TABLE "system_settings" ADD COLUMN IF NOT EXISTS "isPublic" BOOLEAN DEFAULT false;
+ALTER TABLE "system_settings" ADD COLUMN IF NOT EXISTS "isEncrypted" BOOLEAN DEFAULT false;
 ALTER TABLE "system_settings" ADD COLUMN IF NOT EXISTS "groupKey" VARCHAR(100);
