@@ -320,8 +320,10 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ success: false, error: "Invalid action" }, { status: 400 })
   } catch (error) {
     console.error("Database explorer error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    const errorCode = error instanceof Error && 'code' in error ? (error as any).code : "UNKNOWN"
     return NextResponse.json(
-      { success: false, error: "Failed to execute query" },
+      { success: false, error: `Failed to execute query: ${errorMessage}`, code: errorCode },
       { status: 500 }
     )
   }
