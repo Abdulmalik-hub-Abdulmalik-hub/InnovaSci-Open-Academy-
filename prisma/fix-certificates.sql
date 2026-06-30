@@ -86,6 +86,7 @@ CREATE TABLE IF NOT EXISTS "stored_files" (
     "courseId" UUID,
     "uploadedBy" UUID,
     "isOrphaned" BOOLEAN DEFAULT false,
+    "lastAccessedAt" TIMESTAMP,
     "createdAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
