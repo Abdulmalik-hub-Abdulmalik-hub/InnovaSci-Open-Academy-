@@ -135,6 +135,9 @@ ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "labels" TEXT[];
 ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "priority" VARCHAR(50) DEFAULT 'medium';
 ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "assignedTo" UUID;
 ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "resolvedAt" TIMESTAMP;
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "category" VARCHAR(100) DEFAULT 'general';
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "subject" VARCHAR(255);
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "message" TEXT;
 
 -- Add missing columns to system_settings table
 ALTER TABLE "system_settings" ADD COLUMN IF NOT EXISTS "category" VARCHAR(100) DEFAULT 'general';
