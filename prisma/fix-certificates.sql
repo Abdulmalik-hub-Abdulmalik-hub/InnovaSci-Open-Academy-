@@ -129,3 +129,9 @@ ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS "enrolledAt" TIMESTAMP DEFAULT 
 ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS "completedAt" TIMESTAMP;
 ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS "source" VARCHAR(50);
 ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS "couponCode" VARCHAR(100);
+
+-- Add missing columns to support_tickets table
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "labels" TEXT[];
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "priority" VARCHAR(50) DEFAULT 'medium';
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "assignedTo" UUID;
+ALTER TABLE "support_tickets" ADD COLUMN IF NOT EXISTS "resolvedAt" TIMESTAMP;
