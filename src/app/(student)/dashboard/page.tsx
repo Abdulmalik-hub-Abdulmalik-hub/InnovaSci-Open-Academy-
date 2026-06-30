@@ -185,8 +185,8 @@ export default function StudentDashboard() {
         </Card>
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-green-500/10 flex items-center justify-center">
-              <CheckCircle2 className="h-6 w-6 text-green-500" />
+            <div className="w-12 h-12 rounded-xl bg-brand-teal/10 flex items-center justify-center">
+              <CheckCircle2 className="h-6 w-6 text-brand-teal" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.completedCourses}</p>
@@ -196,8 +196,8 @@ export default function StudentDashboard() {
         </Card>
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <Flame className="h-6 w-6 text-amber-500" />
+            <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center">
+              <Flame className="h-6 w-6 text-brand-blue" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.totalHoursLearned}h</p>
@@ -207,8 +207,8 @@ export default function StudentDashboard() {
         </Card>
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-              <Award className="h-6 w-6 text-amber-500" />
+            <div className="w-12 h-12 rounded-xl bg-brand-purple/10 flex items-center justify-center">
+              <Award className="h-6 w-6 text-brand-purple" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.certificatesEarned}</p>
@@ -384,7 +384,7 @@ export default function StudentDashboard() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Award className="h-5 w-5 text-amber-500" />
+                <Award className="h-5 w-5 text-brand-purple" />
                 My Certificates
               </h2>
               <Link href="/dashboard/certificates">
@@ -403,8 +403,8 @@ export default function StudentDashboard() {
                       href={`/dashboard/certificates/${cert.id}`}
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center flex-shrink-0">
-                        <Award className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+                      <div className="w-10 h-10 rounded-lg bg-brand-purple/10 flex items-center justify-center flex-shrink-0">
+                        <Award className="h-5 w-5 text-brand-purple" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium line-clamp-1">
@@ -418,7 +418,7 @@ export default function StudentDashboard() {
                   ))
                 ) : (
                   <div className="text-center py-6">
-                    <Trophy className="h-10 w-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                    <Award className="h-10 w-10 text-brand-purple/30 dark:text-brand-purple/40 mx-auto mb-2" />
                     <p className="text-xs text-gray-500">
                       Complete courses to earn certificates
                     </p>
@@ -432,7 +432,7 @@ export default function StudentDashboard() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-amber-500" />
+                <Sparkles className="h-5 w-5 text-brand-blue" />
                 Recommended
               </h2>
             </div>

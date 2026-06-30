@@ -30,22 +30,22 @@ const features = [
     icon: Award,
     title: "Verified Certificates",
     description: "Earn industry-recognized certificates upon course completion.",
-    color: "text-amber-500",
-    bg: "bg-amber-500/10",
+    color: "text-brand-purple",
+    bg: "bg-brand-purple/10",
   },
   {
     icon: Users,
     title: "Expert-Led Content",
     description: "Learn from world-class scientists and researchers in their fields.",
-    color: "text-pink-500",
-    bg: "bg-pink-500/10",
+    color: "text-brand-blue",
+    bg: "bg-brand-blue/10",
   },
   {
     icon: BookOpen,
     title: "Hands-on Projects",
     description: "Apply your knowledge with real-world scientific projects.",
-    color: "text-green-500",
-    bg: "bg-green-500/10",
+    color: "text-brand-teal",
+    bg: "bg-brand-teal/10",
   },
 ]
 
