@@ -14,9 +14,22 @@ const badgeVariants = cva(
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
         outline: "text-foreground",
-        purple: "border-transparent bg-brand-purple text-white",
-        blue: "border-transparent bg-brand-blue text-white",
-        teal: "border-transparent bg-brand-teal text-white",
+        
+        // InnovaSci Brand Color Variants
+        // Primary Purple - Innovation
+        purple: "border-transparent bg-[hsl(var(--brand-purple))] text-[hsl(var(--brand-purple-foreground))] hover:bg-[hsl(var(--brand-purple-dark))]",
+        "purple-outline": "border border-[hsl(var(--brand-purple))] text-[hsl(var(--brand-purple))] bg-transparent hover:bg-[hsl(var(--brand-purple))/10]",
+        "purple-subtle": "border-transparent bg-[hsl(var(--brand-purple))/10] text-[hsl(var(--brand-purple))]",
+        
+        // Primary Blue - Intelligence
+        blue: "border-transparent bg-[hsl(var(--brand-blue))] text-[hsl(var(--brand-blue-foreground))] hover:bg-[hsl(var(--brand-blue-dark))]",
+        "blue-outline": "border border-[hsl(var(--brand-blue))] text-[hsl(var(--brand-blue))] bg-transparent hover:bg-[hsl(var(--brand-blue))/10]",
+        "blue-subtle": "border-transparent bg-[hsl(var(--brand-blue))/10] text-[hsl(var(--brand-blue))]",
+        
+        // Teal - Science
+        teal: "border-transparent bg-[hsl(var(--brand-teal))] text-[hsl(var(--brand-teal-foreground))] hover:bg-[hsl(var(--brand-teal-dark))]",
+        "teal-outline": "border border-[hsl(var(--brand-teal))] text-[hsl(var(--brand-teal))] bg-transparent hover:bg-[hsl(var(--brand-teal))/10]",
+        "teal-subtle": "border-transparent bg-[hsl(var(--brand-teal))/10] text-[hsl(var(--brand-teal))]",
       },
     },
     defaultVariants: {

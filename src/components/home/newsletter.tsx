@@ -25,24 +25,24 @@ export function Newsletter() {
   }
 
   return (
-    <section className="py-20">
-      <div className="container mx-auto px-4">
+    <section className="py-12 sm:py-16 md:py-20">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
         >
-          <Card className="bg-gradient-to-br from-brand-purple/10 via-brand-blue/10 to-brand-teal/10 border-brand-purple/20">
-            <CardHeader className="text-center pb-2">
-              <div className="w-16 h-16 rounded-full bg-brand-purple/20 flex items-center justify-center mx-auto mb-4">
-                <Mail className="h-8 w-8 text-brand-purple" />
+          <Card className="bg-gradient-to-br from-[hsl(var(--brand-purple))/10] via-[hsl(var(--brand-blue))/10] to-[hsl(var(--brand-teal))/10] border-[hsl(var(--brand-purple))/20]">
+            <CardHeader className="text-center pb-2 p-5 sm:p-6">
+              <div className="w-12 h-12 sm:w-16 sm:h-16 rounded-full bg-[hsl(var(--brand-purple))/20] flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <Mail className="h-6 w-6 sm:h-8 sm:w-8 text-[hsl(var(--brand-purple))]" />
               </div>
-              <CardTitle className="text-2xl md:text-3xl">
+              <CardTitle className="text-xl sm:text-2xl md:text-3xl">
                 Stay Updated with InnovaSci
               </CardTitle>
             </CardHeader>
-            <CardContent className="text-center">
-              <p className="text-muted-foreground mb-8 max-w-md mx-auto">
+            <CardContent className="text-center p-5 sm:p-6 pt-0">
+              <p className="text-muted-foreground mb-6 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">
                 Subscribe to our newsletter for the latest courses, research updates, and exclusive learning opportunities.
               </p>
 
@@ -54,12 +54,12 @@ export function Newsletter() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
-                    className="flex-1"
+                    className="flex-1 text-sm sm:text-base"
                   />
                   <Button 
                     type="submit" 
                     disabled={isLoading}
-                    className="bg-brand-purple hover:bg-brand-purple/90"
+                    className="bg-[hsl(var(--brand-purple))] hover:bg-[hsl(var(--brand-purple-dark))] text-sm sm:text-base"
                   >
                     {isLoading ? (
                       <span className="animate-spin">⟳</span>
@@ -82,7 +82,7 @@ export function Newsletter() {
                 </motion.div>
               )}
 
-              <p className="text-xs text-muted-foreground mt-4">
+              <p className="text-xs sm:text-sm text-muted-foreground mt-4">
                 By subscribing, you agree to our Privacy Policy. Unsubscribe anytime.
               </p>
             </CardContent>

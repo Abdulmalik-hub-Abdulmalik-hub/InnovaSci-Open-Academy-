@@ -29,7 +29,7 @@ export default function StudentDashboard() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-brand-purple border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-[hsl(var(--brand-purple)) border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground">Loading your learning hub...</p>
         </div>
       </div>
@@ -94,7 +94,7 @@ export default function StudentDashboard() {
                   {/* Play Button Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
                     <div className="w-16 h-16 rounded-full bg-white/90 flex items-center justify-center shadow-xl transform scale-90 group-hover:scale-100 transition-transform">
-                      <Play className="h-7 w-7 text-brand-purple ml-1" />
+                      <Play className="h-7 w-7 text-[hsl(var(--brand-purple))] ml-1" />
                     </div>
                   </div>
                 </div>
@@ -102,7 +102,7 @@ export default function StudentDashboard() {
                 {/* Content */}
                 <div className="flex-1 text-center md:text-left">
                   <div className="flex items-center justify-center md:justify-start gap-2 mb-2">
-                    <span className="px-2.5 py-0.5 bg-brand-purple/20 text-brand-purple text-xs font-medium rounded-full">
+                    <span className="px-2.5 py-0.5 bg-[hsl(var(--brand-purple))/20 text-[hsl(var(--brand-purple))] text-xs font-medium rounded-full">
                       Continue Learning
                     </span>
                     {data.currentEnrollment.course.category && (
@@ -111,7 +111,7 @@ export default function StudentDashboard() {
                       </span>
                     )}
                   </div>
-                  <h2 className="text-xl md:text-2xl font-bold text-white mb-3 group-hover:text-brand-purple transition-colors">
+                  <h2 className="text-xl md:text-2xl font-bold text-white mb-3 group-hover:text-[hsl(var(--brand-purple))] transition-colors">
                     {data.currentEnrollment.course.title}
                   </h2>
                   
@@ -154,14 +154,14 @@ export default function StudentDashboard() {
       ) : (
         <Card className="border-2 border-dashed border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
           <CardContent className="flex flex-col items-center justify-center py-12">
-            <div className="w-16 h-16 rounded-full bg-brand-purple/10 flex items-center justify-center mb-4">
-              <BookOpen className="h-8 w-8 text-brand-purple" />
+            <div className="w-16 h-16 rounded-full bg-[hsl(var(--brand-purple))/10 flex items-center justify-center mb-4">
+              <BookOpen className="h-8 w-8 text-[hsl(var(--brand-purple))]" />
             </div>
             <h3 className="text-lg font-semibold mb-2">Start Your Learning Journey</h3>
             <p className="text-sm text-gray-500 mb-4 text-center max-w-md">
               Browse our catalog and enroll in courses to begin learning
             </p>
-            <Button asChild className="bg-brand-purple hover:bg-brand-purple/90">
+            <Button asChild className="bg-[hsl(var(--brand-purple)) hover:bg-[hsl(var(--brand-purple))/90">
               <Link href="/">
                 Browse Courses
               </Link>
@@ -174,8 +174,8 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-brand-purple/10 flex items-center justify-center">
-              <BookOpen className="h-6 w-6 text-brand-purple" />
+            <div className="w-12 h-12 rounded-xl bg-[hsl(var(--brand-purple))/10 flex items-center justify-center">
+              <BookOpen className="h-6 w-6 text-[hsl(var(--brand-purple))]" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.totalEnrolled}</p>
@@ -185,8 +185,8 @@ export default function StudentDashboard() {
         </Card>
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-brand-teal/10 flex items-center justify-center">
-              <CheckCircle2 className="h-6 w-6 text-brand-teal" />
+            <div className="w-12 h-12 rounded-xl bg-[hsl(var(--brand-teal))/10 flex items-center justify-center">
+              <CheckCircle2 className="h-6 w-6 text-[hsl(var(--brand-teal))]" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.completedCourses}</p>
@@ -196,8 +196,8 @@ export default function StudentDashboard() {
         </Card>
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-brand-blue/10 flex items-center justify-center">
-              <Flame className="h-6 w-6 text-brand-blue" />
+            <div className="w-12 h-12 rounded-xl bg-[hsl(var(--brand-blue))/10 flex items-center justify-center">
+              <Flame className="h-6 w-6 text-[hsl(var(--brand-blue))]" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.totalHoursLearned}h</p>
@@ -207,8 +207,8 @@ export default function StudentDashboard() {
         </Card>
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-brand-purple/10 flex items-center justify-center">
-              <Award className="h-6 w-6 text-brand-purple" />
+            <div className="w-12 h-12 rounded-xl bg-[hsl(var(--brand-purple))/10 flex items-center justify-center">
+              <Award className="h-6 w-6 text-[hsl(var(--brand-purple))]" />
             </div>
             <div>
               <p className="text-2xl font-bold">{stats.certificatesEarned}</p>
@@ -226,7 +226,7 @@ export default function StudentDashboard() {
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold">My Courses</h2>
               <Link href="/dashboard/courses">
-                <Button variant="ghost" size="sm" className="text-brand-purple text-sm h-8">
+                <Button variant="ghost" size="sm" className="text-[hsl(var(--brand-purple))] text-sm h-8">
                   View All
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
@@ -254,7 +254,7 @@ export default function StudentDashboard() {
                         <div 
                           className={cn(
                             "h-full transition-all",
-                            enrollment.completed ? "bg-green-500" : "bg-brand-purple"
+                            enrollment.completed ? "bg-green-500" : "bg-[hsl(var(--brand-purple))"
                           )}
                           style={{ width: `${enrollment.progressPercent}%` }}
                         />
@@ -276,7 +276,7 @@ export default function StudentDashboard() {
                             "w-full text-xs h-8",
                             enrollment.completed 
                               ? "bg-green-500 hover:bg-green-600 text-white" 
-                              : "bg-brand-purple hover:bg-brand-purple/90"
+                              : "bg-[hsl(var(--brand-purple)) hover:bg-[hsl(var(--brand-purple))/90"
                           )}
                         >
                           {enrollment.completed ? (
@@ -345,35 +345,35 @@ export default function StudentDashboard() {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Quick Actions */}
-          <Card className="bg-gradient-to-br from-brand-purple/5 to-brand-blue/5 border-brand-purple/10">
+          <Card className="bg-gradient-to-br from-brand-purple/5 to-brand-blue/5 border-[hsl(var(--brand-purple))/10">
             <CardHeader className="pb-3">
               <CardTitle className="text-base flex items-center gap-2">
-                <Target className="h-5 w-5 text-brand-purple" />
+                <Target className="h-5 w-5 text-[hsl(var(--brand-purple))]" />
                 Quick Actions
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Link href="/dashboard/learning-paths" className="block">
                 <Button variant="outline" className="w-full justify-start h-11 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <MapIcon className="h-4 w-4 mr-2 text-brand-purple" />
+                  <MapIcon className="h-4 w-4 mr-2 text-[hsl(var(--brand-purple))]" />
                   Browse Learning Paths
                 </Button>
               </Link>
               <Link href="/dashboard/support" className="block">
                 <Button variant="outline" className="w-full justify-start h-11 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <HelpCircle className="h-4 w-4 mr-2 text-brand-purple" />
+                  <HelpCircle className="h-4 w-4 mr-2 text-[hsl(var(--brand-purple))]" />
                   Get Help & Support
                 </Button>
               </Link>
               <Link href="/dashboard/quizzes" className="block">
                 <Button variant="outline" className="w-full justify-start h-11 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <Brain className="h-4 w-4 mr-2 text-brand-purple" />
+                  <Brain className="h-4 w-4 mr-2 text-[hsl(var(--brand-purple))]" />
                   Practice & Quizzes
                 </Button>
               </Link>
               <Link href="/dashboard/wishlist" className="block">
                 <Button variant="outline" className="w-full justify-start h-11 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <Heart className="h-4 w-4 mr-2 text-brand-purple" />
+                  <Heart className="h-4 w-4 mr-2 text-[hsl(var(--brand-purple))]" />
                   My Wishlist
                 </Button>
               </Link>
@@ -384,11 +384,11 @@ export default function StudentDashboard() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Award className="h-5 w-5 text-brand-purple" />
+                <Award className="h-5 w-5 text-[hsl(var(--brand-purple))]" />
                 My Certificates
               </h2>
               <Link href="/dashboard/certificates">
-                <Button variant="ghost" size="sm" className="text-brand-purple h-7 text-xs">
+                <Button variant="ghost" size="sm" className="text-[hsl(var(--brand-purple))] h-7 text-xs">
                   View All
                 </Button>
               </Link>
@@ -403,8 +403,8 @@ export default function StudentDashboard() {
                       href={`/dashboard/certificates/${cert.id}`}
                       className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
                     >
-                      <div className="w-10 h-10 rounded-lg bg-brand-purple/10 flex items-center justify-center flex-shrink-0">
-                        <Award className="h-5 w-5 text-brand-purple" />
+                      <div className="w-10 h-10 rounded-lg bg-[hsl(var(--brand-purple))/10 flex items-center justify-center flex-shrink-0">
+                        <Award className="h-5 w-5 text-[hsl(var(--brand-purple))]" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium line-clamp-1">
@@ -418,7 +418,7 @@ export default function StudentDashboard() {
                   ))
                 ) : (
                   <div className="text-center py-6">
-                    <Award className="h-10 w-10 text-brand-purple/30 dark:text-brand-purple/40 mx-auto mb-2" />
+                    <Award className="h-10 w-10 text-[hsl(var(--brand-purple))]/30 dark:text-[hsl(var(--brand-purple))]/40 mx-auto mb-2" />
                     <p className="text-xs text-gray-500">
                       Complete courses to earn certificates
                     </p>
@@ -432,7 +432,7 @@ export default function StudentDashboard() {
           <div>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-semibold flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-brand-blue" />
+                <Sparkles className="h-5 w-5 text-[hsl(var(--brand-blue))]" />
                 Recommended
               </h2>
             </div>
@@ -455,12 +455,12 @@ export default function StudentDashboard() {
                           />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-purple/10 to-brand-blue/10">
-                            <BookOpen className="h-6 w-6 text-brand-purple/30" />
+                            <BookOpen className="h-6 w-6 text-[hsl(var(--brand-purple))]/30" />
                           </div>
                         )}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <p className="text-sm font-medium line-clamp-2 group-hover:text-brand-purple transition-colors">
+                        <p className="text-sm font-medium line-clamp-2 group-hover:text-[hsl(var(--brand-purple))] transition-colors">
                           {course.title}
                         </p>
                         <p className="text-xs text-gray-500 mt-0.5">

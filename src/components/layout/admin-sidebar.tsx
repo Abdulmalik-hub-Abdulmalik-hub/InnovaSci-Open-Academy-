@@ -12,6 +12,13 @@ import {
   Headphones, FileText, X, LayoutTemplate
 } from "lucide-react"
 
+// =============================================================================
+// ADMIN SIDEBAR - NEUTRAL/DISTINCT STYLING (NO BRAND COLORS)
+// =============================================================================
+// This sidebar remains neutral to avoid confusion with the public-facing platform.
+// Uses a distinct dark theme with neutral colors for clear separation.
+// =============================================================================
+
 // Menu items with icons
 const menuItems = [
   {
@@ -95,36 +102,37 @@ export function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: ()
 
   return (
     <>
-      {/* Mobile Overlay */}
+      {/* Mobile Overlay - Touch-friendly */}
       {isOpen && (
         <div 
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
           onClick={onClose}
         />
       )}
 
-      {/* Sidebar */}
+      {/* Sidebar - Distinct neutral styling */}
       <motion.aside
         initial={false}
         animate={{ x: isOpen ? 0 : -280 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
         className={cn(
           "fixed left-0 top-0 z-50 h-screen w-[280px] bg-[#1a1a2e] border-r border-white/10 flex flex-col",
           "lg:translate-x-0 lg:static lg:z-auto"
         )}
       >
         {/* Header */}
-        <div className="flex items-center justify-between h-16 px-4 border-b border-white/10">
+        <div className="flex items-center justify-between h-14 sm:h-16 px-4 border-b border-white/10">
           <HeaderLogo />
           <button
             onClick={onClose}
-            className="lg:hidden text-white/60 hover:text-white"
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-white/10 transition-colors text-white/60 hover:text-white"
           >
             <X className="h-5 w-5" />
           </button>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
+        <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
           <ul className="space-y-1">
             {menuItems.map((item) => {
               const isActive = pathname === item.href || pathname.startsWith(item.href + "/")
@@ -141,7 +149,7 @@ export function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                         className={cn(
                           "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                           isActive || isSubmenuActive
-                            ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white shadow-lg"
+                            ? "bg-white/15 text-white shadow-lg"
                             : "text-white/70 hover:text-white hover:bg-white/5"
                         )}
                       >
@@ -160,12 +168,12 @@ export function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                                 className={cn(
                                   "flex items-center gap-2 px-3 py-2 rounded-lg text-sm transition-all",
                                   isSubActive
-                                    ? "bg-[#7C3AED]/20 text-purple-300 font-medium"
+                                    ? "bg-white/10 text-white font-medium"
                                     : "text-white/50 hover:text-white/80 hover:bg-white/5"
                                 )}
                               >
                                 {isSubActive && (
-                                  <div className="w-1 h-1 rounded-full bg-purple-400" />
+                                  <div className="w-1 h-1 rounded-full bg-white/60" />
                                 )}
                                 {subitem.title}
                               </Link>
@@ -181,7 +189,7 @@ export function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       className={cn(
                         "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
                         isActive
-                          ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white shadow-lg"
+                          ? "bg-white/15 text-white shadow-lg"
                           : "text-white/70 hover:text-white hover:bg-white/5"
                       )}
                     >
@@ -195,7 +203,7 @@ export function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: ()
           </ul>
         </nav>
 
-        {/* Footer Branding with InnovaSci AI Labs */}
+        {/* Footer Branding */}
         <FooterBranding />
       </motion.aside>
     </>

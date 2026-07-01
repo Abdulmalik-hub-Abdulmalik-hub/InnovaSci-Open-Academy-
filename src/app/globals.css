@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    /* Base theme colors */
     --background: 0 0% 100%;
     --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
@@ -25,22 +26,41 @@
     --ring: 262 83% 58%;
     --radius: 0.75rem;
     
-    /* Brand Colors - InnovaSci Palette */
-    /* Purple - Primary Brand Color */
-    --brand-purple: 262 83% 58%;
-    --brand-purple-foreground: 210 40% 98%;
-    /* Blue - Secondary Brand Color */
-    --brand-blue: 217 91% 60%;
-    --brand-blue-foreground: 210 40% 98%;
-    /* Teal - Tertiary Brand Color */
-    --brand-teal: 175 80% 32%;
-    --brand-teal-foreground: 210 40% 98%;
-    /* Black/Grey - Text/Background */
-    --brand-black: 222 47% 11%;
-    --brand-grey: 215 16% 47%;
+    /* ========================================================================
+       InnovaSci Brand Color System
+       ========================================================================
+       Primary Purple (#7C3AED) - Innovation: Main buttons, active nav, accents
+       Primary Blue (#2563EB) - Intelligence: Overlays, AI features, structure
+       Teal (#0D9488) - Science: CTAs, success states, research badges
+       Black/Grey (#0F172A) - Professionalism: Typography, sidebars, backgrounds
+       ======================================================================== */
+    
+    /* Primary Purple - Innovation */
+    --brand-purple: 262 83% 58%;           /* #7C3AED - Main purple */
+    --brand-purple-light: 262 91% 76%;     /* #A78BFA - Lighter variant */
+    --brand-purple-dark: 262 83% 48%;      /* #6D28D9 - Darker variant */
+    --brand-purple-foreground: 210 40% 98%; /* White text on purple */
+    
+    /* Primary Blue - Intelligence */
+    --brand-blue: 217 91% 60%;            /* #2563EB - Main blue */
+    --brand-blue-light: 217 91% 71%;      /* #60A5FA - Lighter variant */
+    --brand-blue-dark: 217 94% 47%;       /* #1D4ED8 - Darker variant */
+    --brand-blue-foreground: 210 40% 98%; /* White text on blue */
+    
+    /* Teal - Science/CTA */
+    --brand-teal: 175 80% 32%;            /* #0D9488 - Main teal */
+    --brand-teal-light: 175 76% 42%;     /* #14B8A6 - Lighter variant */
+    --brand-teal-dark: 175 80% 27%;       /* #0F766E - Darker variant */
+    --brand-teal-foreground: 210 40% 98%; /* White text on teal */
+    
+    /* Black/Grey - Professionalism */
+    --brand-black: 222 47% 11%;           /* #0F172A - Main black */
+    --brand-grey: 215 16% 47%;            /* #64748B - Muted grey */
+    --brand-grey-light: 215 20% 65%;      /* #94A3B8 - Light grey */
   }
 
   .dark {
+    /* Base theme colors - Dark mode */
     --background: 222.2 84% 4.9%;
     --foreground: 210 40% 98%;
     --card: 222.2 84% 4.9%;
@@ -60,6 +80,30 @@
     --border: 217.2 32.6% 17.5%;
     --input: 217.2 32.6% 17.5%;
     --ring: 262 83% 58%;
+    
+    /* Brand colors work the same in dark mode */
+    /* Primary Purple - Innovation */
+    --brand-purple: 262 83% 58%;
+    --brand-purple-light: 262 91% 76%;
+    --brand-purple-dark: 262 83% 48%;
+    --brand-purple-foreground: 210 40% 98%;
+    
+    /* Primary Blue - Intelligence */
+    --brand-blue: 217 91% 60%;
+    --brand-blue-light: 217 91% 71%;
+    --brand-blue-dark: 217 94% 47%;
+    --brand-blue-foreground: 210 40% 98%;
+    
+    /* Teal - Science/CTA */
+    --brand-teal: 175 80% 32%;
+    --brand-teal-light: 175 76% 42%;
+    --brand-teal-dark: 175 80% 27%;
+    --brand-teal-foreground: 210 40% 98%;
+    
+    /* Black/Grey - Professionalism */
+    --brand-black: 222 47% 11%;
+    --brand-grey: 215 16% 47%;
+    --brand-grey-light: 215 20% 65%;
   }
 }
 

@@ -67,25 +67,25 @@ const difficultyColors = {
 
 export function CourseCatalog() {
   return (
-    <section className="py-20 bg-muted/50">
-      <div className="container mx-auto px-4">
+    <section className="py-12 sm:py-16 md:py-20 bg-muted/50">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         {/* Section Header */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-12"
+          className="text-center mb-8 sm:mb-12"
         >
-          <h2 className="text-3xl md:text-4xl font-bold mb-4">
-            Explore Our <span className="bg-gradient-to-r from-brand-purple to-brand-blue bg-clip-text text-transparent">Courses</span>
+          <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 sm:mb-4">
+            Explore Our <span className="bg-gradient-to-r from-[hsl(var(--brand-purple))] to-[hsl(var(--brand-blue))] bg-clip-text text-transparent">Courses</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto px-4">
             Discover world-class courses taught by leading experts in AI, Data Science, Computational Biology, and more.
           </p>
         </motion.div>
 
-        {/* Course Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Course Grid - Responsive */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
           {courses.map((course, index) => (
             <motion.div
               key={course.id}
@@ -106,53 +106,53 @@ export function CourseCatalog() {
                   <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
                   
                   {/* Category Badge */}
-                  <Badge className="absolute top-3 left-3 bg-brand-purple/90 text-white">
+                  <Badge className="absolute top-2 left-2 sm:top-3 sm:left-3 bg-[hsl(var(--brand-purple))/90] text-white text-xs">
                     {course.category}
                   </Badge>
 
                   {/* Difficulty Badge */}
                   <Badge 
-                    className={`absolute top-3 right-3 ${difficultyColors[course.difficulty as keyof typeof difficultyColors]}`}
+                    className={`absolute top-2 right-2 sm:top-3 sm:right-3 ${difficultyColors[course.difficulty as keyof typeof difficultyColors]} text-xs`}
                   >
                     {course.difficulty}
                   </Badge>
 
                   {/* Play Button Overlay */}
                   <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-                    <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center">
-                      <Play className="h-6 w-6 text-brand-purple ml-1" />
+                    <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-white/90 flex items-center justify-center">
+                      <Play className="h-5 w-5 sm:h-6 sm:w-6 text-[hsl(var(--brand-purple))] ml-0.5 sm:ml-1" />
                     </div>
                   </div>
                 </div>
 
-                <CardHeader className="p-4">
-                  <h3 className="font-semibold line-clamp-2 group-hover:text-brand-purple transition-colors">
+                <CardHeader className="p-3 sm:p-4">
+                  <h3 className="font-semibold line-clamp-2 group-hover:text-[hsl(var(--brand-purple))] transition-colors text-sm sm:text-base">
                     {course.title}
                   </h3>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     InnovaSci Academy
                   </p>
                 </CardHeader>
 
-                <CardContent className="p-4 pt-0">
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                <CardContent className="p-3 sm:p-4 pt-0">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground">
                     <div className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {course.duration}h
                     </div>
                     <div className="flex items-center gap-1">
-                      <Users className="h-4 w-4" />
+                      <Users className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {course.students.toLocaleString()}
                     </div>
                     <div className="flex items-center gap-1">
-                      <BookOpen className="h-4 w-4" />
+                      <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {Math.floor(course.duration * 3)} lessons
                     </div>
                   </div>
                 </CardContent>
 
-                <CardFooter className="p-4 pt-0 flex items-center justify-between">
-                  <div className="font-bold">
+                <CardFooter className="p-3 sm:p-4 pt-0 flex items-center justify-between gap-2">
+                  <div className="font-bold text-sm sm:text-base">
                     {course.isFree ? (
                       <span className="text-green-600">Free</span>
                     ) : (
@@ -160,9 +160,9 @@ export function CourseCatalog() {
                     )}
                   </div>
                   <Link href={`/courses/${course.id}`}>
-                    <Button size="sm" variant="ghost" className="gap-1">
+                    <Button size="sm" variant="ghost" className="gap-1 text-xs sm:text-sm">
                       View Course
-                      <ArrowRight className="h-4 w-4" />
+                      <ArrowRight className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     </Button>
                   </Link>
                 </CardFooter>
@@ -176,7 +176,7 @@ export function CourseCatalog() {
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mt-12"
+          className="text-center mt-8 sm:mt-12"
         >
           <Link href="/courses">
             <Button size="lg" variant="outline" className="gap-2">

@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { FooterBranding, AcademyLogo } from "./logo"
 import { 
@@ -17,10 +18,10 @@ interface MenuItem {
 }
 
 // =============================================================================
-// STUDENT DASHBOARD SIDEBAR - INDEPENDENT FROM LANDING PAGE NAVIGATION
+// STUDENT DASHBOARD SIDEBAR - INNOVASCI BRAND COLORS
 // =============================================================================
+// Uses Primary Purple for active states, Teal for CTAs, Blue for accents
 // This sidebar ONLY contains student-specific features.
-// It does NOT share any navigation with the Landing Page.
 // =============================================================================
 
 // Quick access items - Student Dashboard features ONLY
@@ -53,7 +54,7 @@ function MenuSection({
   return (
     <div className="mb-4">
       {showTitle && title && (
-        <p className="px-3 text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">
+        <p className="px-3 text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
           {title}
         </p>
       )}
@@ -68,8 +69,8 @@ function MenuSection({
                 className={cn(
                   "flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-200",
                   isActive
-                    ? "bg-brand-purple text-white shadow-md shadow-brand-purple/20"
-                    : "text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-white"
+                    ? "bg-[hsl(var(--brand-purple))] text-white shadow-md shadow-[hsl(var(--brand-purple))/20]"
+                    : "text-muted-foreground hover:bg-[hsl(var(--brand-purple))/5] hover:text-[hsl(var(--brand-purple))]"
                 )}
               >
                 <span className="flex items-center gap-3">
@@ -77,7 +78,7 @@ function MenuSection({
                   {item.title}
                 </span>
                 {item.badge && (
-                  <span className="px-2 py-0.5 text-xs font-medium bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 rounded-full">
+                  <span className="px-2 py-0.5 text-xs font-medium bg-[hsl(var(--brand-teal))]/20 text-[hsl(var(--brand-teal))] rounded-full">
                     {item.badge}
                   </span>
                 )}
@@ -95,36 +96,52 @@ export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: 
 
   return (
     <>
+      {/* Mobile Overlay - Touch-friendly backdrop */}
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 z-40 lg:hidden" onClick={onClose} />
+        <motion.div 
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden backdrop-blur-sm"
+          onClick={onClose}
+        />
       )}
 
-      <aside className={cn(
-        "fixed left-0 top-0 z-50 h-screen w-[260px] bg-white dark:bg-[#0f0f1a] border-r border-gray-100 dark:border-white/5 flex flex-col",
-        "lg:translate-x-0 lg:static lg:z-auto",
-        isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
-      )}>
-        {/* Header */}
-        <div className="flex items-center justify-between h-14 px-4 border-b border-gray-100 dark:border-white/5">
+      {/* Sidebar - Responsive width */}
+      <motion.aside 
+        initial={false}
+        animate={{ x: isOpen ? 0 : -280 }}
+        transition={{ type: "spring", damping: 25, stiffness: 200 }}
+        className={cn(
+          "fixed left-0 top-0 z-50 h-screen w-[280px] bg-white dark:bg-[#0f0f1a] border-r border-border flex flex-col",
+          "lg:translate-x-0 lg:static lg:z-auto",
+          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        )}
+      >
+        {/* Header - Touch-friendly close button */}
+        <div className="flex items-center justify-between h-14 px-4 border-b border-border">
           <Link href="/dashboard" className="flex items-center gap-2">
             <AcademyLogo className="h-7 w-auto" />
           </Link>
-          <button onClick={onClose} className="lg:hidden text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+          <button 
+            onClick={onClose} 
+            className="lg:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+          >
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        {/* Student Dashboard Navigation - Independent from Landing Page */}
-        <nav className="flex-1 overflow-y-auto py-4 px-3">
+        {/* Student Dashboard Navigation */}
+        <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
           <MenuSection title="Quick Access" items={quickAccessItems} onClose={onClose} showTitle />
           
-          <div className="h-px bg-gray-100 dark:bg-white/10 my-4" />
+          <div className="h-px bg-border my-4" />
           
           <MenuSection title="Support" items={supportItems} onClose={onClose} showTitle />
         </nav>
 
         <FooterBranding />
-      </aside>
+      </motion.aside>
     </>
   )
 }
