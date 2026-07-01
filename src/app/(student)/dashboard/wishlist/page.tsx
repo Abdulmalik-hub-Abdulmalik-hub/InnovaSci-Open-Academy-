@@ -9,12 +9,13 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { 
   Heart, BookOpen, Clock, Trash2, ArrowRight, Loader2,
-  Play, Users
+  Play, Users, AlertCircle, RefreshCw
 } from "lucide-react"
 
 export default function WishlistPage() {
   const { wishlist, loading, error, pagination, fetchWishlist, removeFromWishlist } = useStudentWishlist()
   const [removingId, setRemovingId] = useState<string | null>(null)
+  const [showErrorDetails, setShowErrorDetails] = useState(false)
 
   const handleRemove = async (courseId: string) => {
     setRemovingId(courseId)
@@ -26,7 +27,7 @@ export default function WishlistPage() {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-10 h-10 border-4 border-brand-purple border-t-transparent rounded-full animate-spin" />
+          <div className="w-10 h-10 border-4 border-[hsl(var(--brand-purple))] border-t-transparent rounded-full animate-spin" />
           <p className="text-muted-foreground">Loading your wishlist...</p>
         </div>
       </div>
@@ -38,8 +39,8 @@ export default function WishlistPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Heart className="h-8 w-8 text-red-500 fill-red-500" />
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight flex items-center gap-3">
+            <Heart className="h-7 w-7 sm:h-8 sm:w-8 text-red-500 fill-red-500" />
             My Wishlist
           </h1>
           <p className="text-muted-foreground mt-1">
@@ -60,31 +61,77 @@ export default function WishlistPage() {
         </div>
       </div>
 
-      {/* Error State */}
+      {/* Error State - Detailed Error Display */}
       {error && (
-        <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
-          <p className="text-red-600 dark:text-red-400">{error}</p>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => fetchWishlist()}
-            className="mt-2"
-          >
-            Try Again
-          </Button>
+        <div className="p-4 sm:p-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 sm:h-6 sm:w-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-600 dark:text-red-400 mb-1">
+                Failed to Load Wishlist
+              </h3>
+              <p className="text-sm text-red-600/80 dark:text-red-400/80">
+                {error}
+              </p>
+              
+              {/* Show/Hide Error Details Button */}
+              <button
+                onClick={() => setShowErrorDetails(!showErrorDetails)}
+                className="text-xs text-red-500 hover:text-red-600 underline mt-2"
+              >
+                {showErrorDetails ? "Hide error details" : "Show error details"}
+              </button>
+              
+              {/* Expanded Error Details */}
+              {showErrorDetails && (
+                <div className="mt-3 p-3 bg-red-100/50 dark:bg-red-900/30 rounded text-xs font-mono text-red-700 dark:text-red-300 overflow-x-auto">
+                  <p className="font-semibold mb-1">Error Information:</p>
+                  <p>• API Endpoint: /api/student/wishlist</p>
+                  <p>• HTTP Method: GET</p>
+                  <p>• Possible causes:</p>
+                  <ul className="ml-4 list-disc">
+                    <li>Database connection issue</li>
+                    <li>Authentication failure</li>
+                    <li>Server error</li>
+                    <li>Network connectivity problem</li>
+                  </ul>
+                </div>
+              )}
+              
+              <div className="flex gap-2 mt-4">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => fetchWishlist()}
+                  className="gap-2"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                  Try Again
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setShowErrorDetails(!showErrorDetails)}
+                  className="gap-2 text-red-600 dark:text-red-400"
+                >
+                  {showErrorDetails ? "Hide Details" : "View Details"}
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
       {/* Wishlist Grid */}
       {wishlist.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {wishlist.map((item) => (
             <Card 
               key={item.id} 
               className="overflow-hidden hover:shadow-lg transition-shadow group"
             >
               {/* Thumbnail */}
-              <div className="relative h-40 bg-gray-100 dark:bg-gray-800">
+              <div className="relative h-36 sm:h-40 bg-gray-100 dark:bg-gray-800">
                 {item.course.thumbnailUrl ? (
                   <img 
                     src={item.course.thumbnailUrl} 
@@ -92,8 +139,8 @@ export default function WishlistPage() {
                     className="w-full h-full object-cover"
                   />
                 ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-brand-purple/20 to-brand-blue/20">
-                    <BookOpen className="h-12 w-12 text-brand-purple/30" />
+                  <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-[hsl(var(--brand-purple))/20] to-[hsl(var(--brand-blue))/20">
+                    <BookOpen className="h-10 w-10 sm:h-12 sm:w-12 text-[hsl(var(--brand-purple))/30" />
                   </div>
                 )}
                 
@@ -113,13 +160,13 @@ export default function WishlistPage() {
 
                 {/* Category Badge */}
                 {item.course.category && (
-                  <Badge className="absolute top-2 left-2 bg-brand-purple/90 text-white">
+                  <Badge className="absolute top-2 left-2 bg-[hsl(var(--brand-purple))/90 text-white text-xs">
                     {item.course.category}
                   </Badge>
                 )}
               </div>
 
-              <CardContent className="p-4">
+              <CardContent className="p-3 sm:p-4">
                 {/* Difficulty */}
                 {item.course.difficultyLevel && (
                   <Badge variant="outline" className="text-xs mb-2 capitalize">
@@ -127,27 +174,27 @@ export default function WishlistPage() {
                   </Badge>
                 )}
                 
-                <h3 className="font-semibold line-clamp-2 mb-2 group-hover:text-brand-purple transition-colors">
+                <h3 className="font-semibold line-clamp-2 mb-2 group-hover:text-[hsl(var(--brand-purple))] transition-colors text-sm sm:text-base">
                   {item.course.title}
                 </h3>
 
                 {/* Meta */}
-                <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+                <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mb-3 sm:mb-4">
                   {item.course.durationHours && (
                     <span className="flex items-center gap-1">
-                      <Clock className="h-4 w-4" />
+                      <Clock className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                       {item.course.durationHours}h
                     </span>
                   )}
                   <span className="flex items-center gap-1">
-                    <BookOpen className="h-4 w-4" />
+                    <BookOpen className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                     {item.course.totalLessons} lessons
                   </span>
                 </div>
 
                 {/* Price */}
-                <div className="flex items-center justify-between mb-4">
-                  <div className="font-bold">
+                <div className="flex items-center justify-between mb-3 sm:mb-4">
+                  <div className="font-bold text-sm sm:text-base">
                     {item.course.isFree || item.course.price === 0 || item.course.price === null ? (
                       <span className="text-green-600">Free</span>
                     ) : (
@@ -161,7 +208,7 @@ export default function WishlistPage() {
 
                 {/* Action */}
                 <Link href={`/dashboard/learn/${item.courseId}`} className="block">
-                  <Button className="w-full bg-brand-purple hover:bg-brand-purple/90">
+                  <Button className="w-full bg-[hsl(var(--brand-purple))] hover:bg-[hsl(var(--brand-purple-dark))] text-sm sm:text-base">
                     <Play className="h-4 w-4 mr-2" />
                     Start Learning
                     <ArrowRight className="h-4 w-4 ml-2" />
@@ -171,11 +218,11 @@ export default function WishlistPage() {
             </Card>
           ))}
         </div>
-      ) : (
-        <div className="text-center py-16">
-          <Heart className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
-          <h3 className="text-lg font-medium mb-2">No courses in your wishlist yet</h3>
-          <p className="text-muted-foreground mb-6">
+      ) : !error && !loading ? (
+        <div className="text-center py-12 sm:py-16">
+          <Heart className="h-12 w-12 sm:h-16 sm:w-16 text-muted-foreground/30 mx-auto mb-4" />
+          <h3 className="text-base sm:text-lg font-medium mb-2">No courses in your wishlist yet</h3>
+          <p className="text-muted-foreground mb-6 text-sm sm:text-base">
             Start exploring courses and save the ones you're interested in!
           </p>
           <Button asChild>
@@ -185,7 +232,7 @@ export default function WishlistPage() {
             </Link>
           </Button>
         </div>
-      )}
+      ) : null}
 
       {/* Pagination */}
       {pagination.totalPages > 1 && (
