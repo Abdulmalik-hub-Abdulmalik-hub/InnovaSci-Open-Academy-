@@ -6,7 +6,33 @@ import { prisma } from "@/lib/prisma"
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    // Get userId from header - must be a valid UUID
+    const userId = request.headers.get("x-user-id")
+    
+    if (!userId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Authentication required",
+          technicalError: "Missing x-user-id header"
+        },
+        { status: 401 }
+      )
+    }
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(userId)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Invalid user session",
+          technicalError: `Invalid user ID format: ${userId}`
+        },
+        { status: 401 }
+      )
+    }
+    
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "20")
@@ -95,7 +121,33 @@ export async function GET(request: NextRequest) {
 // POST /api/student/wishlist - Toggle course in wishlist
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    // Get userId from header - must be a valid UUID
+    const userId = request.headers.get("x-user-id")
+    
+    if (!userId) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Authentication required",
+          technicalError: "Missing x-user-id header"
+        },
+        { status: 401 }
+      )
+    }
+    
+    // Validate UUID format
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+    if (!uuidRegex.test(userId)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Invalid user session",
+          technicalError: `Invalid user ID format: ${userId}`
+        },
+        { status: 401 }
+      )
+    }
+    
     const body = await request.json()
     const { courseId } = body
 

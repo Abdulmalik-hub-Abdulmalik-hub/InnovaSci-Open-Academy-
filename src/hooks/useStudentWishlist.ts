@@ -55,6 +55,19 @@ export function useStudentWishlist() {
       const response = await fetch(`/api/student/wishlist?${params}`)
       const data = await response.json()
       
+      // Handle HTTP status codes
+      if (response.status === 401) {
+        setError("Please log in to view your wishlist")
+        setTechnicalError("Authentication required - Please sign in to access this feature")
+        return
+      }
+      
+      if (response.status === 403) {
+        setError("You don't have permission to view this content")
+        setTechnicalError("Access denied")
+        return
+      }
+      
       if (data.success) {
         setWishlist(data.data.wishlist)
         setPagination(data.data.pagination)
