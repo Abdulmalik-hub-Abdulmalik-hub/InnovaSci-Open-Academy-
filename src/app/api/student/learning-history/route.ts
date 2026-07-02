@@ -176,15 +176,19 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error: any) {
+    console.error("===========================================")
     console.error("[LEARNING-HISTORY API] ERROR CAUGHT!")
+    console.error("[LEARNING-HISTORY API] Request URL:", request.url)
     console.error("[LEARNING-HISTORY API] Error name:", error?.name)
     console.error("[LEARNING-HISTORY API] Error message:", error?.message)
-    console.error("[LEARNING-HISTORY API] Error code:", error?.code)
-    console.error("[LEARNING-HISTORY API] Error stack:", error?.stack?.substring(0, 500))
+    console.error("[LEARNING-HISTORY API] Prisma Error code:", error?.code)
+    console.error("[LEARNING-HISTORY API] Full stack trace:")
+    console.error(error?.stack)
     console.error("===========================================")
     
     // Check for specific Prisma errors
     if (error?.code === 'P2025') {
+      console.error("[LEARNING-HISTORY API] Returning HTTP 500 - Table not found")
       return NextResponse.json(
         { 
           success: false, 
@@ -195,6 +199,7 @@ export async function GET(request: NextRequest) {
       )
     }
     
+    console.error("[LEARNING-HISTORY API] Returning HTTP 500 - Internal error")
     return NextResponse.json(
       { 
         success: false, 
@@ -203,7 +208,7 @@ export async function GET(request: NextRequest) {
         errorDetails: {
           message: error?.message,
           code: error?.code,
-          stack: error?.stack?.substring(0, 500)
+          stack: error?.stack
         }
       },
       { status: 500 }

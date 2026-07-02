@@ -107,15 +107,19 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error: any) {
+    console.error("===========================================")
     console.error("[WISHLIST API] ERROR CAUGHT!")
+    console.error("[WISHLIST API] Request URL:", request.url)
     console.error("[WISHLIST API] Error name:", error?.name)
     console.error("[WISHLIST API] Error message:", error?.message)
-    console.error("[WISHLIST API] Error code:", error?.code)
-    console.error("[WISHLIST API] Error stack:", error?.stack?.substring(0, 500))
+    console.error("[WISHLIST API] Prisma Error code:", error?.code)
+    console.error("[WISHLIST API] Full stack trace:")
+    console.error(error?.stack)
     console.error("===========================================")
     
     // Check for specific Prisma errors
     if (error?.code === 'P1001') {
+      console.error("[WISHLIST API] Returning HTTP 503 - Database server not reachable")
       return NextResponse.json(
         { 
           success: false, 
@@ -127,6 +131,7 @@ export async function GET(request: NextRequest) {
     }
     
     if (error?.code === 'P2025') {
+      console.error("[WISHLIST API] Returning HTTP 500 - Table not found")
       return NextResponse.json(
         { 
           success: false, 
@@ -137,6 +142,7 @@ export async function GET(request: NextRequest) {
       )
     }
     
+    console.error("[WISHLIST API] Returning HTTP 500 - Internal error")
     return NextResponse.json(
       { 
         success: false, 
@@ -145,7 +151,7 @@ export async function GET(request: NextRequest) {
         errorDetails: {
           message: error?.message,
           code: error?.code,
-          stack: error?.stack?.substring(0, 500)
+          stack: error?.stack
         }
       },
       { status: 500 }
