@@ -6,6 +6,23 @@ async function main() {
   console.log("Starting database seed...")
   
   try {
+    // Create Categories first
+    const categories = [
+      { name: "Data Science", slug: "data-science" },
+      { name: "Web Development", slug: "web-development" },
+      { name: "Mobile Development", slug: "mobile-development" },
+    ]
+    
+    const createdCategories: Record<string, any> = {}
+    for (const cat of categories) {
+      createdCategories[cat.slug] = await prisma.category.upsert({
+        where: { slug: cat.slug },
+        update: {},
+        create: { name: cat.name, slug: cat.slug }
+      })
+      console.log("✓ Category:", cat.name)
+    }
+    
     // Create Admin User
     const admin = await prisma.user.upsert({
       where: { email: "admin@innovasci.com" },
@@ -103,7 +120,7 @@ async function main() {
       create: {
         title: "Introduction to Data Science",
         slug: "introduction-to-data-science",
-        category: "Data Science",
+        categoryId: createdCategories["data-science"].id,
         shortDescription: "Learn the fundamentals of data science with Python and R",
         fullDescription: "This comprehensive course covers data analysis, visualization, machine learning, and statistical modeling.",
         difficultyLevel: "beginner",
@@ -112,6 +129,7 @@ async function main() {
         price: 99.99,
         isFree: false,
         status: "published",
+        introVideoUrl: "https://example.com/intro-data-science",
       },
     })
     console.log("✓ Course:", course1.title)
@@ -122,7 +140,7 @@ async function main() {
       create: {
         title: "Web Development Masterclass",
         slug: "web-development-masterclass",
-        category: "Web Development",
+        categoryId: createdCategories["web-development"].id,
         shortDescription: "Full-stack web development with React, Node.js, and modern tools",
         fullDescription: "Learn to build modern web applications from scratch using cutting-edge technologies.",
         difficultyLevel: "intermediate",
@@ -131,6 +149,7 @@ async function main() {
         price: 149.99,
         isFree: false,
         status: "published",
+        introVideoUrl: "https://example.com/intro-web-dev",
       },
     })
     console.log("✓ Course:", course2.title)
@@ -141,7 +160,7 @@ async function main() {
       create: {
         title: "Mobile App Development",
         slug: "mobile-app-development",
-        category: "Mobile Development",
+        categoryId: createdCategories["mobile-development"].id,
         shortDescription: "Build iOS and Android apps with React Native",
         difficultyLevel: "intermediate",
         language: "English",
@@ -149,6 +168,7 @@ async function main() {
         price: 0,
         isFree: true,
         status: "published",
+        introVideoUrl: "https://example.com/intro-mobile",
       },
     })
     console.log("✓ Course:", course3.title)
