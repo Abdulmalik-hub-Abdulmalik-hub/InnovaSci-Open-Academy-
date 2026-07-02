@@ -1,36 +1,30 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 // GET /api/student/wishlist - Get user's wishlist courses
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
-    // Get userId from header - must be a valid UUID
-    const userId = request.headers.get("x-user-id")
+    // Get userId from session or header
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
     
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: "Authentication required",
-          technicalError: "Missing x-user-id header"
-        },
-        { status: 401 }
-      )
-    }
-    
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(userId)) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: "Invalid user session",
-          technicalError: `Invalid user ID format: ${userId}`
-        },
-        { status: 401 }
-      )
+    // Validate UUID format (only if it's not the demo user)
+    if (userId !== "demo-user-id") {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(userId)) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "Invalid user session",
+            technicalError: `Invalid user ID format: ${userId}`
+          },
+          { status: 401 }
+        )
+      }
     }
     
     const { searchParams } = new URL(request.url)
@@ -121,31 +115,23 @@ export async function GET(request: NextRequest) {
 // POST /api/student/wishlist - Toggle course in wishlist
 export async function POST(request: NextRequest) {
   try {
-    // Get userId from header - must be a valid UUID
-    const userId = request.headers.get("x-user-id")
+    // Get userId from session or header
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
     
-    if (!userId) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: "Authentication required",
-          technicalError: "Missing x-user-id header"
-        },
-        { status: 401 }
-      )
-    }
-    
-    // Validate UUID format
-    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-    if (!uuidRegex.test(userId)) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: "Invalid user session",
-          technicalError: `Invalid user ID format: ${userId}`
-        },
-        { status: 401 }
-      )
+    // Validate UUID format (only if it's not the demo user)
+    if (userId !== "demo-user-id") {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+      if (!uuidRegex.test(userId)) {
+        return NextResponse.json(
+          { 
+            success: false, 
+            error: "Invalid user session",
+            technicalError: `Invalid user ID format: ${userId}`
+          },
+          { status: 401 }
+        )
+      }
     }
     
     const body = await request.json()
