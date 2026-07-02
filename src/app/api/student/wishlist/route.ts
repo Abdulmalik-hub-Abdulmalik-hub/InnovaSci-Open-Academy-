@@ -7,20 +7,10 @@ import { authOptions } from "@/lib/auth"
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
+  console.log("===========================================")
   console.log("[WISHLIST API] GET request received")
-  
-  // Check if DATABASE_URL is configured
-  if (!process.env.DATABASE_URL) {
-    console.error("[WISHLIST API] FATAL: DATABASE_URL environment variable is not set!")
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: "Database not configured",
-        technicalError: "DATABASE_URL environment variable is not set. Please configure your database connection."
-      },
-      { status: 503 }
-    )
-  }
+  console.log("[WISHLIST API] URL:", request.url)
+  console.log("[WISHLIST API] Method:", request.method)
   
   try {
     // Get userId from session or header
@@ -28,6 +18,8 @@ export async function GET(request: NextRequest) {
     console.log("[WISHLIST API] Session:", session ? `User: ${session.user?.email}, ID: ${session.user?.id}` : "No session")
     
     const headerUserId = request.headers.get("x-user-id")
+    console.log("[WISHLIST API] x-user-id header:", headerUserId || "Not provided")
+    
     const userId = session?.user?.id || headerUserId || "demo-user-id"
     console.log("[WISHLIST API] Final userId:", userId)
     
@@ -50,8 +42,9 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "20")
+    console.log("[WISHLIST API] Pagination - page:", page, "limit:", limit)
 
-    console.log("[WISHLIST API] Executing Prisma query...")
+    console.log("[WISHLIST API] Executing Prisma query: prisma.wishlist.findMany...")
     // Get user's wishlist courses
     const wishlistItems = await prisma.wishlist.findMany({
       where: { userId },
@@ -80,7 +73,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { addedAt: "desc" }
     })
-    console.log("[WISHLIST API] Query successful. Found items:", wishlistItems.length)
+    console.log("[WISHLIST API] Query SUCCESS. Found items:", wishlistItems.length)
 
     // Calculate total lessons for each course
     const wishlistWithMeta = wishlistItems.map(item => ({
@@ -98,6 +91,9 @@ export async function GET(request: NextRequest) {
     const end = start + limit
     const paginatedWishlist = wishlistWithMeta.slice(start, end)
 
+    console.log("[WISHLIST API] Returning success with", paginatedWishlist.length, "items")
+    console.log("===========================================")
+    
     return NextResponse.json({
       success: true,
       data: {
@@ -111,8 +107,12 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error: any) {
-    console.error("[WISHLIST API] ERROR:", error?.message)
+    console.error("[WISHLIST API] ERROR CAUGHT!")
+    console.error("[WISHLIST API] Error name:", error?.name)
+    console.error("[WISHLIST API] Error message:", error?.message)
     console.error("[WISHLIST API] Error code:", error?.code)
+    console.error("[WISHLIST API] Error stack:", error?.stack?.substring(0, 500))
+    console.error("===========================================")
     
     // Check for specific Prisma errors
     if (error?.code === 'P1001') {
@@ -131,7 +131,7 @@ export async function GET(request: NextRequest) {
         { 
           success: false, 
           error: "Database table not found",
-          technicalError: "The wishlists table does not exist. Please run database migrations."
+          technicalError: "The wishlists table does not exist. Please run: npx prisma db push"
         },
         { status: 500 }
       )
@@ -141,7 +141,12 @@ export async function GET(request: NextRequest) {
       { 
         success: false, 
         error: "Failed to fetch wishlist",
-        technicalError: `${error?.code || 'ERROR'}: ${error?.message}`
+        technicalError: `${error?.code || 'ERROR'}: ${error?.message}`,
+        errorDetails: {
+          message: error?.message,
+          code: error?.code,
+          stack: error?.stack?.substring(0, 500)
+        }
       },
       { status: 500 }
     )

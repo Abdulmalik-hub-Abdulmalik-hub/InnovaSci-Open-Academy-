@@ -5,12 +5,21 @@ import { prisma } from "@/lib/prisma"
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
+  console.log("===========================================")
+  console.log("[LEARNING-HISTORY API] GET request received")
+  console.log("[LEARNING-HISTORY API] URL:", request.url)
+  console.log("[LEARNING-HISTORY API] Method:", request.method)
+  
   try {
     const userId = request.headers.get("x-user-id") || "demo-user-id"
+    console.log("[LEARNING-HISTORY API] userId:", userId)
+    
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "20")
+    console.log("[LEARNING-HISTORY API] Pagination - page:", page, "limit:", limit)
 
+    console.log("[LEARNING-HISTORY API] Executing Prisma query: prisma.userLectureProgress.findMany...")
     // Get all courses the user has any progress in
     const userProgress = await prisma.userLectureProgress.findMany({
       where: { userId },
@@ -21,11 +30,15 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { updatedAt: "desc" }
     })
+    console.log("[LEARNING-HISTORY API] Found progress records:", userProgress.length)
 
     // Get unique course IDs from progress
     const courseIds = Array.from(new Set(userProgress.map(p => p.courseId)))
+    console.log("[LEARNING-HISTORY API] Unique course IDs:", courseIds.length)
 
     if (courseIds.length === 0) {
+      console.log("[LEARNING-HISTORY API] No progress found, returning empty history")
+      console.log("===========================================")
       return NextResponse.json({
         success: true,
         data: {
@@ -35,6 +48,7 @@ export async function GET(request: NextRequest) {
       })
     }
 
+    console.log("[LEARNING-HISTORY API] Executing Prisma query: prisma.course.findMany...")
     // Fetch all course data in one query
     const courses = await prisma.course.findMany({
       where: { id: { in: courseIds } },
@@ -53,7 +67,9 @@ export async function GET(request: NextRequest) {
         }
       }
     })
+    console.log("[LEARNING-HISTORY API] Found courses:", courses.length)
 
+    console.log("[LEARNING-HISTORY API] Executing Prisma query: prisma.userLectureProgress.groupBy...")
     // Count completed lessons per course in one query
     const completedCounts = await prisma.userLectureProgress.groupBy({
       by: ["courseId"],
@@ -64,6 +80,7 @@ export async function GET(request: NextRequest) {
       },
       _count: { lessonId: true }
     })
+    console.log("[LEARNING-HISTORY API] Completed counts:", completedCounts.length)
 
     // Create a map for quick lookup
     const completedMap = new Map(completedCounts.map(c => [c.courseId, c._count.lessonId]))
@@ -143,6 +160,9 @@ export async function GET(request: NextRequest) {
     const end = start + limit
     const paginatedHistory = history.slice(start, end)
 
+    console.log("[LEARNING-HISTORY API] Returning success with", paginatedHistory.length, "items")
+    console.log("===========================================")
+    
     return NextResponse.json({
       success: true,
       data: {
@@ -155,10 +175,37 @@ export async function GET(request: NextRequest) {
         }
       }
     })
-  } catch (error) {
-    console.error("Learning History API error:", error)
+  } catch (error: any) {
+    console.error("[LEARNING-HISTORY API] ERROR CAUGHT!")
+    console.error("[LEARNING-HISTORY API] Error name:", error?.name)
+    console.error("[LEARNING-HISTORY API] Error message:", error?.message)
+    console.error("[LEARNING-HISTORY API] Error code:", error?.code)
+    console.error("[LEARNING-HISTORY API] Error stack:", error?.stack?.substring(0, 500))
+    console.error("===========================================")
+    
+    // Check for specific Prisma errors
+    if (error?.code === 'P2025') {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Database table not found",
+          technicalError: "The userLectureProgress table does not exist. Please run: npx prisma db push"
+        },
+        { status: 500 }
+      )
+    }
+    
     return NextResponse.json(
-      { success: false, error: "Failed to fetch learning history" },
+      { 
+        success: false, 
+        error: "Failed to fetch learning history",
+        technicalError: `${error?.code || 'ERROR'}: ${error?.message}`,
+        errorDetails: {
+          message: error?.message,
+          code: error?.code,
+          stack: error?.stack?.substring(0, 500)
+        }
+      },
       { status: 500 }
     )
   }
