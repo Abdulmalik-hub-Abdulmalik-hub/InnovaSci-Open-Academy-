@@ -72,14 +72,36 @@ model Profile {
 }
 
 // ============================================
-// 3. COURSES - Content managed by Admin
+// 3. CATEGORIES - Dynamic course categories
+// ============================================
+
+model Category {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
+  description String?  @db.Text
+  icon        String?  // Icon name or emoji
+  color       String?  // Hex color code
+  orderIndex  Int      @default(0)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  courses Course[]
+
+  @@map("categories")
+}
+
+// ============================================
+// 4. COURSES - Content managed by Admin
 // ============================================
 
 model Course {
   id               String   @id @default(uuid())
   title            String
   slug             String   @unique
-  category         String?
+  categoryId       String?  // Foreign key to Category
   subcategory      String?
   shortDescription String?
   fullDescription  String?  @db.Text
@@ -91,7 +113,7 @@ model Course {
   durationHours    Int?
   thumbnailUrl     String?
   promoVideoUrl    String?
-  introVideoUrl    String?  // Introduction video for course landing page
+  introVideoUrl    String?  // Introduction video for course landing page (mandatory)
   price            Decimal  @default(0) // Legacy single price
   pricing          Json? // Multi-currency: { "NGN": { "amount": 50000 }, "USD": { "amount": 100 } }
   isFree           Boolean  @default(true)
@@ -105,6 +127,7 @@ model Course {
   certificateTemplateUrl String? // Legacy URL field
 
   // Relations
+  category         Category? @relation(fields: [categoryId], references: [id])
   modules          Module[]
   lessons          Lesson[]
   enrollments      Enrollment[]

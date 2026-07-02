@@ -78,13 +78,14 @@ export async function GET(request: NextRequest) {
       where.status = status
     }
     if (category) {
-      where.category = category
+      where.categoryId = category
     }
 
     const [courses, total] = await Promise.all([
       prisma.course.findMany({
         where,
         include: {
+          category: true,
           modules: {
             include: {
               lessons: true
@@ -103,12 +104,12 @@ export async function GET(request: NextRequest) {
       prisma.course.count({ where })
     ])
 
-    // Get unique categories
-    const allCourses = await prisma.course.findMany({
-      select: { category: true },
-      distinct: ["category"]
+    // Get categories for filter dropdown
+    const categories = await prisma.category.findMany({
+      where: { isActive: true },
+      select: { id: true, name: true, slug: true },
+      orderBy: { orderIndex: 'asc' }
     })
-    const categories = allCourses.map(c => c.category).filter(Boolean) as string[]
 
     const formattedCourses = courses.map(course => ({
       id: course.id,
@@ -121,6 +122,7 @@ export async function GET(request: NextRequest) {
       isFree: course.isFree,
       isActive: course.isActive,
       thumbnailUrl: course.thumbnailUrl,
+      introVideoUrl: course.introVideoUrl,
       certificateTemplateId: course.certificateTemplateId,
       createdAt: course.createdAt.toISOString(),
       updatedAt: course.updatedAt.toISOString(),
@@ -189,7 +191,7 @@ export async function POST(request: NextRequest) {
     const {
       title,
       slug,
-      category,
+      categoryId,
       subcategory,
       shortDescription,
       fullDescription,
@@ -219,6 +221,14 @@ export async function POST(request: NextRequest) {
       errors.push("Slug is required")
     } else if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)) {
       errors.push("Slug must be lowercase alphanumeric with hyphens only")
+    }
+    
+    if (!introVideoUrl) {
+      errors.push("Introduction Video URL is required")
+    }
+    
+    if (!categoryId) {
+      errors.push("Category is required")
     }
 
     if (errors.length > 0) {
@@ -261,7 +271,7 @@ export async function POST(request: NextRequest) {
       data: {
         title: title.trim(),
         slug: slug.toLowerCase(),
-        category: category || null,
+        categoryId: categoryId || null,
         subcategory: subcategory || null,
         shortDescription: shortDescription || null,
         fullDescription: fullDescription || null,
@@ -281,6 +291,7 @@ export async function POST(request: NextRequest) {
         certificateTemplateId: certificateTemplateId || null,
       },
       include: {
+        category: true,
         modules: {
           include: {
             lessons: true
