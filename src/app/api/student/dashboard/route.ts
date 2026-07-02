@@ -9,10 +9,14 @@ export async function GET(request: NextRequest) {
   const endpoint = "/api/student/dashboard"
   const method = "GET"
   
+  console.log("===========================================")
+  console.log(`[${endpoint}] ${method} request received`)
+  console.log(`[${endpoint}] Request URL:`, request.url)
+  
   try {
     // Check database connection first
     if (!process.env.DATABASE_URL) {
-      console.error(`[${endpoint}] DATABASE_URL not configured`)
+      console.error(`[${endpoint}] FATAL: DATABASE_URL not configured`)
       return NextResponse.json(
         { 
           success: false, 
@@ -26,7 +30,9 @@ export async function GET(request: NextRequest) {
     // For demo purposes, we'll use a mock user ID
     // In production, this would come from the authenticated session
     const userId = request.headers.get("x-user-id") || "demo-user-id"
+    console.log(`[${endpoint}] userId:`, userId)
 
+    console.log(`[${endpoint}] Executing: prisma.enrollment.findMany...`)
     // Fetch enrolled courses with progress
     const enrollments = await prisma.enrollment.findMany({
       where: { userId },
@@ -50,6 +56,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { enrolledAt: "desc" }
     })
+    console.log(`[${endpoint}] Enrollments found:`, enrollments.length)
 
     // Calculate total lessons for each course
     const coursesWithProgress = enrollments.map(enrollment => {
@@ -75,6 +82,7 @@ export async function GET(request: NextRequest) {
     let recentActivity: any[] = []
 
     try {
+      console.log(`[${endpoint}] Executing: prisma.issuedCertificate.findMany...`)
       const issuedCerts = await prisma.issuedCertificate.findMany({
         where: { studentId: userId },
         include: {
@@ -89,6 +97,7 @@ export async function GET(request: NextRequest) {
         orderBy: { issuedAt: "desc" },
         take: 5
       })
+      console.log(`[${endpoint}] Certificates found:`, issuedCerts.length)
 
       certificates = issuedCerts.map(cert => ({
         id: cert.id,
@@ -97,11 +106,12 @@ export async function GET(request: NextRequest) {
         issuedAt: cert.issuedAt,
         course: cert.course
       }))
-    } catch (e) {
-      console.error(`[${endpoint}] Failed to fetch certificates:`, e)
+    } catch (e: any) {
+      console.error(`[${endpoint}] ERROR fetching certificates:`, e?.message, e?.code)
     }
 
     try {
+      console.log(`[${endpoint}] Executing: prisma.course.findMany (recommended)...`)
       // Fetch recommended courses (courses not enrolled in)
       const enrolledCourseIds = enrollments.map(e => e.courseId)
       const recCourses = await prisma.course.findMany({
@@ -123,6 +133,7 @@ export async function GET(request: NextRequest) {
         orderBy: { enrollments: { _count: "desc" } },
         take: 4
       })
+      console.log(`[${endpoint}] Recommended courses found:`, recCourses.length)
 
       recommendedCourses = recCourses.map(c => ({
         id: c.id,
@@ -133,11 +144,12 @@ export async function GET(request: NextRequest) {
         durationHours: c.durationHours,
         studentCount: c._count.enrollments
       }))
-    } catch (e) {
-      console.error(`[${endpoint}] Failed to fetch recommended courses:`, e)
+    } catch (e: any) {
+      console.error(`[${endpoint}] ERROR fetching recommended courses:`, e?.message, e?.code)
     }
 
     try {
+      console.log(`[${endpoint}] Executing: prisma.learningProgress.findMany...`)
       // Fetch recent activity
       const recentProgress = await prisma.learningProgress.findMany({
         where: { userId },
@@ -148,6 +160,7 @@ export async function GET(request: NextRequest) {
         orderBy: { updatedAt: "desc" },
         take: 10
       })
+      console.log(`[${endpoint}] Learning progress records found:`, recentProgress.length)
 
       recentActivity = recentProgress.map(p => ({
         type: "lesson_completed",
@@ -155,8 +168,8 @@ export async function GET(request: NextRequest) {
         lesson: p.lesson.title,
         timestamp: p.updatedAt.toISOString()
       }))
-    } catch (e) {
-      console.error(`[${endpoint}] Failed to fetch recent activity:`, e)
+    } catch (e: any) {
+      console.error(`[${endpoint}] ERROR fetching learning progress:`, e?.message, e?.code)
     }
 
     // Calculate stats
@@ -165,6 +178,9 @@ export async function GET(request: NextRequest) {
     const totalHoursLearned = enrollments.reduce((acc, e) => {
       return acc + ((e.course.durationHours || 0) * e.progressPercent / 100)
     }, 0)
+
+    console.log(`[${endpoint}] Returning HTTP 200 with success`)
+    console.log("===========================================")
 
     return NextResponse.json({
       success: true,
@@ -195,13 +211,30 @@ export async function GET(request: NextRequest) {
         }
       }
     })
-  } catch (error) {
-    console.error(`[${endpoint}] [${method}] Unexpected error:`, error)
+  } catch (error: any) {
+    console.error("===========================================")
+    console.error(`[${endpoint}] ERROR CAUGHT!`)
+    console.error(`[${endpoint}] Request URL:`, request.url)
+    console.error(`[${endpoint}] Error name:`, error?.name)
+    console.error(`[${endpoint}] Error message:`, error?.message)
+    console.error(`[${endpoint}] Prisma Error code:`, error?.code)
+    console.error(`[${endpoint}] Full stack trace:`)
+    console.error(error?.stack)
+    console.error("===========================================")
+    
+    console.error(`[${endpoint}] Returning HTTP 500`)
+    
     return NextResponse.json(
       { 
         success: false, 
         error: "Failed to fetch dashboard data",
-        code: "INTERNAL_ERROR"
+        code: error?.code || "INTERNAL_ERROR",
+        technicalError: error?.message,
+        errorDetails: {
+          message: error?.message,
+          code: error?.code,
+          stack: error?.stack
+        }
       },
       { status: 500 }
     )
