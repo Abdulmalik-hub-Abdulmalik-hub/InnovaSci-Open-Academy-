@@ -9,7 +9,7 @@ import { HeaderLogo, FooterBranding } from "./logo"
 import { 
   LayoutDashboard, Users, BookOpen, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
-  Headphones, FileText, X, LayoutTemplate
+  Headphones, FileText, X, LayoutTemplate, Folder
 } from "lucide-react"
 
 // =============================================================================
@@ -40,6 +40,11 @@ const menuItems = [
     title: "Courses",
     href: "/admin/courses",
     icon: BookOpen,
+  },
+  {
+    title: "Categories",
+    href: "/admin/categories",
+    icon: Folder,
   },
   {
     title: "Videos",
