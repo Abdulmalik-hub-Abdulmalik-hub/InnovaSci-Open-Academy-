@@ -7,15 +7,28 @@ import { authOptions } from "@/lib/auth"
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
+  // ===== DEBUG LOGGING =====
+  console.log("===========================================")
+  console.log("[WISHLIST API] GET request received")
+  console.log("[WISHLIST API] URL:", request.url)
+  console.log("[WISHLIST API] Headers:", Object.fromEntries(request.headers.entries()))
+  
   try {
     // Get userId from session or header
     const session = await getServerSession(authOptions)
-    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
+    console.log("[WISHLIST API] Session:", session ? `User: ${session.user?.email}, ID: ${session.user?.id}` : "No session")
+    
+    const headerUserId = request.headers.get("x-user-id")
+    console.log("[WISHLIST API] x-user-id header:", headerUserId || "Not provided")
+    
+    const userId = session?.user?.id || headerUserId || "demo-user-id"
+    console.log("[WISHLIST API] Final userId:", userId)
     
     // Validate UUID format (only if it's not the demo user)
     if (userId !== "demo-user-id") {
       const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
       if (!uuidRegex.test(userId)) {
+        console.log("[WISHLIST API] ERROR: Invalid UUID format:", userId)
         return NextResponse.json(
           { 
             success: false, 
@@ -30,7 +43,23 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "20")
+    console.log("[WISHLIST API] Pagination - page:", page, "limit:", limit)
 
+    console.log("[WISHLIST API] Checking Prisma connection...")
+    // Check if prisma is defined
+    if (!prisma) {
+      console.error("[WISHLIST API] FATAL: Prisma client is not initialized!")
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Database connection error",
+          technicalError: "Prisma Client not initialized"
+        },
+        { status: 500 }
+      )
+    }
+
+    console.log("[WISHLIST API] Executing Prisma query: prisma.wishlist.findMany")
     // Get user's wishlist courses
     const wishlistItems = await prisma.wishlist.findMany({
       where: { userId },
@@ -59,6 +88,7 @@ export async function GET(request: NextRequest) {
       },
       orderBy: { addedAt: "desc" }
     })
+    console.log("[WISHLIST API] Query successful. Found items:", wishlistItems.length)
 
     // Calculate total lessons for each course
     const wishlistWithMeta = wishlistItems.map(item => ({
@@ -75,6 +105,7 @@ export async function GET(request: NextRequest) {
     const start = (page - 1) * limit
     const end = start + limit
     const paginatedWishlist = wishlistWithMeta.slice(start, end)
+    console.log("[WISHLIST API] Returning paginated result:", paginatedWishlist.length, "items")
 
     return NextResponse.json({
       success: true,
@@ -89,16 +120,22 @@ export async function GET(request: NextRequest) {
       }
     })
   } catch (error: any) {
-    console.error("Wishlist API error:", error)
+    console.error("===========================================")
+    console.error("[WISHLIST API] ERROR CAUGHT:", error)
+    console.error("[WISHLIST API] Error name:", error?.name)
+    console.error("[WISHLIST API] Error message:", error?.message)
+    console.error("[WISHLIST API] Error code:", error?.code)
+    console.error("[WISHLIST API] Error stack:", error?.stack)
+    console.error("===========================================")
     
     // Return detailed error information
     const errorMessage = error?.message || "Unknown error"
     const errorCode = error?.code || "INTERNAL_ERROR"
-    const errorDetails = process.env.NODE_ENV === "development" ? {
+    const errorDetails = {
       message: errorMessage,
       code: errorCode,
-      stack: error?.stack?.substring(0, 500) // Limit stack trace in response
-    } : undefined
+      stack: error?.stack?.substring(0, 1000)
+    }
     
     return NextResponse.json(
       { 
