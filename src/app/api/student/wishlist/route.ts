@@ -68,10 +68,25 @@ export async function GET(request: NextRequest) {
         }
       }
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Wishlist API error:", error)
+    
+    // Return detailed error information
+    const errorMessage = error?.message || "Unknown error"
+    const errorCode = error?.code || "INTERNAL_ERROR"
+    const errorDetails = process.env.NODE_ENV === "development" ? {
+      message: errorMessage,
+      code: errorCode,
+      stack: error?.stack?.substring(0, 500) // Limit stack trace in response
+    } : undefined
+    
     return NextResponse.json(
-      { success: false, error: "Failed to fetch wishlist" },
+      { 
+        success: false, 
+        error: "Failed to fetch wishlist",
+        errorDetails,
+        technicalError: `${errorCode}: ${errorMessage}`
+      },
       { status: 500 }
     )
   }
@@ -136,10 +151,18 @@ export async function POST(request: NextRequest) {
       success: true,
       data: result
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Wishlist toggle error:", error)
+    
+    const errorMessage = error?.message || "Unknown error"
+    const errorCode = error?.code || "INTERNAL_ERROR"
+    
     return NextResponse.json(
-      { success: false, error: "Failed to update wishlist" },
+      { 
+        success: false, 
+        error: "Failed to update wishlist",
+        technicalError: `${errorCode}: ${errorMessage}`
+      },
       { status: 500 }
     )
   }

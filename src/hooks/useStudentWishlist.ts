@@ -21,10 +21,21 @@ export interface WishlistItem {
   }
 }
 
+interface WishlistError {
+  message: string
+  technicalError?: string
+  errorDetails?: {
+    message: string
+    code: string
+    stack?: string
+  }
+}
+
 export function useStudentWishlist() {
   const [wishlist, setWishlist] = useState<WishlistItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [technicalError, setTechnicalError] = useState<string | null>(null)
   const [pagination, setPagination] = useState({
     page: 1,
     limit: 20,
@@ -35,6 +46,7 @@ export function useStudentWishlist() {
   const fetchWishlist = useCallback(async (options?: { page?: number }) => {
     setLoading(true)
     setError(null)
+    setTechnicalError(null)
     
     try {
       const params = new URLSearchParams()
@@ -48,9 +60,17 @@ export function useStudentWishlist() {
         setPagination(data.data.pagination)
       } else {
         setError(data.error || "Failed to fetch wishlist")
+        // Capture technical error details if available
+        if (data.technicalError) {
+          setTechnicalError(data.technicalError)
+        }
+        if (data.errorDetails && process.env.NODE_ENV === "development") {
+          setTechnicalError(`${data.errorDetails.code}: ${data.errorDetails.message}`)
+        }
       }
-    } catch (err) {
+    } catch (err: any) {
       setError("Network error. Please try again.")
+      setTechnicalError(err?.message || "Network connection failed")
     } finally {
       setLoading(false)
     }
@@ -81,7 +101,7 @@ export function useStudentWishlist() {
         return data.data.inWishlist
       }
       return null
-    } catch (err) {
+    } catch (err: any) {
       console.error("Wishlist toggle error:", err)
       return null
     }
@@ -99,6 +119,7 @@ export function useStudentWishlist() {
     wishlist,
     loading,
     error,
+    technicalError,
     pagination,
     fetchWishlist,
     toggleWishlist,

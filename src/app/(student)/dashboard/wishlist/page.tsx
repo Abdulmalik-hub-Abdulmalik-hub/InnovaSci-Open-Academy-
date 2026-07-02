@@ -13,9 +13,9 @@ import {
 } from "lucide-react"
 
 export default function WishlistPage() {
-  const { wishlist, loading, error, pagination, fetchWishlist, removeFromWishlist } = useStudentWishlist()
+  const { wishlist, loading, error, technicalError, pagination, fetchWishlist, removeFromWishlist } = useStudentWishlist()
   const [removingId, setRemovingId] = useState<string | null>(null)
-  const [showErrorDetails, setShowErrorDetails] = useState(false)
+  const [showErrorDetails, setShowErrorDetails] = useState(true)
 
   const handleRemove = async (courseId: string) => {
     setRemovingId(courseId)
@@ -70,31 +70,19 @@ export default function WishlistPage() {
               <h3 className="font-semibold text-red-600 dark:text-red-400 mb-1">
                 Failed to Load Wishlist
               </h3>
-              <p className="text-sm text-red-600/80 dark:text-red-400/80">
+              <p className="text-sm text-red-600/80 dark:text-red-400/80 mb-2">
                 {error}
               </p>
               
-              {/* Show/Hide Error Details Button */}
-              <button
-                onClick={() => setShowErrorDetails(!showErrorDetails)}
-                className="text-xs text-red-500 hover:text-red-600 underline mt-2"
-              >
-                {showErrorDetails ? "Hide error details" : "Show error details"}
-              </button>
-              
-              {/* Expanded Error Details */}
-              {showErrorDetails && (
+              {/* Technical Error Details - Always visible when there's a technical error */}
+              {technicalError && (
                 <div className="mt-3 p-3 bg-red-100/50 dark:bg-red-900/30 rounded text-xs font-mono text-red-700 dark:text-red-300 overflow-x-auto">
-                  <p className="font-semibold mb-1">Error Information:</p>
+                  <p className="font-semibold mb-1 flex items-center gap-2">
+                    <span>🔧</span> Technical Error Details:
+                  </p>
+                  <p className="break-all">• Error: {technicalError}</p>
                   <p>• API Endpoint: /api/student/wishlist</p>
                   <p>• HTTP Method: GET</p>
-                  <p>• Possible causes:</p>
-                  <ul className="ml-4 list-disc">
-                    <li>Database connection issue</li>
-                    <li>Authentication failure</li>
-                    <li>Server error</li>
-                    <li>Network connectivity problem</li>
-                  </ul>
                 </div>
               )}
               
@@ -107,14 +95,6 @@ export default function WishlistPage() {
                 >
                   <RefreshCw className="h-4 w-4" />
                   Try Again
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={() => setShowErrorDetails(!showErrorDetails)}
-                  className="gap-2 text-red-600 dark:text-red-400"
-                >
-                  {showErrorDetails ? "Hide Details" : "View Details"}
                 </Button>
               </div>
             </div>
