@@ -155,23 +155,13 @@ export async function GET(request: NextRequest) {
 
 // POST /api/student/wishlist - Toggle course in wishlist
 export async function POST(request: NextRequest) {
-  // Check if DATABASE_URL is configured
-  if (!process.env.DATABASE_URL) {
-    console.error("[WISHLIST API] POST FATAL: DATABASE_URL not configured!")
-    return NextResponse.json(
-      { 
-        success: false, 
-        error: "Database not configured",
-        technicalError: "DATABASE_URL environment variable is not set."
-      },
-      { status: 503 }
-    )
-  }
+  console.log("[WISHLIST API] POST request received")
   
   try {
     // Get userId from session or header
     const session = await getServerSession(authOptions)
     const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
+    console.log("[WISHLIST API] POST userId:", userId)
     
     // Validate UUID format (only if it's not the demo user)
     if (userId !== "demo-user-id") {
@@ -244,16 +234,19 @@ export async function POST(request: NextRequest) {
       data: result
     })
   } catch (error: any) {
-    console.error("Wishlist toggle error:", error)
-    
-    const errorMessage = error?.message || "Unknown error"
-    const errorCode = error?.code || "INTERNAL_ERROR"
+    console.error("[WISHLIST API] POST ERROR:", error?.message)
+    console.error("[WISHLIST API] POST Error code:", error?.code)
     
     return NextResponse.json(
       { 
         success: false, 
         error: "Failed to update wishlist",
-        technicalError: `${errorCode}: ${errorMessage}`
+        technicalError: `${error?.code || 'ERROR'}: ${error?.message}`,
+        errorDetails: {
+          message: error?.message,
+          code: error?.code,
+          stack: error?.stack?.substring(0, 500)
+        }
       },
       { status: 500 }
     )
