@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
@@ -27,9 +29,23 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // For demo purposes, we'll use a mock user ID
-    // In production, this would come from the authenticated session
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    // Get userId from session
+    const session = await getServerSession(authOptions)
+    console.log(`[${endpoint}] Session:`, session ? `User: ${session.user?.email}, ID: ${session.user?.id}` : "No session")
+    
+    if (!session?.user?.id) {
+      console.log(`[${endpoint}] ERROR: No valid session found`)
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Authentication required",
+          technicalError: "Please log in to access your dashboard"
+        },
+        { status: 401 }
+      )
+    }
+    
+    const userId = session.user.id
     console.log(`[${endpoint}] userId:`, userId)
 
     console.log(`[${endpoint}] Executing: prisma.enrollment.findMany...`)

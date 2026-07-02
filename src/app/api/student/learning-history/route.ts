@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 // GET /api/student/learning-history - Get user's learning history with progress
 // Force dynamic rendering - API routes that use request properties must be dynamic
@@ -11,7 +13,23 @@ export async function GET(request: NextRequest) {
   console.log("[LEARNING-HISTORY API] Method:", request.method)
   
   try {
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    // Get userId from session
+    const session = await getServerSession(authOptions)
+    console.log("[LEARNING-HISTORY API] Session:", session ? `User: ${session.user?.email}, ID: ${session.user?.id}` : "No session")
+    
+    if (!session?.user?.id) {
+      console.log("[LEARNING-HISTORY API] ERROR: No valid session found")
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Authentication required",
+          technicalError: "Please log in to access your learning history"
+        },
+        { status: 401 }
+      )
+    }
+    
+    const userId = session.user.id
     console.log("[LEARNING-HISTORY API] userId:", userId)
     
     const { searchParams } = new URL(request.url)

@@ -13,31 +13,24 @@ export async function GET(request: NextRequest) {
   console.log("[WISHLIST API] Method:", request.method)
   
   try {
-    // Get userId from session or header
+    // Get userId from session
     const session = await getServerSession(authOptions)
     console.log("[WISHLIST API] Session:", session ? `User: ${session.user?.email}, ID: ${session.user?.id}` : "No session")
     
-    const headerUserId = request.headers.get("x-user-id")
-    console.log("[WISHLIST API] x-user-id header:", headerUserId || "Not provided")
-    
-    const userId = session?.user?.id || headerUserId || "demo-user-id"
-    console.log("[WISHLIST API] Final userId:", userId)
-    
-    // Validate UUID format (only if it's not the demo user)
-    if (userId !== "demo-user-id") {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(userId)) {
-        console.log("[WISHLIST API] ERROR: Invalid UUID format:", userId)
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: "Invalid user session",
-            technicalError: `Invalid user ID format: ${userId}`
-          },
-          { status: 401 }
-        )
-      }
+    if (!session?.user?.id) {
+      console.log("[WISHLIST API] ERROR: No valid session found")
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Authentication required",
+          technicalError: "Please log in to access your wishlist"
+        },
+        { status: 401 }
+      )
     }
+    
+    const userId = session.user.id
+    console.log("[WISHLIST API] userId:", userId)
     
     const { searchParams } = new URL(request.url)
     const page = parseInt(searchParams.get("page") || "1")
@@ -164,25 +157,24 @@ export async function POST(request: NextRequest) {
   console.log("[WISHLIST API] POST request received")
   
   try {
-    // Get userId from session or header
+    // Get userId from session
     const session = await getServerSession(authOptions)
-    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
-    console.log("[WISHLIST API] POST userId:", userId)
+    console.log("[WISHLIST API] POST Session:", session ? `User: ${session.user?.email}, ID: ${session.user?.id}` : "No session")
     
-    // Validate UUID format (only if it's not the demo user)
-    if (userId !== "demo-user-id") {
-      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-      if (!uuidRegex.test(userId)) {
-        return NextResponse.json(
-          { 
-            success: false, 
-            error: "Invalid user session",
-            technicalError: `Invalid user ID format: ${userId}`
-          },
-          { status: 401 }
-        )
-      }
+    if (!session?.user?.id) {
+      console.log("[WISHLIST API] POST ERROR: No valid session found")
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: "Authentication required",
+          technicalError: "Please log in to update your wishlist"
+        },
+        { status: 401 }
+      )
     }
+    
+    const userId = session.user.id
+    console.log("[WISHLIST API] POST userId:", userId)
     
     const body = await request.json()
     const { courseId } = body
