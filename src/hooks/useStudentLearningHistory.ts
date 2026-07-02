@@ -41,16 +41,24 @@ export function useStudentLearningHistory() {
       const params = new URLSearchParams()
       if (options?.page) params.set("page", options.page.toString())
       
-      const response = await fetch(`/api/student/learning-history?${params}`)
+      const url = `/api/student/learning-history?${params}`
+      console.log("[useStudentLearningHistory] Fetching:", url)
+      
+      const response = await fetch(url)
+      console.log("[useStudentLearningHistory] Response status:", response.status)
+      
       const data = await response.json()
+      console.log("[useStudentLearningHistory] Response data:", JSON.stringify(data, null, 2))
       
       if (data.success) {
         setHistory(data.data.history)
         setPagination(data.data.pagination)
       } else {
+        console.error("[useStudentLearningHistory] API Error:", data.error, data.technicalError, data.errorDetails)
         setError(data.error || "Failed to fetch learning history")
       }
-    } catch (err) {
+    } catch (err: any) {
+      console.error("[useStudentLearningHistory] Network error:", err)
       setError("Network error. Please try again.")
     } finally {
       setLoading(false)
