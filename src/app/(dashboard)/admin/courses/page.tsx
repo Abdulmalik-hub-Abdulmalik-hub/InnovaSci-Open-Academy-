@@ -65,7 +65,7 @@ function CourseModal({
     durationHours: course?.durationHours || 0,
     thumbnailUrl: course?.thumbnailUrl || "",
     introVideoUrl: course?.introVideoUrl || "",
-    certificateTemplateUrl: (course as any)?.certificateTemplateUrl || "",
+    certificateTemplateUrl: (course as any)?.certificateTemplateId || "",
   })
 
   const [saving, setSaving] = useState(false)
@@ -560,7 +560,7 @@ export default function CoursesPage() {
               <div>
                 <p className="text-white/60 text-sm">Published</p>
                 <p className="text-2xl font-bold text-green-400">
-                  {courses.filter(c => c.status === "published").length}
+                  {(courses || []).filter(c => c.status === "published").length}
                 </p>
               </div>
               <div className="h-8 w-8 rounded-full bg-green-500/20 flex items-center justify-center">
@@ -575,7 +575,7 @@ export default function CoursesPage() {
               <div>
                 <p className="text-white/60 text-sm">Total Students</p>
                 <p className="text-2xl font-bold text-white">
-                  {courses.reduce((acc, c) => acc + (c.stats?.enrollments || 0), 0).toLocaleString()}
+                  {(courses || []).reduce((acc, c) => acc + (c.stats?.enrollments || 0), 0).toLocaleString()}
                 </p>
               </div>
               <Users className="h-8 w-8 text-blue-400" />
@@ -588,7 +588,7 @@ export default function CoursesPage() {
               <div>
                 <p className="text-white/60 text-sm">Free Courses</p>
                 <p className="text-2xl font-bold text-white">
-                  {courses.filter(c => c.isFree).length}
+                  {(courses || []).filter(c => c.isFree).length}
                 </p>
               </div>
               <BookOpen className="h-8 w-8 text-yellow-400" />
@@ -663,7 +663,7 @@ export default function CoursesPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/5">
-                  {courses.map((course) => (
+                  {(courses || []).map((course) => (
                     <tr key={course.id} className="text-sm hover:bg-white/5">
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-3">
