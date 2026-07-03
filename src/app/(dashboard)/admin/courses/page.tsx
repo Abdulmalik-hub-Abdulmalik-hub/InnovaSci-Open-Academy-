@@ -29,6 +29,13 @@ function generateSlug(title: string): string {
     .replace(/-+/g, "-")
 }
 
+// Helper to extract category name from either string or object
+function getCategoryValue(cat: string | { name: string } | null | undefined): string {
+  if (!cat) return ""
+  if (typeof cat === 'object' && 'name' in cat && cat.name) return cat.name
+  return cat as string
+}
+
 // Course Modal Component with Sectioned Form
 function CourseModal({ 
   course, 
@@ -45,13 +52,6 @@ function CourseModal({
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const [slugChecking, setSlugChecking] = useState(false)
   const [slugAvailable, setSlugAvailable] = useState<boolean | null>(null)
-  
-  // Helper to extract category name from either string or object
-  const getCategoryValue = (cat: string | { name: string } | null | undefined): string => {
-    if (!cat) return ""
-    if (typeof cat === 'object' && cat.name) return cat.name
-    return cat as string
-  }
 
   const [formData, setFormData] = useState({
     title: course?.title || "",
