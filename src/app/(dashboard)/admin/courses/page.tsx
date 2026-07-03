@@ -490,7 +490,12 @@ export default function CoursesPage() {
   }
 
   const handleEditCourse = (course: Course) => {
-    setEditingCourse(course)
+    // Ensure category is converted to string for the modal
+    const normalizedCourse = {
+      ...course,
+      category: getCategoryValue(course.category)
+    }
+    setEditingCourse(normalizedCourse)
     setShowModal(true)
   }
 
