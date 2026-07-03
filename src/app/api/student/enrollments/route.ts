@@ -30,6 +30,7 @@ export async function GET(request: NextRequest) {
             title: true,
             slug: true,
             thumbnailUrl: true,
+            categoryId: true,
             category: true,
             shortDescription: true,
             durationHours: true,
@@ -51,7 +52,7 @@ export async function GET(request: NextRequest) {
     let filteredEnrollments = enrollments
     if (category && category !== "all") {
       filteredEnrollments = enrollments.filter(
-        e => e.course.category === category
+        e => e.course.category?.name === category
       )
     }
 
@@ -100,7 +101,7 @@ export async function GET(request: NextRequest) {
     // Get unique categories from enrollments
     const categorySet = new Set<string>()
     enrollments.forEach(e => {
-      if (e.course.category) categorySet.add(e.course.category)
+      if (e.course.category?.name) categorySet.add(e.course.category.name)
     })
     const categories = Array.from(categorySet)
 

@@ -26,6 +26,7 @@ export async function GET() {
       courses = await prisma.course.findMany({
         where: { status: "published" },
         include: {
+          category: true,
           _count: {
             select: { enrollments: true }
           }
@@ -52,7 +53,8 @@ export async function GET() {
         thumbnailUrl: c.thumbnailUrl,
         price: Number(c.price),
         isFree: c.isFree,
-        category: c.category,
+        category: c.category?.name || null,
+        categoryId: c.categoryId,
         difficultyLevel: c.difficultyLevel,
         durationHours: c.durationHours,
         enrollments: c._count.enrollments,
