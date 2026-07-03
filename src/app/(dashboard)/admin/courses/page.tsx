@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { ErrorBoundary } from "@/components/ui/error-boundary"
 import { useCourses, Course } from "@/hooks/useCourses"
 import { 
   Search, Plus, Edit, Trash2, Loader2, RefreshCw, X,
@@ -760,12 +761,14 @@ export default function CoursesPage() {
 
       {/* Course Modal */}
       {showModal && (
-        <CourseModal
-          course={editingCourse}
-          onClose={() => setShowModal(false)}
-          onSave={refresh}
-          categories={categories}
-        />
+        <ErrorBoundary>
+          <CourseModal
+            course={editingCourse}
+            onClose={() => setShowModal(false)}
+            onSave={refresh}
+            categories={categories}
+          />
+        </ErrorBoundary>
       )}
 
       {/* Delete Confirmation */}
