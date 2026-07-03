@@ -683,9 +683,7 @@ export default function CoursesPage() {
                         </div>
                       </td>
                       <td className="px-4 py-3 text-white/80">
-                        {typeof course.category === 'object' && course.category?.name 
-                          ? course.category.name 
-                          : course.category || "-"}
+                        {getCategoryValue(course.category) || "-"}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
