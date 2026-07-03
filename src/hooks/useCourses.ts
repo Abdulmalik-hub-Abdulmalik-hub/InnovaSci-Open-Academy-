@@ -10,11 +10,17 @@ export interface CourseStats {
   lessons: number
 }
 
+export interface CourseCategory {
+  id?: string
+  name: string
+}
+
 export interface Course {
   id: string
   title: string
   slug: string
-  category: string | null
+  category: CourseCategory | string | null
+  categoryId?: string | null
   subcategory: string | null
   shortDescription: string | null
   price: number
