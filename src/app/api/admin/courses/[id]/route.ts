@@ -232,7 +232,7 @@ export async function PUT(
       data: {
         title: body.title ?? existingCourse.title,
         slug: body.slug ? body.slug.toLowerCase() : existingCourse.slug,
-        category: body.category !== undefined ? body.category : existingCourse.category,
+        categoryId: body.categoryId !== undefined ? body.categoryId : existingCourse.categoryId,
         subcategory: body.subcategory !== undefined ? body.subcategory : existingCourse.subcategory,
         shortDescription: body.shortDescription !== undefined ? body.shortDescription : existingCourse.shortDescription,
         fullDescription: body.fullDescription !== undefined ? body.fullDescription : existingCourse.fullDescription,
