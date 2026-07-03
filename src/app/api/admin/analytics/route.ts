@@ -153,15 +153,18 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "asc" },
       }),
       prisma.course.groupBy({
-        by: ["category"],
+        by: ["categoryId"],
         _count: true,
-        where: { status: "published", category: { not: null } },
-        orderBy: { _count: { category: "desc" } },
+        where: { status: "published", categoryId: { not: null } },
+        orderBy: { _count: { categoryId: "desc" } },
       }),
       prisma.course.findMany({
         take: 10,
         orderBy: { enrollments: { _count: "desc" } },
-        include: { _count: { select: { enrollments: true } } },
+        include: { 
+          _count: { select: { enrollments: true } },
+          category: true
+        },
         where: { status: "published" }
       }),
       prisma.payment.findMany({
@@ -290,7 +293,7 @@ export async function GET(request: NextRequest) {
         revenueByDayOfWeek: dayNames.map((day, index) => ({ day, amount: revenueByDayOfWeek[index] })),
       },
       categories: coursesByCategory.map((c) => ({ 
-        category: c.category || "Uncategorized", 
+        categoryId: c.categoryId || "uncategorized", 
         count: c._count as unknown as number 
       })),
       topCourses: topCourses.map((c) => ({ 
