@@ -2,18 +2,32 @@
 
 import { useState, useEffect, useCallback } from "react"
 
+export interface StudentCourseCategory {
+  id?: string
+  name: string
+}
+
 export interface StudentCourse {
   id: string
   title: string
   slug: string
   thumbnailUrl: string | null
-  category: string | null
+  category: StudentCourseCategory | string | null
   shortDescription: string | null
   durationHours: number | null
   difficultyLevel: string | null
   totalLessons: number
   completedLessons: number
 }
+
+// Helper to extract category name
+function getCourseCategoryName(cat: StudentCourseCategory | string | null | undefined): string {
+  if (!cat) return ""
+  if (typeof cat === 'object' && 'name' in cat && cat.name) return cat.name
+  return cat as string
+}
+
+export { getCourseCategoryName }
 
 export interface StudentEnrollment {
   id: string

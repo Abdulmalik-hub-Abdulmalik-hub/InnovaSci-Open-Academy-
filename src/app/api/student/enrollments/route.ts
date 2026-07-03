@@ -1,6 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+// Helper to get category name from object or string
+function getCategoryName(cat: any): string {
+  if (!cat) return ""
+  if (typeof cat === "object" && cat.name) return cat.name
+  return cat as string
+}
+
 // GET /api/student/enrollments - Get user's enrolled courses
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
@@ -52,7 +59,7 @@ export async function GET(request: NextRequest) {
     let filteredEnrollments = enrollments
     if (category && category !== "all") {
       filteredEnrollments = enrollments.filter(
-        e => e.course.category?.name === category
+        e => getCategoryName(e.course.category) === category
       )
     }
 
@@ -101,7 +108,7 @@ export async function GET(request: NextRequest) {
     // Get unique categories from enrollments
     const categorySet = new Set<string>()
     enrollments.forEach(e => {
-      if (e.course.category?.name) categorySet.add(e.course.category.name)
+      if (e.course.category?.name) categorySet.add(getCategoryName(e.course.category))
     })
     const categories = Array.from(categorySet)
 
