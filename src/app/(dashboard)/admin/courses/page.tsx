@@ -271,9 +271,11 @@ function CourseModal({
                         className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
                       >
                         <option value="">Select Category</option>
-                        {categories.map(cat => (
+                        {categories && categories.length > 0 ? categories.map(cat => (
                           <option key={cat} value={cat}>{cat}</option>
-                        ))}
+                        )) : (
+                          <option value="" disabled>No categories available</option>
+                        )}
                       </select>
                     </div>
 
