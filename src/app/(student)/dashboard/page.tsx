@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useStudentDashboard } from "@/hooks/useStudentDashboard"
+import { getCourseCategoryName } from "@/hooks/useStudentEnrollments"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -105,9 +106,9 @@ export default function StudentDashboard() {
                     <span className="px-2.5 py-0.5 bg-[hsl(var(--brand-purple))/20 text-[hsl(var(--brand-purple))] text-xs font-medium rounded-full">
                       Continue Learning
                     </span>
-                    {data.currentEnrollment.course.category?.name && (
+                    {getCourseCategoryName(data.currentEnrollment.course.category) && (
                       <span className="px-2.5 py-0.5 bg-white/10 text-gray-300 text-xs font-medium rounded-full">
-                        {data.currentEnrollment.course.category?.name || data.currentEnrollment.course.category}
+                        {getCourseCategoryName(data.currentEnrollment.course.category)}
                       </span>
                     )}
                   </div>
