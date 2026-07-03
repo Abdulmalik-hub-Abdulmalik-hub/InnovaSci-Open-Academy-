@@ -2,6 +2,7 @@
 
 import Link from "next/link"
 import { useStudentLearningHistory } from "@/hooks/useStudentLearningHistory"
+import { getCourseCategoryName } from "@/hooks/useStudentEnrollments"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -114,9 +115,9 @@ export default function LearningHistoryPage() {
                   <div>
                     {/* Badges */}
                     <div className="flex flex-wrap gap-2 mb-2">
-                      {item.course.category?.name && (
+                      {getCourseCategoryName(item.course.category) && (
                         <Badge variant="outline" className="text-xs">
-                          {item.course.category?.name || item.course.category}
+                          {getCourseCategoryName(item.course.category)}
                         </Badge>
                       )}
                       {item.course.difficultyLevel && (
