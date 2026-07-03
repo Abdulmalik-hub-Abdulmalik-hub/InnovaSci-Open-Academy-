@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useStudentWishlist } from "@/hooks/useStudentWishlist"
+import { getCourseCategoryName } from "@/hooks/useStudentEnrollments"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -139,9 +140,9 @@ export default function WishlistPage() {
                 </button>
 
                 {/* Category Badge */}
-                {item.course.category?.name && (
+                {getCourseCategoryName(item.course.category) && (
                   <Badge className="absolute top-2 left-2 bg-[hsl(var(--brand-purple))/90 text-white text-xs">
-                    {item.course.category?.name || item.course.category}
+                    {getCourseCategoryName(item.course.category)}
                   </Badge>
                 )}
               </div>
