@@ -6,6 +6,23 @@ export async function POST() {
   try {
     console.log("Starting database setup...")
     
+    // Create Categories first
+    const catDataScience = await prisma.category.upsert({
+      where: { slug: "data-science" },
+      update: {},
+      create: { name: "Data Science", slug: "data-science" }
+    })
+    const catWebDev = await prisma.category.upsert({
+      where: { slug: "web-development" },
+      update: {},
+      create: { name: "Web Development", slug: "web-development" }
+    })
+    const catMobileDev = await prisma.category.upsert({
+      where: { slug: "mobile-development" },
+      update: {},
+      create: { name: "Mobile Development", slug: "mobile-development" }
+    })
+    
     // Create Admin User
     const admin = await prisma.user.upsert({
       where: { email: "admin@innovasci.com" },
@@ -54,7 +71,7 @@ export async function POST() {
       create: {
         title: "Introduction to Data Science",
         slug: "introduction-to-data-science",
-        category: "Data Science",
+        categoryId: catDataScience.id,
         shortDescription: "Learn the fundamentals of data science with Python and R",
         fullDescription: "This comprehensive course covers data analysis, visualization, machine learning, and statistical modeling.",
         difficultyLevel: "beginner",
@@ -63,6 +80,7 @@ export async function POST() {
         price: 99.99,
         isFree: false,
         status: "published",
+        introVideoUrl: "https://example.com/intro",
       },
     })
 
@@ -72,7 +90,7 @@ export async function POST() {
       create: {
         title: "Web Development Masterclass",
         slug: "web-development-masterclass",
-        category: "Web Development",
+        categoryId: catWebDev.id,
         shortDescription: "Full-stack web development with React, Node.js, and modern tools",
         fullDescription: "Learn to build modern web applications from scratch using cutting-edge technologies.",
         difficultyLevel: "intermediate",
@@ -81,6 +99,7 @@ export async function POST() {
         price: 149.99,
         isFree: false,
         status: "published",
+        introVideoUrl: "https://example.com/intro",
       },
     })
 
@@ -90,7 +109,7 @@ export async function POST() {
       create: {
         title: "Mobile App Development",
         slug: "mobile-app-development",
-        category: "Mobile Development",
+        categoryId: catMobileDev.id,
         shortDescription: "Build iOS and Android apps with React Native",
         difficultyLevel: "intermediate",
         language: "English",
@@ -98,6 +117,7 @@ export async function POST() {
         price: 0,
         isFree: true,
         status: "published",
+        introVideoUrl: "https://example.com/intro",
       },
     })
     console.log("✓ 3 demo courses created")
