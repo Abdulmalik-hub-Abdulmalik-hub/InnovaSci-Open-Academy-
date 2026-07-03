@@ -105,9 +105,9 @@ export default function StudentDashboard() {
                     <span className="px-2.5 py-0.5 bg-[hsl(var(--brand-purple))/20 text-[hsl(var(--brand-purple))] text-xs font-medium rounded-full">
                       Continue Learning
                     </span>
-                    {data.currentEnrollment.course.category && (
+                    {data.currentEnrollment.course.category?.name && (
                       <span className="px-2.5 py-0.5 bg-white/10 text-gray-300 text-xs font-medium rounded-full">
-                        {data.currentEnrollment.course.category}
+                        {data.currentEnrollment.course.category?.name || data.currentEnrollment.course.category}
                       </span>
                     )}
                   </div>

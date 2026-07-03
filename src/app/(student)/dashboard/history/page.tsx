@@ -114,9 +114,9 @@ export default function LearningHistoryPage() {
                   <div>
                     {/* Badges */}
                     <div className="flex flex-wrap gap-2 mb-2">
-                      {item.course.category && (
+                      {item.course.category?.name && (
                         <Badge variant="outline" className="text-xs">
-                          {item.course.category}
+                          {item.course.category?.name || item.course.category}
                         </Badge>
                       )}
                       {item.course.difficultyLevel && (

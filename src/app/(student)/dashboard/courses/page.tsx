@@ -25,7 +25,7 @@ export default function MyCoursesPage() {
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
     const matchesCategory = selectedCategory === "all" || 
-      enrollment.course.category === selectedCategory
+      enrollment.course.category?.name === selectedCategory
     const matchesStatus = statusFilter === "all" || 
       (statusFilter === "completed" && enrollment.completed) ||
       (statusFilter === "in_progress" && !enrollment.completed)
@@ -228,9 +228,9 @@ export default function MyCoursesPage() {
                 {/* Content */}
                 <CardContent className="p-4">
                   <div className="flex items-center gap-2 mb-2">
-                    {enrollment.course.category && (
+                    {enrollment.course.category?.name && (
                       <Badge variant="outline" className="text-xs">
-                        {enrollment.course.category}
+                        {enrollment.course.category?.name || enrollment.course.category}
                       </Badge>
                     )}
                     {enrollment.course.difficultyLevel && (
@@ -302,9 +302,9 @@ export default function MyCoursesPage() {
                   <CardContent className="flex-1 p-4 flex flex-col justify-between">
                     <div>
                       <div className="flex items-center gap-2 mb-1">
-                        {enrollment.course.category && (
+                        {enrollment.course.category?.name && (
                           <Badge variant="outline" className="text-xs">
-                            {enrollment.course.category}
+                            {enrollment.course.category?.name || enrollment.course.category}
                           </Badge>
                         )}
                       </div>

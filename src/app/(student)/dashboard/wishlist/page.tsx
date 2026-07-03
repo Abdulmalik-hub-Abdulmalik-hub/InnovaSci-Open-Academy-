@@ -139,9 +139,9 @@ export default function WishlistPage() {
                 </button>
 
                 {/* Category Badge */}
-                {item.course.category && (
+                {item.course.category?.name && (
                   <Badge className="absolute top-2 left-2 bg-[hsl(var(--brand-purple))/90 text-white text-xs">
-                    {item.course.category}
+                    {item.course.category?.name || item.course.category}
                   </Badge>
                 )}
               </div>
