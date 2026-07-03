@@ -546,7 +546,7 @@ export default function CoursesPage() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-white/60 text-sm">Total Courses</p>
-                <p className="text-2xl font-bold text-white">{pagination.total}</p>
+                <p className="text-2xl font-bold text-white">{pagination?.total ?? 0}</p>
               </div>
               <GraduationCap className="h-8 w-8 text-purple-400" />
             </div>
@@ -730,7 +730,7 @@ export default function CoursesPage() {
       </Card>
 
       {/* Pagination */}
-      {pagination.totalPages > 1 && (
+      {(pagination?.totalPages ?? 0) > 1 && (
         <div className="flex items-center justify-center gap-2">
           <Button
             variant="outline"

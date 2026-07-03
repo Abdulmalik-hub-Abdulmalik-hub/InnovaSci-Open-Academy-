@@ -10,6 +10,12 @@ export interface CourseStats {
   lessons: number
 }
 
+export interface ModuleStats {
+  lessons: number
+  duration: number
+  completed: number
+}
+
 export interface CourseCategory {
   id?: string
   name: string
@@ -61,6 +67,7 @@ export interface Module {
   orderIndex: number
   lessonsCount: number
   lessons: ModuleLesson[]
+  stats?: ModuleStats
 }
 
 export interface CoursesResponse {
