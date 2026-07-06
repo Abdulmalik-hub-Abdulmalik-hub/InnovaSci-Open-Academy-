@@ -39,7 +39,7 @@ export interface Course {
   language: string | null
   createdAt: string
   updatedAt: string
-  stats: CourseStats
+  stats?: CourseStats
 }
 
 export interface ModuleLesson {
