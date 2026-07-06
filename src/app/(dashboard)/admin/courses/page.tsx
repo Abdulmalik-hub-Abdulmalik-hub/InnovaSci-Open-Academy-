@@ -49,6 +49,13 @@ function CourseModal({
   onSave: () => void
   categories?: string[]
 }) {
+  // DEBUG: Log incoming data
+  console.log("CourseModal:", {
+    course,
+    category: course?.category,
+    categories
+  })
+
   const [expandedSections, setExpandedSections] = useState<string[]>(["basic", "media", "publishing"])
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false)
   const [slugChecking, setSlugChecking] = useState(false)
