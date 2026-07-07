@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 import { FooterBranding, AcademyLogo } from "./logo"
 import { 
   BookOpen, Award, Settings,
-  Heart, Clock, X, HelpCircle
+  Heart, Clock, X, HelpCircle, Layers
 } from "lucide-react"
 
 interface MenuItem {
@@ -27,6 +27,7 @@ interface MenuItem {
 // Quick access items - Student Dashboard features ONLY
 const quickAccessItems: MenuItem[] = [
   { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
+  { title: "My Projects", href: "/dashboard/projects", icon: Layers },
   { title: "Certificates", href: "/dashboard/certificates", icon: Award },
   { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
