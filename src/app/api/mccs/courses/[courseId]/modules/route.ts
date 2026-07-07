@@ -284,7 +284,7 @@ export async function PUT(
   { params }: { params: Promise<{ courseId: string }> }
 ) {
   const { courseId } = await params;
-  const endpoint = `/api/mccs/courses/${courseId]/modules`
+  const endpoint = `/api/mccs/courses/${courseId}/modules`
   
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({
