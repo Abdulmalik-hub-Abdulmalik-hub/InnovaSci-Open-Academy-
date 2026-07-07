@@ -4,24 +4,19 @@ import { prisma } from "@/lib/prisma"
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
 
-// GET /api/mccs/categories - List all categories
+// GET /api/mccs/categories - Get all categories
 export async function GET(request: NextRequest) {
-  if (!process.env.DATABASE_URL) {
-    return NextResponse.json({
-      success: false,
-      error: "Database configuration missing",
-      code: "DATABASE_NOT_READY"
-    }, { status: 503 })
-  }
-
   try {
     const categories = await prisma.category.findMany({
       where: { isActive: true },
-      include: {
-        difficultyLevels: {
-          where: { isActive: true },
-          orderBy: { orderIndex: 'asc' }
-        },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        icon: true,
+        color: true,
+        orderIndex: true,
         _count: {
           select: {
             courses: true
@@ -31,30 +26,25 @@ export async function GET(request: NextRequest) {
       orderBy: { orderIndex: 'asc' }
     })
 
+    const formattedCategories = categories.map(c => ({
+      id: c.id,
+      name: c.name,
+      slug: c.slug,
+      description: c.description,
+      icon: c.icon,
+      color: c.color,
+      orderIndex: c.orderIndex,
+      courseCount: c._count.courses
+    }))
+
     return NextResponse.json({
       success: true,
       data: {
-        categories: categories.map(c => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug,
-          description: c.description,
-          icon: c.icon,
-          color: c.color,
-          courseCount: c._count.courses,
-          difficultyLevels: c.difficultyLevels.map(dl => ({
-            id: dl.id,
-            name: dl.name,
-            slug: dl.slug,
-            description: dl.description,
-            color: dl.color,
-          }))
-        }))
+        categories: formattedCategories
       }
     })
-
   } catch (error) {
-    console.error("Error fetching categories:", error)
+    console.error("Categories API error:", error)
     return NextResponse.json({
       success: false,
       error: "Failed to fetch categories"

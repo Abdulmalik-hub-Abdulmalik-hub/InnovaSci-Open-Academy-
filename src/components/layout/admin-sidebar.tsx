@@ -47,11 +47,6 @@ const menuItems = [
     icon: GraduationCap,
   },
   {
-    title: "MCCS Capstones",
-    href: "/admin/mccs/capstones",
-    icon: Award,
-  },
-  {
     title: "Categories",
     href: "/admin/categories",
     icon: Folder,
