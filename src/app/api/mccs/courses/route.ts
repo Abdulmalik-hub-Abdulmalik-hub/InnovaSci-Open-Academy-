@@ -100,7 +100,7 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit
 
     // Build where clause
-    const where: Record<string, unknown> {}
+    const where: Record<string, unknown> = {}
     if (search) {
       where.OR = [
         { title: { contains: search, mode: "insensitive" } },
