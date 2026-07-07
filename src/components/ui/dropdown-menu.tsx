@@ -35,12 +35,12 @@ const DropdownMenuTrigger: React.FC<DropdownMenuTriggerProps> = ({
   children,
   className,
 }) => {
-  const { setOpen } = React.useContext(DropdownMenuContext)
+  const { open, setOpen } = React.useContext(DropdownMenuContext)
 
   return (
     <button
       type="button"
-      onClick={() => setOpen((prev) => !prev)}
+      onClick={() => setOpen(!open)}
       className={cn("", className)}
     >
       {children}
