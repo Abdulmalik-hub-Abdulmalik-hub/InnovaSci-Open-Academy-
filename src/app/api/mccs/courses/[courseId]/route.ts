@@ -41,10 +41,10 @@ async function checkAdminAuth(request: NextRequest): Promise<{ authorized: boole
 // GET /api/mccs/courses/[id] - Get single course with all details
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
-  const { id } = await params;
-  const endpoint = `/api/mccs/courses/${id}`
+  const { courseId } = await params;
+  const endpoint = `/api/mccs/courses/${courseId}`
   
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({
@@ -61,7 +61,7 @@ export async function GET(
 
   try {
     const course = await prisma.course.findUnique({
-      where: { id },
+      where: { id: courseId },
       include: {
         category: true,
         difficultyLevel: true,
@@ -159,10 +159,10 @@ export async function GET(
 // PUT /api/mccs/courses/[id] - Update course with transactional support
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
-  const { id } = await params;
-  const endpoint = `/api/mccs/courses/${id}`
+  const { courseId } = await params;
+  const endpoint = `/api/mccs/courses/${courseId}`
   
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({
@@ -183,7 +183,7 @@ export async function PUT(
 
     // Verify course exists
     const existingCourse = await prisma.course.findUnique({
-      where: { id }
+      where: { id: courseId }
     })
 
     if (!existingCourse) {
@@ -221,7 +221,7 @@ export async function PUT(
         }
 
         updatedCourse = await prisma.course.update({
-          where: { id },
+          where: { id: courseId },
           data: {
             title: data.title,
             slug: data.slug,
@@ -247,7 +247,7 @@ export async function PUT(
         }
 
         updatedCourse = await prisma.course.update({
-          where: { id },
+          where: { id: courseId },
           data: {
             thumbnailUrl: data.thumbnailUrl,
             introVideoUrl: data.introVideoUrl,
@@ -271,14 +271,14 @@ export async function PUT(
         updatedCourse = await prisma.$transaction(async (tx) => {
           // Delete existing learning outcomes
           await tx.courseLearningOutcome.deleteMany({
-            where: { courseId: id }
+            where: { courseId: courseId }
           })
 
           // Create new learning outcomes
           if (data.learningOutcomes && data.learningOutcomes.length > 0) {
             await tx.courseLearningOutcome.createMany({
               data: data.learningOutcomes.map((lo: { outcome: string }, index: number) => ({
-                courseId: id,
+                courseId: courseId,
                 outcome: lo.outcome,
                 orderIndex: index,
               }))
@@ -287,21 +287,21 @@ export async function PUT(
 
           // Delete existing objectives
           await tx.courseObjective.deleteMany({
-            where: { courseId: id }
+            where: { courseId: courseId }
           })
 
           // Create new objectives
           if (data.objectives && data.objectives.length > 0) {
             await tx.courseObjective.createMany({
               data: data.objectives.map((obj: { objective: string }, index: number) => ({
-                courseId: id,
+                courseId: courseId,
                 objective: obj.objective,
                 orderIndex: index,
               }))
             })
           }
 
-          return tx.course.findUnique({ where: { id } })
+          return tx.course.findUnique({ where: { id: courseId } })
         })
         break;
 
@@ -318,14 +318,14 @@ export async function PUT(
         updatedCourse = await prisma.$transaction(async (tx) => {
           // Delete existing prerequisites
           await tx.prerequisite.deleteMany({
-            where: { courseId: id }
+            where: { courseId: courseId }
           })
 
           // Create new prerequisites
           if (data.prerequisites && data.prerequisites.length > 0) {
             await tx.prerequisite.createMany({
               data: data.prerequisites.map((pr: { prerequisiteCourseId: string; isRequired: boolean; minimumGrade?: number; description?: string }) => ({
-                courseId: id,
+                courseId: courseId,
                 prerequisiteCourseId: pr.prerequisiteCourseId,
                 isRequired: pr.isRequired,
                 minimumGrade: pr.minimumGrade,
@@ -334,7 +334,7 @@ export async function PUT(
             })
           }
 
-          return tx.course.findUnique({ where: { id } })
+          return tx.course.findUnique({ where: { id: courseId } })
         })
         break;
 
@@ -349,7 +349,7 @@ export async function PUT(
         }
 
         updatedCourse = await prisma.course.update({
-          where: { id },
+          where: { id: courseId },
           data: {
             price: data.isFree ? 0 : (data.price || 0),
             isFree: data.isFree,
@@ -371,9 +371,9 @@ export async function PUT(
         updatedCourse = await prisma.$transaction(async (tx) => {
           // Update or create SEO settings
           await tx.courseSeoSettings.upsert({
-            where: { courseId: id },
+            where: { courseId: courseId },
             create: {
-              courseId: id,
+              courseId: courseId,
               metaTitle: data.metaTitle,
               metaDescription: data.metaDescription,
               keywords: data.keywords || [],
@@ -387,7 +387,7 @@ export async function PUT(
 
           // Also update course-level SEO fields
           return tx.course.update({
-            where: { id },
+            where: { id: courseId },
             data: {
               metaTitle: data.metaTitle,
               metaDescription: data.metaDescription,
@@ -411,7 +411,7 @@ export async function PUT(
         const isPublishing = data.status === "PUBLISHED" && previousStatus !== "PUBLISHED"
 
         updatedCourse = await prisma.course.update({
-          where: { id },
+          where: { id: courseId },
           data: {
             status: data.status,
             isActive: data.isActive,
@@ -426,7 +426,7 @@ export async function PUT(
         updatedCourse = await prisma.$transaction(async (tx) => {
           // Update course basic info
           const updated = await tx.course.update({
-            where: { id },
+            where: { id: courseId },
             data: {
               title: data.title,
               slug: data.slug,
@@ -454,11 +454,11 @@ export async function PUT(
 
           // Handle related data updates if provided
           if (data.learningOutcomes !== undefined) {
-            await tx.courseLearningOutcome.deleteMany({ where: { courseId: id } })
+            await tx.courseLearningOutcome.deleteMany({ where: { courseId: courseId } })
             if (data.learningOutcomes?.length > 0) {
               await tx.courseLearningOutcome.createMany({
                 data: data.learningOutcomes.map((lo: { outcome: string }, index: number) => ({
-                  courseId: id,
+                  courseId: courseId,
                   outcome: lo.outcome,
                   orderIndex: index,
                 }))
@@ -467,11 +467,11 @@ export async function PUT(
           }
 
           if (data.objectives !== undefined) {
-            await tx.courseObjective.deleteMany({ where: { courseId: id } })
+            await tx.courseObjective.deleteMany({ where: { courseId: courseId } })
             if (data.objectives?.length > 0) {
               await tx.courseObjective.createMany({
                 data: data.objectives.map((obj: { objective: string }, index: number) => ({
-                  courseId: id,
+                  courseId: courseId,
                   objective: obj.objective,
                   orderIndex: index,
                 }))
@@ -480,11 +480,11 @@ export async function PUT(
           }
 
           if (data.prerequisites !== undefined) {
-            await tx.prerequisite.deleteMany({ where: { courseId: id } })
+            await tx.prerequisite.deleteMany({ where: { courseId: courseId } })
             if (data.prerequisites?.length > 0) {
               await tx.prerequisite.createMany({
                 data: data.prerequisites.map((pr: { prerequisiteCourseId: string; isRequired: boolean; minimumGrade?: number; description?: string }) => ({
-                  courseId: id,
+                  courseId: courseId,
                   prerequisiteCourseId: pr.prerequisiteCourseId,
                   isRequired: pr.isRequired,
                   minimumGrade: pr.minimumGrade,
@@ -506,7 +506,7 @@ export async function PUT(
           module: "MCCS_COURSES",
           userId: auth.userId,
           details: {
-            courseId: id,
+            courseId: courseId,
             section: section,
             title: updatedCourse?.title,
           },
@@ -549,10 +549,10 @@ export async function PUT(
 // DELETE /api/mccs/courses/[id] - Delete course with cascading
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
-  const { id } = await params;
-  const endpoint = `/api/mccs/courses/${id}`
+  const { courseId } = await params;
+  const endpoint = `/api/mccs/courses/${courseId}`
   
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({
@@ -570,7 +570,7 @@ export async function DELETE(
   try {
     // Verify course exists
     const existingCourse = await prisma.course.findUnique({
-      where: { id },
+      where: { id: courseId },
       include: {
         _count: {
           select: {
@@ -598,28 +598,28 @@ export async function DELETE(
     // Use transaction for cascading deletes
     await prisma.$transaction(async (tx) => {
       // Delete related records in order (due to foreign keys)
-      await tx.courseLearningOutcome.deleteMany({ where: { courseId: id } })
-      await tx.courseObjective.deleteMany({ where: { courseId: id } })
-      await tx.prerequisite.deleteMany({ where: { courseId: id } })
-      await tx.careerOutcome.deleteMany({ where: { courseId: id } })
-      await tx.courseResource.deleteMany({ where: { courseId: id } })
-      await tx.courseSoftware.deleteMany({ where: { courseId: id } })
-      await tx.courseDataset.deleteMany({ where: { courseId: id } })
-      await tx.courseSeoSettings.deleteMany({ where: { courseId: id } })
+      await tx.courseLearningOutcome.deleteMany({ where: { courseId: courseId } })
+      await tx.courseObjective.deleteMany({ where: { courseId: courseId } })
+      await tx.prerequisite.deleteMany({ where: { courseId: courseId } })
+      await tx.careerOutcome.deleteMany({ where: { courseId: courseId } })
+      await tx.courseResource.deleteMany({ where: { courseId: courseId } })
+      await tx.courseSoftware.deleteMany({ where: { courseId: courseId } })
+      await tx.courseDataset.deleteMany({ where: { courseId: courseId } })
+      await tx.courseSeoSettings.deleteMany({ where: { courseId: courseId } })
       
       // Delete mini projects and their submissions
       const miniProjects = await tx.miniProject.findMany({
-        where: { courseId: id },
+        where: { courseId: courseId },
         select: { id: true }
       })
       for (const project of miniProjects) {
         await tx.projectSubmission.deleteMany({ where: { projectId: project.id } })
       }
-      await tx.miniProject.deleteMany({ where: { courseId: id } })
+      await tx.miniProject.deleteMany({ where: { courseId: courseId } })
       
       // Delete lessons and their practical exercises and submissions
       const lessons = await tx.lesson.findMany({
-        where: { courseId: id },
+        where: { courseId: courseId },
         select: { id: true }
       })
       for (const lesson of lessons) {
@@ -636,26 +636,26 @@ export async function DELETE(
         await tx.material.deleteMany({ where: { lessonId: lesson.id } })
         await tx.video.deleteMany({ where: { lessonId: lesson.id } })
       }
-      await tx.lesson.deleteMany({ where: { courseId: id } })
+      await tx.lesson.deleteMany({ where: { courseId: courseId } })
       
       // Delete modules (practical exercises at module level)
       const modules = await tx.module.findMany({
-        where: { courseId: id },
+        where: { courseId: courseId },
         select: { id: true }
       })
       for (const module of modules) {
         await tx.practicalExercise.deleteMany({ where: { moduleId: module.id } })
       }
-      await tx.module.deleteMany({ where: { courseId: id } })
+      await tx.module.deleteMany({ where: { courseId: courseId } })
       
       // Delete course from difficulty level capstones
-      await tx.difficultyLevelCapstoneCourse.deleteMany({ where: { courseId: id } })
+      await tx.difficultyLevelCapstoneCourse.deleteMany({ where: { courseId: courseId } })
       
       // Delete wishlists
-      await tx.wishlist.deleteMany({ where: { courseId: id } })
+      await tx.wishlist.deleteMany({ where: { courseId: courseId } })
       
       // Finally delete the course
-      await tx.course.delete({ where: { id } })
+      await tx.course.delete({ where: { id: courseId } })
     })
 
     // Create audit log
@@ -666,7 +666,7 @@ export async function DELETE(
           module: "MCCS_COURSES",
           userId: auth.userId,
           details: {
-            courseId: id,
+            courseId: courseId,
             title: existingCourse.title,
             slug: existingCourse.slug,
           },
