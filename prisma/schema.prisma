@@ -43,6 +43,8 @@ model User {
   forumReplies         ForumReply[]
   instructors          Instructor[]
   capstoneEnrollments  CapstoneEnrollment[]
+  projectSubmissions   ProjectSubmission[]
+  portfolioEntries     PortfolioEntry[]
 
   @@map("users")
 }
@@ -161,6 +163,7 @@ model Course {
   seo                  CourseSEO?
   versions             CourseVersion[]
   miniProjects         MiniProject[]
+  projectSubmissions   ProjectSubmission[]
 
   @@map("courses")
 }
@@ -1095,6 +1098,7 @@ model MiniProject {
   updatedAt       DateTime @updatedAt
 
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  projectSubmissions ProjectSubmission[]
 
   @@index([courseId])
   @@map("mini_projects")
@@ -1215,4 +1219,94 @@ model CourseVersion {
   @@unique([courseId, version])
   @@index([courseId])
   @@map("course_versions")
+}
+
+// ============================================
+// 47. PROJECT SUBMISSIONS (Student Project Hub)
+// ============================================
+model ProjectSubmission {
+  id              String   @id @default(uuid())
+  userId          String
+  courseId        String?
+  miniProjectId   String?
+  capstoneId      String?  // Can be difficulty or professional capstone ID
+  capstoneType    String?  // 'difficulty' or 'professional'
+  
+  // Submission Details
+  title           String
+  description     String?  @db.Text
+  submissionUrl   String?  // GitHub repo or live link
+  fileUrls        Json?    // Array of uploaded file URLs
+  screenshots     Json?    // Array of screenshot URLs
+  
+  // Status
+  status          String   @default("not_started") // not_started, in_progress, submitted, graded
+  grade           Int?
+  feedback        String?  @db.Text
+  submittedAt      DateTime?
+  gradedAt        DateTime?
+  
+  // MCCS Link
+  isFromMCCS      Boolean  @default(false) // Was this imported from MCCS
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course          Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  miniProject     MiniProject? @relation(fields: [miniProjectId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([courseId])
+  @@index([miniProjectId])
+  @@index([status])
+  @@map("project_submissions")
+}
+
+// ============================================
+// 48. PORTFOLIO ENTRIES (Student Project Vault)
+// ============================================
+model PortfolioEntry {
+  id              String   @id @default(uuid())
+  userId          String
+  
+  // Project Details
+  title           String
+  description     String?  @db.Text
+  liveUrl         String?
+  githubUrl       String?
+  demoVideoUrl    String?
+  
+  // Tech Stack
+  techStack       String[] // Tags like React, PostgreSQL, etc.
+  
+  // Media
+  screenshots     Json?    // Array of screenshot URLs
+  demoVideo       String?  // URL to demo video
+  
+  // Project Rationale
+  rationale       String?  @db.Text
+  
+  // Privacy & Safety
+  visibility      String   @default("PRIVATE") // PRIVATE, PUBLIC, ACADEMY_ONLY
+  publicSlug     String?  @unique // Public URL slug: /portfolio/{slug}
+  
+  // MCCS Link (optional import)
+  linkedCourseId   String?
+  linkedMiniProjectId String?
+  linkedCapstoneId   String?
+  
+  // Status
+  isPublished     Boolean  @default(false)
+  viewCount        Int       @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([visibility])
+  @@index([publicSlug])
+  @@map("portfolio_entries")
 }
