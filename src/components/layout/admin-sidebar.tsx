@@ -7,7 +7,7 @@ import { motion } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { HeaderLogo, FooterBranding } from "./logo"
 import { 
-  LayoutDashboard, Users, BookOpen, Video, Award, CreditCard, 
+  LayoutDashboard, Users, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
   Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap
 } from "lucide-react"
@@ -37,12 +37,7 @@ const menuItems = [
     icon: FileText,
   },
   {
-    title: "Courses (Legacy)",
-    href: "/admin/courses",
-    icon: BookOpen,
-  },
-  {
-    title: "MCCS Courses",
+    title: "Courses",
     href: "/admin/mccs/courses",
     icon: GraduationCap,
   },

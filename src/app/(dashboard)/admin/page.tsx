@@ -400,7 +400,7 @@ export default function AdminDashboard() {
         <CardContent>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <a 
-              href="/admin/courses?action=create"
+              href="/admin/courses/create"
               className="p-4 rounded-lg bg-white/5 hover:bg-white/10 transition-colors text-center cursor-pointer"
             >
               <GraduationCap className="h-8 w-8 text-purple-400 mx-auto mb-2" />
