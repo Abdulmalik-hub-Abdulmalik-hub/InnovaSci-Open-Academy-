@@ -220,8 +220,14 @@ export default function CreateCoursePage() {
         return
       }
 
-      toast.success("Course created successfully!")
-      router.push("/admin/mccs/courses")
+      const courseId = result.data?.course?.id
+      if (courseId) {
+        toast.success("Course created! Now adding curriculum...")
+        router.push(`/admin/courses/${courseId}/curriculum`)
+      } else {
+        toast.success("Course created successfully!")
+        router.push("/admin/mccs/courses")
+      }
     } catch (error) {
       console.error("Error creating course:", error)
       toast.error("Failed to create course. Please try again.")
