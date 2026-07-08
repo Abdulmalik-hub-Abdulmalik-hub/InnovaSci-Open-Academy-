@@ -93,6 +93,8 @@ export default function CurriculumBuilderPage() {
   const params = useParams()
   const router = useRouter()
   const courseId = params.courseId as string
+  // Use 'id' for API routes to match the standardized API structure
+  const apiCourseId = courseId
 
   const [course, setCourse] = useState<Course | null>(null)
   const [modules, setModules] = useState<Module[]>([])
@@ -127,7 +129,7 @@ export default function CurriculumBuilderPage() {
   const fetchData = useCallback(async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/admin/courses/${courseId}/modules`)
+      const response = await fetch(`/api/admin/courses/${apiCourseId}/modules`)
       const result = await response.json()
 
       if (result.success) {
@@ -185,7 +187,7 @@ export default function CurriculumBuilderPage() {
     try {
       if (editingModule) {
         // Update module
-        const response = await fetch(`/api/admin/courses/${courseId}/modules/${editingModule.id}`, {
+        const response = await fetch(`/api/admin/courses/${apiCourseId}/modules/${editingModule.id}`, {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -201,7 +203,7 @@ export default function CurriculumBuilderPage() {
         toast.success("Module updated")
       } else {
         // Create module
-        const response = await fetch(`/api/admin/courses/${courseId}/modules`, {
+        const response = await fetch(`/api/admin/courses/${apiCourseId}/modules`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -231,7 +233,7 @@ export default function CurriculumBuilderPage() {
 
     setSaving(true)
     try {
-      const response = await fetch(`/api/admin/courses/${courseId}/modules/${moduleId}`, {
+      const response = await fetch(`/api/admin/courses/${apiCourseId}/modules/${moduleId}`, {
         method: "DELETE",
       })
       const result = await response.json()
@@ -299,8 +301,8 @@ export default function CurriculumBuilderPage() {
     setSaving(true)
     try {
       const endpoint = editingLesson
-        ? `/api/admin/courses/${courseId}/modules/${editingLesson.id.replace(/^lesson-/, "")}/lessons/${editingLesson.id}`
-        : `/api/admin/courses/${courseId}/modules/${selectedModuleId}/lessons`
+        ? `/api/admin/courses/${apiCourseId}/modules/${editingLesson.id.replace(/^lesson-/, "")}/lessons/${editingLesson.id}`
+        : `/api/admin/courses/${apiCourseId}/modules/${selectedModuleId}/lessons`
 
       const method = editingLesson ? "PUT" : "POST"
 
@@ -348,7 +350,7 @@ export default function CurriculumBuilderPage() {
       )
       if (!module) return
 
-      const response = await fetch(`/api/admin/courses/${courseId}/modules/${module.id}/lessons/${lessonId}`, {
+      const response = await fetch(`/api/admin/courses/${apiCourseId}/modules/${module.id}/lessons/${lessonId}`, {
         method: "DELETE",
       })
       const result = await response.json()
@@ -382,7 +384,7 @@ export default function CurriculumBuilderPage() {
 
     // Save new order
     try {
-      await fetch(`/api/admin/courses/${courseId}/modules`, {
+      await fetch(`/api/admin/courses/${apiCourseId}/modules`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({

@@ -41,6 +41,8 @@ model User {
   IssuedCertificate    IssuedCertificate[]
   forumThreads         ForumThread[]
   forumReplies         ForumReply[]
+  instructors          Instructor[]
+  capstoneEnrollments  CapstoneEnrollment[]
 
   @@map("users")
 }
@@ -126,8 +128,14 @@ model Course {
   certificateTemplateId  String? // Reference to certificate template
   certificateTemplateUrl String? // Legacy URL field
 
+  // MCCS Fields
+  instructorId     String?
+  whatYouWillLearn Json?  // Array of strings
+  requirements     Json?  // Array of strings
+
   // Relations
   category         Category? @relation(fields: [categoryId], references: [id])
+  instructor       Instructor? @relation(fields: [instructorId], references: [id])
   modules          Module[]
   lessons          Lesson[]
   enrollments      Enrollment[]
@@ -141,6 +149,18 @@ model Course {
   // Learning Paths
   learningPaths     LearningPathCourse[]
   IssuedCertificate IssuedCertificate[]
+
+  // MCCS Relations
+  courseLearningOutcomes CourseLearningOutcome[]
+  objectives           CourseObjective[]
+  resources            CourseResource[]
+  software             CourseSoftware[]
+  datasets             CourseDataset[]
+  prerequisites_       Prerequisite[]
+  careerOutcomes       CareerOutcome[]
+  seo                  CourseSEO?
+  versions             CourseVersion[]
+  miniProjects         MiniProject[]
 
   @@map("courses")
 }
@@ -197,6 +217,7 @@ model Lesson {
   videos          Video[]
   progress        LearningProgress[]
   lectureProgress UserLectureProgress[]
+  practicalExercise PracticalExercise?
 
   @@map("lessons")
 }
@@ -860,4 +881,338 @@ model ForumReply {
   @@index([authorId])
   @@index([createdAt])
   @@map("forum_replies")
+}
+
+// ============================================
+// MCCS MODELS - Master Course Creation System
+// ============================================
+
+// ============================================
+// 32. COURSE LEARNING OUTCOMES
+// ============================================
+model CourseLearningOutcome {
+  id          String   @id @default(uuid())
+  courseId    String
+  outcome     String   @db.Text
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("course_learning_outcomes")
+}
+
+// ============================================
+// 33. COURSE OBJECTIVES
+// ============================================
+model CourseObjective {
+  id          String   @id @default(uuid())
+  courseId    String
+  objective   String   @db.Text
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("course_objectives")
+}
+
+// ============================================
+// 34. COURSE RESOURCES
+// ============================================
+model CourseResource {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  description String?
+  type        String   // document, link, download, external
+  url         String
+  fileType    String?
+  fileSize    Int?
+  isDownloadable Boolean @default(true)
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("course_resources")
+}
+
+// ============================================
+// 35. COURSE SOFTWARE REQUIREMENTS
+// ============================================
+model CourseSoftware {
+  id          String   @id @default(uuid())
+  courseId    String
+  name        String
+  version     String?
+  url         String?  // Download URL
+  description String?  @db.Text
+  isRequired  Boolean  @default(true)
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("course_software")
+}
+
+// ============================================
+// 36. COURSE DATASETS
+// ============================================
+model CourseDataset {
+  id          String   @id @default(uuid())
+  courseId    String
+  name        String
+  description String?  @db.Text
+  sourceUrl   String?
+  fileUrl     String?
+  fileType    String?
+  fileSize    Int?
+  isDownloadable Boolean @default(false)
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("course_datasets")
+}
+
+// ============================================
+// 37. COURSE PREREQUISITES
+// ============================================
+model Prerequisite {
+  id            String   @id @default(uuid())
+  courseId      String
+  title         String
+  description   String?  @db.Text
+  type          String   @default("course") // course, skill, certification
+  externalUrl   String?
+  orderIndex    Int      @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("prerequisites")
+}
+
+// ============================================
+// 38. CAREER OUTCOMES
+// ============================================
+model CareerOutcome {
+  id          String   @id @default(uuid())
+  courseId    String
+  title       String
+  description String?  @db.Text
+  icon        String?
+  orderIndex  Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("career_outcomes")
+}
+
+// ============================================
+// 39. INSTRUCTORS
+// ============================================
+model Instructor {
+  id          String   @id @default(uuid())
+  userId      String?  // Optional link to User
+  name        String
+  title       String?
+  bio         String?  @db.Text
+  avatarUrl   String?
+  expertise   String[] // Areas of expertise
+  socialLinks Json?    // { linkedin, twitter, website }
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  courses     Course[]
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@map("instructors")
+}
+
+// ============================================
+// 40. PRACTICAL EXERCISES (Per Lesson)
+// ============================================
+model PracticalExercise {
+  id                String   @id @default(uuid())
+  lessonId          String   @unique
+  instructions      String?  @db.Text // Markdown instructions
+  starterCode       String?  @db.Text
+  solutionCode      String?  @db.Text
+  hints             Json?    // Array of hint strings
+  rubric            Json?    // { criteria: [{ name, points, description }] }
+  maxScore          Int      @default(100)
+  passingScore      Int      @default(70)
+  timeLimit         Int?     // In minutes
+  isRequired        Boolean  @default(false)
+  allowRetry        Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  lesson Lesson @relation(fields: [lessonId], references: [id], onDelete: Cascade)
+
+  @@map("practical_exercises")
+}
+
+// ============================================
+// 41. MINI PROJECTS (Per Course)
+// ============================================
+model MiniProject {
+  id              String   @id @default(uuid())
+  courseId        String
+  title           String
+  description     String?  @db.Text
+  scenario        String?  @db.Text // Real-world scenario
+  workflow        String?  @db.Text // Step-by-step workflow
+  deliverables    Json?    // { required: [...], optional: [...] }
+  evaluationRubric Json?   // { criteria: [...] }
+  starterFilesUrl String?
+  solutionFilesUrl String?
+  maxScore        Int      @default(100)
+  passingScore    Int      @default(70)
+  isRequired      Boolean  @default(false)
+  dueDaysAfterStart Int?   // Due X days after course enrollment
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@index([courseId])
+  @@map("mini_projects")
+}
+
+// ============================================
+// 42. DIFFICULTY LEVEL CAPSTONES
+// ============================================
+model DifficultyLevelCapstone {
+  id              String   @id @default(uuid())
+  title           String
+  slug            String   @unique
+  description     String?  @db.Text
+  difficultyLevel String   // BEGINNER, INTERMEDIATE, ADVANCED
+  includedCourses Json?    // Array of course IDs
+  orderIndex      Int      @default(0)
+  isPublished     Boolean  @default(false)
+  thumbnailUrl    String?
+  certificateTemplateId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  enrollments     CapstoneEnrollment[]
+
+  @@index([difficultyLevel])
+  @@index([isPublished])
+  @@map("difficulty_level_caps")
+}
+
+// ============================================
+// 43. PROFESSIONAL CAPSTONES
+// ============================================
+model ProfessionalCapstone {
+  id              String   @id @default(uuid())
+  title           String
+  slug            String   @unique
+  description     String?  @db.Text
+  categoryId      String?
+  includedCourses Json?    // Array of course IDs
+  requirements    String?  @db.Text
+  deliverables    Json?    // { required: [...] }
+  evaluationCriteria Json? // { criteria: [...] }
+  orderIndex      Int      @default(0)
+  isPublished     Boolean  @default(false)
+  thumbnailUrl    String?
+  certificateTemplateId String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  enrollments     CapstoneEnrollment[]
+
+  @@index([categoryId])
+  @@index([isPublished])
+  @@map("professional_caps")
+}
+
+// ============================================
+// 44. CAPSTONE ENROLLMENTS
+// ============================================
+model CapstoneEnrollment {
+  id                    String   @id @default(uuid())
+  userId                String
+  difficultyCapstoneId   String?
+  professionalCapstoneId String?
+  progressPercent       Int      @default(0)
+  status                String   @default("not_started") // not_started, in_progress, submitted, graded
+  submittedAt           DateTime?
+  grade                 Int?
+  feedback              String?  @db.Text
+  certificateId         String?
+  enrolledAt            DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+
+  user                  User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  difficultyCapstone    DifficultyLevelCapstone? @relation(fields: [difficultyCapstoneId], references: [id], onDelete: SetNull)
+  professionalCapstone  ProfessionalCapstone? @relation(fields: [professionalCapstoneId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([difficultyCapstoneId])
+  @@index([professionalCapstoneId])
+  @@map("capstone_enrollments")
+}
+
+// ============================================
+// 45. COURSE SEO SETTINGS
+// ============================================
+model CourseSEO {
+  id            String   @id @default(uuid())
+  courseId      String   @unique
+  metaTitle     String?
+  metaDescription String?
+  keywords      String[]
+  ogImage       String?
+  canonicalUrl  String?
+  noIndex       Boolean  @default(false)
+  noFollow      Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@map("course_seo")
+}
+
+// ============================================
+// 46. COURSE VERSIONING
+// ============================================
+model CourseVersion {
+  id          String   @id @default(uuid())
+  courseId    String
+  version     Int
+  changes     String?  @db.Text
+  createdBy   String?
+  createdAt   DateTime @default(now())
+
+  course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
+
+  @@unique([courseId, version])
+  @@index([courseId])
+  @@map("course_versions")
 }

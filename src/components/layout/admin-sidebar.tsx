@@ -9,7 +9,8 @@ import { HeaderLogo, FooterBranding } from "./logo"
 import { 
   LayoutDashboard, Users, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
-  Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap
+  Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap,
+  Layers, BookOpen
 } from "lucide-react"
 
 // =============================================================================
@@ -40,6 +41,19 @@ const menuItems = [
     title: "Courses",
     href: "/admin/mccs/courses",
     icon: GraduationCap,
+    submenu: [
+      { title: "All Courses", href: "/admin/mccs/courses" },
+      { title: "Create Course", href: "/admin/courses/wizard" },
+    ],
+  },
+  {
+    title: "Capstones",
+    href: "/admin/courses/capstones/difficulty",
+    icon: Layers,
+    submenu: [
+      { title: "Difficulty Capstones", href: "/admin/courses/capstones/difficulty" },
+      { title: "Professional Capstones", href: "/admin/courses/capstones/professional" },
+    ],
   },
   {
     title: "Categories",

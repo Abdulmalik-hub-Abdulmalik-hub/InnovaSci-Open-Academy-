@@ -137,7 +137,7 @@ export default function AdminCoursesPage() {
           </h1>
           <p className="text-gray-500 mt-1">Master Course Creation System - Manage your courses</p>
         </div>
-        <Button onClick={() => router.push("/admin/courses/create")} className="bg-purple-600 hover:bg-purple-700">
+        <Button onClick={() => router.push("/admin/courses/wizard")} className="bg-purple-600 hover:bg-purple-700">
           <Plus className="h-4 w-4 mr-2" />
           Create Course
         </Button>
