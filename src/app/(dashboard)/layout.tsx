@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { AdminSidebar } from "@/components/layout/admin-sidebar"
-import { Menu, AlertTriangle, X, Power } from "lucide-react"
+import { Menu, AlertTriangle, X, Power, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import toast from "react-hot-toast"
 
@@ -13,10 +14,45 @@ export default function DashboardLayout({
   children: React.ReactNode
 }) {
   const router = useRouter()
+  const { data: session, status } = useSession()
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [maintenanceMode, setMaintenanceMode] = useState(false)
   const [loadingMaintenance, setLoadingMaintenance] = useState(false)
   const [bannerDismissed, setBannerDismissed] = useState(false)
+  
+  // Check if user is admin
+  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN"
+  
+  // Redirect if not authenticated or not admin
+  useEffect(() => {
+    if (status === "loading") return
+    
+    if (status === "unauthenticated") {
+      router.push("/auth/login?callbackUrl=/admin")
+      return
+    }
+    
+    if (!isAdmin) {
+      router.push("/forbidden")
+    }
+  }, [status, isAdmin, router])
+  
+  // Show loading while checking auth
+  if (status === "loading") {
+    return (
+      <div className="min-h-screen bg-[#0f0f1a] flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 className="h-8 w-8 animate-spin text-white" />
+          <p className="text-white/70">Verifying access...</p>
+        </div>
+      </div>
+    )
+  }
+  
+  // Don't render if not admin
+  if (!isAdmin) {
+    return null
+  }
 
   // Fetch maintenance status
   useEffect(() => {

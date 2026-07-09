@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { getToken } from "next-auth/jwt"
 
 // Simple in-memory cache for maintenance mode status
 let maintenanceCache: { isMaintenance: boolean; message: string; timestamp: number } | null = null
@@ -7,8 +8,6 @@ const CACHE_TTL = 60 * 1000 // 1 minute cache
 
 // Routes that should be exempted from maintenance mode
 const EXEMPT_PATHS = [
-  "/admin",
-  "/api/admin",
   "/maintenance",
   "/auth/login",
   "/auth/signup",
@@ -19,6 +18,9 @@ const EXEMPT_PATHS = [
   "/robots.txt",
   "/sitemap.xml",
 ]
+
+// Admin routes that require ADMIN role
+const ADMIN_ROUTES = ["/admin", "/api/admin"]
 
 // Student-facing routes that should be redirected during maintenance
 const STUDENT_ROUTES = [
@@ -84,6 +86,31 @@ export async function middleware(request: NextRequest) {
   const isExempt = EXEMPT_PATHS.some((path) => pathname.startsWith(path))
   
   if (isExempt) {
+    return NextResponse.next()
+  }
+  
+  // Check if this is an admin route - require ADMIN role
+  const isAdminRoute = ADMIN_ROUTES.some((path) => pathname.startsWith(path))
+  
+  if (isAdminRoute) {
+    const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
+    
+    // No token = not logged in, redirect to login
+    if (!token) {
+      const loginUrl = new URL("/auth/login", request.url)
+      loginUrl.searchParams.set("callbackUrl", pathname)
+      return NextResponse.redirect(loginUrl)
+    }
+    
+    // Check for ADMIN or SUPER_ADMIN role
+    const userRole = token.role as string
+    const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN"
+    
+    if (!isAdmin) {
+      // Redirect non-admins to 403 page
+      return NextResponse.redirect(new URL("/forbidden", request.url))
+    }
+    
     return NextResponse.next()
   }
   
