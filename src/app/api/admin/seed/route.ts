@@ -1,13 +1,37 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+import bcrypt from "bcryptjs"
 
-// This endpoint is intentionally public for demo purposes
-// In production, add authentication
+// Admin configuration from environment variables
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@innovasci.com"
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
 
-// POST /api/admin/seed - Seed database with demo data
+// System Admin UUID - MUST use this exact ID
+const SYSTEM_ADMIN_ID = "d2b7ac6d-0e84-4be7-89bd-4f93b15a2b51"
+
+// POST /api/admin/seed - Seed database (requires admin authentication)
 export async function POST() {
   try {
+    // Verify admin authentication
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    // Validate admin credentials are configured
+    if (!ADMIN_PASSWORD) {
+      return NextResponse.json({
+        success: false,
+        error: "ADMIN_PASSWORD environment variable is not set."
+      }, { status: 500 })
+    }
+
     console.log("Starting database seed...")
+
+    // Hash the admin password
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12)
 
     // Create Categories first
     const catDataScience = await prisma.category.upsert({
@@ -27,18 +51,19 @@ export async function POST() {
     })
     console.log("✓ Categories created")
 
-    // Create Admin User
+    // Create Admin User with secure password from env
     const admin = await prisma.user.upsert({
-      where: { email: "admin@innovasci.com" },
+      where: { email: ADMIN_EMAIL },
       update: {},
       create: {
-        email: "admin@innovasci.com",
-        passwordHash: "admin123",
+        id: SYSTEM_ADMIN_ID,
+        email: ADMIN_EMAIL,
+        passwordHash: hashedPassword,
         role: "ADMIN",
         status: "ACTIVE",
         profile: {
           create: {
-            fullName: "Admin User",
+            fullName: "System Administrator",
             username: "admin",
           }
         }
@@ -47,28 +72,7 @@ export async function POST() {
     })
     console.log("✓ Admin user:", admin.email)
 
-    // Create Student User
-    const student = await prisma.user.upsert({
-      where: { email: "student@innovasci.com" },
-      update: {},
-      create: {
-        email: "student@innovasci.com",
-        passwordHash: "student123",
-        role: "STUDENT",
-        status: "ACTIVE",
-        profile: {
-          create: {
-            fullName: "Demo Student",
-            username: "student",
-            country: "Nigeria",
-          }
-        }
-      },
-      include: { profile: true }
-    })
-    console.log("✓ Student user:", student.email)
-
-    // Create Demo Courses
+    // Create Sample Courses
     const course1 = await prisma.course.upsert({
       where: { slug: "introduction-to-data-science" },
       update: {},
@@ -172,54 +176,11 @@ export async function POST() {
     })
     console.log("✓ Module and lessons created")
 
-    // Enroll student in courses
-    await prisma.enrollment.upsert({
-      where: { userId_courseId: { userId: student.id, courseId: course1.id } },
-      update: {},
-      create: {
-        userId: student.id,
-        courseId: course1.id,
-        progressPercent: 35,
-        completed: false,
-      },
-    })
-    console.log("✓ Enrolled in:", course1.title)
-
-    await prisma.enrollment.upsert({
-      where: { userId_courseId: { userId: student.id, courseId: course3.id } },
-      update: {},
-      create: {
-        userId: student.id,
-        courseId: course3.id,
-        progressPercent: 100,
-        completed: true,
-        completedAt: new Date(),
-      },
-    })
-    console.log("✓ Enrolled in:", course3.title)
-
-    // Create sample payment
-    await prisma.payment.upsert({
-      where: { id: "sample-payment-1" },
-      update: {},
-      create: {
-        id: "sample-payment-1",
-        userId: student.id,
-        amount: 99.99,
-        currency: "NGN",
-        status: "COMPLETED",
-        paymentMethod: "card",
-        transactionId: "txn_123456",
-      },
-    })
-    console.log("✓ Sample payment created")
-
     return NextResponse.json({
       success: true,
-      message: "Database setup completed successfully!",
+      message: "Database seed completed successfully!",
       data: {
         admin: admin.email,
-        student: student.email,
         courses: [course1.title, course2.title, course3.title]
       }
     })
@@ -228,15 +189,21 @@ export async function POST() {
     const errorMessage = error instanceof Error ? error.message : String(error)
     console.error("Seed error:", errorMessage)
     return NextResponse.json(
-      { success: false, error: "Failed to setup database", details: errorMessage },
+      { success: false, error: "Failed to seed database", details: errorMessage },
       { status: 500 }
     )
   }
 }
 
-// GET /api/admin/seed - Check seed status
+// GET /api/admin/seed - Check seed status (requires admin authentication)
 export async function GET() {
   try {
+    // Verify admin authentication
+    const session = await getServerSession(authOptions)
+    if (!session?.user?.id || (session.user.role !== "ADMIN" && session.user.role !== "SUPER_ADMIN")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
     const [userCount, courseCount, enrollmentCount] = await Promise.all([
       prisma.user.count(),
       prisma.course.count(),

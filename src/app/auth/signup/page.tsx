@@ -4,11 +4,13 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Mail, Lock, Eye, EyeOff, User, AlertCircle } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, User, AlertCircle, Loader2 } from "lucide-react"
 import { AcademyLogo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { cn } from "@/lib/utils"
+
+// Secure email validation regex
+const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 
 export default function SignupPage() {
   const router = useRouter()
@@ -25,6 +27,12 @@ export default function SignupPage() {
     e.preventDefault()
     setError("")
 
+    // Validate email format
+    if (!EMAIL_REGEX.test(email)) {
+      setError("Please enter a valid email address")
+      return
+    }
+
     if (!acceptTerms) {
       setError("Please accept the terms and conditions")
       return
@@ -35,18 +43,39 @@ export default function SignupPage() {
       return
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters")
+    if (password.length < 8) {
+      setError("Password must be at least 8 characters")
       return
     }
 
     setIsLoading(true)
 
-    // Simulate signup delay
-    await new Promise(resolve => setTimeout(resolve, 1000))
+    try {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          email: email.trim().toLowerCase(),
+          password,
+          fullName: fullName.trim(),
+        }),
+      })
 
-    // For demo purposes, redirect to student dashboard
-    router.push("/dashboard")
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || "Registration failed. Please try again.")
+        setIsLoading(false)
+        return
+      }
+
+      // Success - redirect to dashboard
+      router.push("/dashboard")
+      router.refresh()
+    } catch (err) {
+      setError("An error occurred. Please try again.")
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -121,11 +150,12 @@ export default function SignupPage() {
                 <Input
                   id="password"
                   type={showPassword ? "text" : "password"}
-                  placeholder="Create a password"
+                  placeholder="Create a password (min 8 characters)"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="pl-10 pr-10"
                   required
+                  minLength={8}
                 />
                 <button
                   type="button"
@@ -184,7 +214,14 @@ export default function SignupPage() {
               className="w-full bg-brand-purple hover:bg-brand-purple/90"
               disabled={isLoading}
             >
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Creating account...
+                </span>
+              ) : (
+                "Create Account"
+              )}
             </Button>
           </form>
 
@@ -194,16 +231,6 @@ export default function SignupPage() {
               Sign in
             </Link>
           </div>
-        </div>
-
-        {/* Demo Credentials Note */}
-        <div className="mt-6 p-4 rounded-xl border bg-muted/30 text-center">
-          <p className="text-sm text-muted-foreground">
-            Want to explore without signing up?{" "}
-            <Link href="/auth/login" className="text-brand-purple hover:underline font-medium">
-              Use demo credentials
-            </Link>
-          </p>
         </div>
 
         {/* Back to Home */}

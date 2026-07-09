@@ -1,10 +1,25 @@
 import { PrismaClient } from "@prisma/client"
+import bcrypt from "bcryptjs"
 
 const prisma = new PrismaClient()
+
+// Admin configuration from environment variables
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@innovasci.com"
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
+
+// System Admin UUID - MUST use this exact ID
+const SYSTEM_ADMIN_ID = "d2b7ac6d-0e84-4be7-89bd-4f93b15a2b51"
 
 async function main() {
   console.log("Starting database seed...")
   
+  if (!ADMIN_PASSWORD) {
+    console.error("\n❌ ERROR: ADMIN_PASSWORD environment variable is not set!")
+    console.error("Please set the ADMIN_PASSWORD in your .env file.")
+    console.error("Example: ADMIN_PASSWORD=your_secure_password")
+    throw new Error("ADMIN_PASSWORD environment variable is required")
+  }
+
   try {
     // Create Categories first
     const categories = [
@@ -23,25 +38,29 @@ async function main() {
       console.log("✓ Category:", cat.name)
     }
     
-    // Create Admin User
+    // Hash the admin password
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12)
+    
+    // Create Admin User with specific UUID
     const admin = await prisma.user.upsert({
-      where: { email: "admin@innovasci.com" },
+      where: { email: ADMIN_EMAIL },
       update: {},
       create: {
-        email: "admin@innovasci.com",
-        passwordHash: "admin123",
+        id: SYSTEM_ADMIN_ID,
+        email: ADMIN_EMAIL,
+        passwordHash: hashedPassword,
         role: "ADMIN",
         status: "ACTIVE",
         profile: {
           create: {
-            fullName: "Admin User",
+            fullName: "System Administrator",
             username: "admin",
           }
         }
       },
       include: { profile: true }
     })
-    console.log("✓ Admin user:", admin.email)
+    console.log("✓ Admin user created:", admin.email)
 
     // Initialize System Settings (using existing key-value model)
     await prisma.systemSetting.upsert({
@@ -69,27 +88,6 @@ async function main() {
       },
     })
     console.log("✓ System settings initialized")
-
-    // Create Student User
-    const student = await prisma.user.upsert({
-      where: { email: "student@innovasci.com" },
-      update: {},
-      create: {
-        email: "student@innovasci.com",
-        passwordHash: "student123",
-        role: "STUDENT",
-        status: "ACTIVE",
-        profile: {
-          create: {
-            fullName: "Demo Student",
-            username: "student",
-            country: "Nigeria",
-          }
-        }
-      },
-      include: { profile: true }
-    })
-    console.log("✓ Student user:", student.email)
 
     // Create Learning Paths
     const learningPath1 = await prisma.learningPath.upsert({
@@ -140,7 +138,7 @@ async function main() {
     })
     console.log("✓ Learning Path:", learningPath3.title)
 
-    // Create Demo Courses
+    // Create Sample Courses
     const course1 = await prisma.course.upsert({
       where: { slug: "introduction-to-data-science" },
       update: {},
@@ -317,52 +315,10 @@ async function main() {
     })
     console.log("✓ Linked Mobile App Development to Mobile App Development Path")
 
-    // Enroll student in courses
-    await prisma.enrollment.upsert({
-      where: { userId_courseId: { userId: student.id, courseId: course1.id } },
-      update: {},
-      create: {
-        userId: student.id,
-        courseId: course1.id,
-        progressPercent: 35,
-        completed: false,
-      },
-    })
-    console.log("✓ Enrolled in:", course1.title)
-
-    await prisma.enrollment.upsert({
-      where: { userId_courseId: { userId: student.id, courseId: course3.id } },
-      update: {},
-      create: {
-        userId: student.id,
-        courseId: course3.id,
-        progressPercent: 100,
-        completed: true,
-        completedAt: new Date(),
-      },
-    })
-    console.log("✓ Enrolled in:", course3.title)
-
-    // Create sample payment
-    await prisma.payment.upsert({
-      where: { id: "sample-payment-1" },
-      update: {},
-      create: {
-        id: "sample-payment-1",
-        userId: student.id,
-        amount: 99.99,
-        currency: "NGN",
-        status: "COMPLETED",
-        paymentMethod: "card",
-        transactionId: "txn_123456",
-      },
-    })
-    console.log("✓ Sample payment created")
-
     console.log("\n✅ Database seeding completed successfully!")
-    console.log("\nDemo Credentials:")
-    console.log("  Admin:   admin@innovasci.com / admin123")
-    console.log("  Student: student@innovasci.com / student123")
+    console.log("\n🔐 Admin Credentials:")
+    console.log("  Email:    " + ADMIN_EMAIL)
+    console.log("  Password: [Set in ADMIN_PASSWORD env variable]")
     
   } catch (error) {
     console.error("\n❌ Error seeding database:", error)

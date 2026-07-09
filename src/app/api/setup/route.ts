@@ -1,10 +1,29 @@
 import { NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import bcrypt from "bcryptjs"
 
-// POST /api/setup - Seed database with demo data (assumes tables exist)
+// Admin configuration from environment variables
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || "admin@innovasci.com"
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD
+
+// System Admin UUID - MUST use this exact ID
+const SYSTEM_ADMIN_ID = "d2b7ac6d-0e84-4be7-89bd-4f93b15a2b51"
+
+// POST /api/setup - Seed database (assumes tables exist)
 export async function POST() {
   try {
+    // Validate admin credentials are configured
+    if (!ADMIN_PASSWORD) {
+      return NextResponse.json({
+        success: false,
+        error: "ADMIN_PASSWORD environment variable is not set. Please configure it in your .env file."
+      }, { status: 500 })
+    }
+
     console.log("Starting database setup...")
+    
+    // Hash the admin password
+    const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12)
     
     // Create Categories first
     const catDataScience = await prisma.category.upsert({
@@ -23,18 +42,19 @@ export async function POST() {
       create: { name: "Mobile Development", slug: "mobile-development" }
     })
     
-    // Create Admin User
+    // Create Admin User with secure password from env
     const admin = await prisma.user.upsert({
-      where: { email: "admin@innovasci.com" },
+      where: { email: ADMIN_EMAIL },
       update: {},
       create: {
-        email: "admin@innovasci.com",
-        passwordHash: "admin123",
+        id: SYSTEM_ADMIN_ID,
+        email: ADMIN_EMAIL,
+        passwordHash: hashedPassword,
         role: "ADMIN",
         status: "ACTIVE",
         profile: {
           create: {
-            fullName: "Admin User",
+            fullName: "System Administrator",
             username: "admin",
           }
         }
@@ -43,28 +63,34 @@ export async function POST() {
     })
     console.log("✓ Admin user:", admin.email)
 
-    // Create Student User
-    const student = await prisma.user.upsert({
-      where: { email: "student@innovasci.com" },
+    // Initialize System Settings
+    await prisma.systemSetting.upsert({
+      where: { key: "maintenance_mode" },
       update: {},
       create: {
-        email: "student@innovasci.com",
-        passwordHash: "student123",
-        role: "STUDENT",
-        status: "ACTIVE",
-        profile: {
-          create: {
-            fullName: "Demo Student",
-            username: "student",
-            country: "Nigeria",
-          }
-        }
+        key: "maintenance_mode",
+        value: "false",
+        type: "boolean",
+        category: "general",
+        description: "Enable maintenance mode to block student access",
+        isPublic: true,
       },
-      include: { profile: true }
     })
-    console.log("✓ Student user:", student.email)
+    await prisma.systemSetting.upsert({
+      where: { key: "maintenance_message" },
+      update: {},
+      create: {
+        key: "maintenance_message",
+        value: "We are performing scheduled maintenance. Please check back soon.",
+        type: "string",
+        category: "general",
+        description: "Message to display during maintenance mode",
+        isPublic: true,
+      },
+    })
+    console.log("✓ System settings initialized")
 
-    // Create Demo Courses
+    // Create Sample Courses
     const course1 = await prisma.course.upsert({
       where: { slug: "introduction-to-data-science" },
       update: {},
@@ -120,9 +146,9 @@ export async function POST() {
         introVideoUrl: "https://example.com/intro",
       },
     })
-    console.log("✓ 3 demo courses created")
+    console.log("✓ 3 courses created")
 
-    // Create Module and Lessons
+    // Create Module and Lessons for course1
     const module1 = await prisma.module.upsert({
       where: { courseId_orderIndex: { courseId: course1.id, orderIndex: 0 } },
       update: {},
@@ -165,54 +191,10 @@ export async function POST() {
     })
     console.log("✓ Module and lessons created")
 
-    // Enroll student in courses
-    await prisma.enrollment.upsert({
-      where: { userId_courseId: { userId: student.id, courseId: course1.id } },
-      update: {},
-      create: {
-        userId: student.id,
-        courseId: course1.id,
-        progressPercent: 35,
-        completed: false,
-      },
-    })
-
-    await prisma.enrollment.upsert({
-      where: { userId_courseId: { userId: student.id, courseId: course3.id } },
-      update: {},
-      create: {
-        userId: student.id,
-        courseId: course3.id,
-        progressPercent: 100,
-        completed: true,
-        completedAt: new Date(),
-      },
-    })
-    console.log("✓ Student enrolled in courses")
-
-    // Create sample payment
-    await prisma.payment.upsert({
-      where: { id: "sample-payment-1" },
-      update: {},
-      create: {
-        id: "sample-payment-1",
-        userId: student.id,
-        amount: 99.99,
-        currency: "NGN",
-        status: "COMPLETED",
-        paymentMethod: "card",
-        transactionId: "txn_123456",
-      },
-    })
-    console.log("✓ Sample payment created")
-
     return NextResponse.json({
       success: true,
       message: "Setup completed successfully!",
-      credentials: {
-        admin: { email: "admin@innovasci.com", password: "admin123" },
-        student: { email: "student@innovasci.com", password: "student123" }
-      }
+      adminEmail: ADMIN_EMAIL
     })
 
   } catch (error: unknown) {
