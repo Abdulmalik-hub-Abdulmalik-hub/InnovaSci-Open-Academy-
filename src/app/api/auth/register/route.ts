@@ -82,8 +82,34 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     )
-  } catch (error) {
+  } catch (error: any) {
     console.error("Registration error:", error)
+    
+    // Provide more specific error messages based on error type
+    if (error?.code === 'P2002') {
+      // Prisma error for unique constraint violation
+      return NextResponse.json(
+        { error: "An account with this email already exists" },
+        { status: 409 }
+      )
+    }
+    
+    if (error?.code === 'P2025') {
+      // Record not found - likely role ID issue
+      return NextResponse.json(
+        { error: "Registration configuration error. Please contact support." },
+        { status: 500 }
+      )
+    }
+    
+    if (error?.message?.includes('prisma')) {
+      // Database connection issues
+      return NextResponse.json(
+        { error: "Database connection error. Please try again later." },
+        { status: 503 }
+      )
+    }
+    
     return NextResponse.json(
       { error: "Registration failed. Please try again." },
       { status: 500 }
