@@ -1,16 +1,19 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
 import { useSettings, Setting } from "@/hooks/useSettings"
 import {
   Settings as SettingsIcon, Globe, Palette, Link2, Shield, Mail,
   CreditCard, HardDrive, Save, RefreshCw, Loader2, Check,
-  AlertTriangle, Eye, EyeOff, Server
+  AlertTriangle, Eye, EyeOff, Server, AlertOctagon, Power
 } from "lucide-react"
+import toast from "react-hot-toast"
 
 const CATEGORY_ICONS: Record<string, React.ReactNode> = {
   general: <Globe className="h-4 w-4" />,
@@ -182,10 +185,84 @@ function SettingField({
 
 export default function AdminSettingsPage() {
   const { settings, loading, saving, error, categories, fetchSettings, bulkUpdate, initializeSettings, clearError } = useSettings()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("general")
   const [pendingChanges, setPendingChanges] = useState<Record<string, string>>({})
   const [saved, setSaved] = useState(false)
   const [initializing, setInitializing] = useState(false)
+  
+  // Maintenance Mode State
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [maintenanceMessage, setMaintenanceMessage] = useState("We are performing scheduled maintenance. Please check back soon.")
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false)
+  
+  // Fetch system settings for maintenance mode
+  const fetchMaintenanceSettings = async () => {
+    try {
+      const res = await fetch("/api/admin/system-settings")
+      const data = await res.json()
+      if (data.success) {
+        setMaintenanceMode(data.data.maintenanceMode)
+        setMaintenanceMessage(data.data.message)
+      }
+    } catch (error) {
+      console.error("Error fetching maintenance settings:", error)
+    }
+  }
+  
+  useEffect(() => {
+    fetchMaintenanceSettings()
+  }, [])
+  
+  const toggleMaintenanceMode = async () => {
+    setLoadingMaintenance(true)
+    try {
+      const newMode = !maintenanceMode
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maintenanceMode: newMode,
+          message: maintenanceMessage,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMaintenanceMode(newMode)
+        toast.success(newMode ? "Maintenance Mode ACTIVE" : "Maintenance Mode DISABLED")
+        // Refresh the page to update the banner
+        router.refresh()
+      }
+    } catch (error) {
+      console.error("Error toggling maintenance mode:", error)
+      toast.error("Failed to update maintenance mode")
+    } finally {
+      setLoadingMaintenance(false)
+    }
+  }
+  
+  const saveMaintenanceMessage = async () => {
+    setLoadingMaintenance(true)
+    try {
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maintenanceMode,
+          message: maintenanceMessage,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        toast.success("Maintenance message saved")
+      }
+    } catch (error) {
+      console.error("Error saving maintenance message:", error)
+      toast.error("Failed to save maintenance message")
+    } finally {
+      setLoadingMaintenance(false)
+    }
+  }
 
   useEffect(() => {
     fetchSettings()
@@ -261,6 +338,87 @@ export default function AdminSettingsPage() {
           </Button>
         </div>
       </div>
+
+      {/* Maintenance Mode Section - Always Visible */}
+      <Card className={`border-2 ${maintenanceMode ? "border-red-500/50 bg-red-500/5" : "border-white/10"}`}>
+        <CardHeader className="pb-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center ${maintenanceMode ? "bg-red-500/20" : "bg-white/10"}`}>
+                <AlertOctagon className={`h-5 w-5 ${maintenanceMode ? "text-red-400" : "text-white/60"}`} />
+              </div>
+              <div>
+                <CardTitle className="text-white text-lg">Maintenance Mode</CardTitle>
+                <CardDescription className="text-white/40">
+                  {maintenanceMode 
+                    ? "Maintenance mode is ACTIVE - Students cannot access the platform" 
+                    : "Enable to temporarily block student access during maintenance"}
+                </CardDescription>
+              </div>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <span className={`text-sm font-medium ${maintenanceMode ? "text-red-400" : "text-white/60"}`}>
+                  {maintenanceMode ? "ACTIVE" : "INACTIVE"}
+                </span>
+                <button
+                  onClick={toggleMaintenanceMode}
+                  disabled={loadingMaintenance}
+                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                    maintenanceMode ? "bg-red-500" : "bg-white/20"
+                  } ${loadingMaintenance ? "opacity-50" : ""}`}
+                >
+                  <span
+                    className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                      maintenanceMode ? "translate-x-6" : "translate-x-1"
+                    }`}
+                  />
+                </button>
+              </div>
+              {maintenanceMode && (
+                <Button
+                  onClick={toggleMaintenanceMode}
+                  disabled={loadingMaintenance}
+                  variant="outline"
+                  className="border-red-500/50 text-red-400 hover:bg-red-500/10"
+                >
+                  <Power className="h-4 w-4 mr-2" />
+                  Turn Off
+                </Button>
+              )}
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm text-white/60">Maintenance Message</label>
+            <Textarea
+              value={maintenanceMessage}
+              onChange={(e) => setMaintenanceMessage(e.target.value)}
+              placeholder="Enter a message to display during maintenance..."
+              rows={3}
+              className="bg-white/5 border-white/10 text-white resize-none"
+            />
+            <p className="text-xs text-white/40">
+              This message will be displayed to students on the maintenance page
+            </p>
+          </div>
+          <div className="flex justify-end">
+            <Button
+              onClick={saveMaintenanceMessage}
+              disabled={loadingMaintenance}
+              className="bg-purple-600 hover:bg-purple-700"
+            >
+              {loadingMaintenance ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <Save className="h-4 w-4 mr-2" />
+              )}
+              Save Message
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Error State */}
       {error && (

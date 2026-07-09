@@ -43,6 +43,33 @@ async function main() {
     })
     console.log("✓ Admin user:", admin.email)
 
+    // Initialize System Settings (using existing key-value model)
+    await prisma.systemSetting.upsert({
+      where: { key: "maintenance_mode" },
+      update: {},
+      create: {
+        key: "maintenance_mode",
+        value: "false",
+        type: "boolean",
+        category: "general",
+        description: "Enable maintenance mode to block student access",
+        isPublic: true,
+      },
+    })
+    await prisma.systemSetting.upsert({
+      where: { key: "maintenance_message" },
+      update: {},
+      create: {
+        key: "maintenance_message",
+        value: "We are performing scheduled maintenance. Please check back soon.",
+        type: "string",
+        category: "general",
+        description: "Message to display during maintenance mode",
+        isPublic: true,
+      },
+    })
+    console.log("✓ System settings initialized")
+
     // Create Student User
     const student = await prisma.user.upsert({
       where: { email: "student@innovasci.com" },

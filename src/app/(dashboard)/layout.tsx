@@ -1,23 +1,100 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { AdminSidebar } from "@/components/layout/admin-sidebar"
-import { Menu } from "lucide-react"
+import { Menu, AlertTriangle, X, Power } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import toast from "react-hot-toast"
 
 export default function DashboardLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const router = useRouter()
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [maintenanceMode, setMaintenanceMode] = useState(false)
+  const [loadingMaintenance, setLoadingMaintenance] = useState(false)
+  const [bannerDismissed, setBannerDismissed] = useState(false)
+
+  // Fetch maintenance status
+  useEffect(() => {
+    const fetchMaintenanceStatus = async () => {
+      try {
+        const res = await fetch("/api/admin/system-settings")
+        const data = await res.json()
+        if (data.success && data.data.maintenanceMode) {
+          setMaintenanceMode(true)
+        }
+      } catch (error) {
+        console.error("Error fetching maintenance status:", error)
+      }
+    }
+    fetchMaintenanceStatus()
+  }, [])
+
+  const turnOffMaintenance = async () => {
+    setLoadingMaintenance(true)
+    try {
+      const res = await fetch("/api/admin/system-settings", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          maintenanceMode: false,
+        }),
+      })
+      const data = await res.json()
+      if (data.success) {
+        setMaintenanceMode(false)
+        toast.success("Maintenance Mode DISABLED - Students can now access the platform")
+        router.refresh()
+      }
+    } catch (error) {
+      console.error("Error turning off maintenance mode:", error)
+      toast.error("Failed to turn off maintenance mode")
+    } finally {
+      setLoadingMaintenance(false)
+    }
+  }
 
   return (
     <div className="min-h-screen bg-[#0f0f1a]">
       <AdminSidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       
+      {/* Maintenance Mode Banner - Always visible when maintenance is active */}
+      {maintenanceMode && !bannerDismissed && (
+        <div className="fixed top-0 left-0 right-0 z-50 bg-amber-500/95 text-amber-950 px-4 py-3 shadow-lg">
+          <div className="container mx-auto flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+              <p className="font-semibold">
+                ⚠️ MAINTENANCE MODE IS ACTIVE — Students cannot access the platform.
+              </p>
+            </div>
+            <div className="flex items-center gap-3">
+              <Button
+                onClick={turnOffMaintenance}
+                disabled={loadingMaintenance}
+                size="sm"
+                className="bg-amber-600 hover:bg-amber-700 text-white"
+              >
+                <Power className="h-4 w-4 mr-2" />
+                {loadingMaintenance ? "Turning Off..." : "Turn Off Maintenance"}
+              </Button>
+              <button
+                onClick={() => setBannerDismissed(true)}
+                className="p-1 hover:bg-amber-600/20 rounded transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
-      <div className="lg:pl-[280px]">
+      <div className={`lg:pl-[280px] ${maintenanceMode && !bannerDismissed ? "pt-14" : ""}`}>
         {/* Top Bar */}
         <header className="sticky top-0 z-30 h-16 bg-[#0f0f1a]/95 backdrop-blur border-b border-white/10 px-4 lg:px-8 flex items-center justify-between">
           <div className="flex items-center gap-4">
