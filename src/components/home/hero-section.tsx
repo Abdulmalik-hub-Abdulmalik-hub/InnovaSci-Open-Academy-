@@ -42,15 +42,18 @@ export function HeroSection() {
 
   return (
     <section className="relative overflow-hidden">
-      {/* Premium Background with CSS Variables */}
+      {/* Premium Background with Subtle Gradient Glow */}
       <div className="absolute inset-0 -z-10">
-        {/* Gradient orbs with brand meanings - using CSS variables */}
-        <div className="absolute top-0 left-1/4 w-[clamp(300px,50vw,600px)] h-[clamp(300px,50vw,600px)] bg-gradient-to-br from-[hsl(var(--brand-purple))/25] to-transparent rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-1/4 w-[clamp(350px,58vw,700px)] h-[clamp(350px,58vw,700px)] bg-gradient-to-tr from-[hsl(var(--brand-blue))/20] to-transparent rounded-full blur-[120px]" />
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(450px,75vw,900px)] h-[clamp(450px,75vw,900px)] bg-gradient-to-t from-[hsl(var(--brand-teal))/15] to-transparent rounded-full blur-[150px]" />
+        {/* Soft background gradient - light glow effect */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-blue-50/50 via-transparent to-purple-50/30" />
+        
+        {/* Subtle gradient orbs - premium soft glow effect */}
+        <div className="absolute top-0 left-1/4 w-[clamp(300px,50vw,600px)] h-[clamp(300px,50vw,600px)] bg-gradient-to-br from-blue-100/40 to-transparent rounded-full blur-[120px]" />
+        <div className="absolute bottom-0 right-1/4 w-[clamp(350px,58vw,700px)] h-[clamp(350px,58vw,700px)] bg-gradient-to-tr from-purple-100/30 to-transparent rounded-full blur-[120px]" />
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[clamp(450px,75vw,900px)] h-[clamp(450px,75vw,900px)] bg-gradient-to-t from-indigo-50/25 to-transparent rounded-full blur-[150px]" />
         
         {/* Grid pattern overlay */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#0000000a_1px,transparent_1px),linear-gradient(to_bottom,#0000000a_1px,transparent_1px)] bg-[size:clamp(2rem,4vw,4rem)_clamp(2rem,4vw,4rem)] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_40%,white_100%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#00000005_1px,transparent_1px),linear-gradient(to_bottom,#00000005_1px,transparent_1px)] bg-[size:clamp(2rem,4vw,4rem)_clamp(2rem,4vw,4rem)] [mask-image:radial-gradient(ellipse_80%_80%_at_50%_50%,transparent_40%,white_100%)]" />
       </div>
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
