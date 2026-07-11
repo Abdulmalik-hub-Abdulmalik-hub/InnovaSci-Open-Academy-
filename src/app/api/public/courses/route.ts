@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
+// Force dynamic rendering - this route uses request.url for search params
+export const dynamic = 'force-dynamic'
+
 // GET /api/public/courses - List published courses for public view
 export async function GET(request: NextRequest) {
   const endpoint = "/api/public/courses"
