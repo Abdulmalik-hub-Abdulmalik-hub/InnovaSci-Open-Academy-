@@ -47,9 +47,9 @@ function generateSlug(name: string): string {
     .replace(/^-+|-+$/g, '')
 }
 
-// GET /api/admin/categories - List all categories
+// GET /api/admin/domains - List all domains
 export async function GET(request: NextRequest) {
-  const endpoint = "/api/admin/categories"
+  const endpoint = "/api/admin/domains"
 
   if (!process.env.DATABASE_URL) {
     console.error(`[${endpoint}] DATABASE_URL not configured`)
@@ -67,32 +67,29 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const includeInactive = searchParams.get("includeInactive") === "true"
-    const domainId = searchParams.get("domainId")
+    const includeArchived = searchParams.get("includeArchived") === "true"
 
     let where: any = {}
     
-    if (!includeInactive) {
-      where.isActive = true
-    }
-    
-    if (domainId) {
-      where.domainId = domainId
+    if (!includeInactive && !includeArchived) {
+      where.status = { in: ["DRAFT", "PUBLISHED"] }
+    } else if (!includeArchived) {
+      where.status = { in: ["DRAFT", "PUBLISHED"] }
     }
 
-    const categories = await prisma.category.findMany({
+    const domains = await prisma.domain.findMany({
       where,
       include: {
-        domain: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true,
-            icon: true
-          }
-        },
         _count: {
-          select: { courses: true }
+          select: { 
+            categories: {
+              include: {
+                _count: {
+                  select: { courses: true }
+                }
+              }
+            }
+          }
         }
       },
       orderBy: [
@@ -101,43 +98,52 @@ export async function GET(request: NextRequest) {
       ]
     })
 
-    const formattedCategories = categories.map(cat => ({
-      id: cat.id,
-      name: cat.name,
-      slug: cat.slug,
-      description: cat.description,
-      icon: cat.icon,
-      thumbnailUrl: cat.thumbnailUrl,
-      bannerUrl: cat.bannerUrl,
-      color: cat.color,
-      orderIndex: cat.orderIndex,
-      isActive: cat.isActive,
-      status: cat.status,
-      visibility: cat.visibility,
-      domainId: cat.domainId,
-      domain: cat.domain,
-      courseCount: cat._count.courses,
-      createdAt: cat.createdAt.toISOString(),
-      updatedAt: cat.updatedAt.toISOString()
-    }))
+    const formattedDomains = domains.map(domain => {
+      const categoryCount = domain._count.categories.length
+      const courseCount = domain._count.categories.reduce((acc, cat) => acc + cat._count.courses, 0)
+      
+      return {
+        id: domain.id,
+        name: domain.name,
+        shortName: domain.shortName,
+        slug: domain.slug,
+        shortDescription: domain.shortDescription,
+        fullDescription: domain.fullDescription,
+        thumbnailUrl: domain.thumbnailUrl,
+        bannerUrl: domain.bannerUrl,
+        icon: domain.icon,
+        color: domain.color,
+        orderIndex: domain.orderIndex,
+        status: domain.status,
+        visibility: domain.visibility,
+        isFeatured: domain.isFeatured,
+        seoTitle: domain.seoTitle,
+        seoDescription: domain.seoDescription,
+        seoKeywords: domain.seoKeywords,
+        categoryCount,
+        courseCount,
+        createdAt: domain.createdAt.toISOString(),
+        updatedAt: domain.updatedAt.toISOString()
+      }
+    })
 
     return NextResponse.json({
       success: true,
-      data: { categories: formattedCategories }
+      data: { domains: formattedDomains }
     })
   } catch (error: any) {
     console.error(`[${endpoint}] Error:`, error)
     return NextResponse.json({
       success: false,
-      error: "Failed to fetch categories",
+      error: "Failed to fetch domains",
       details: error?.message
     }, { status: 500 })
   }
 }
 
-// POST /api/admin/categories - Create new category
+// POST /api/admin/domains - Create new domain
 export async function POST(request: NextRequest) {
-  const endpoint = "/api/admin/categories"
+  const endpoint = "/api/admin/domains"
 
   if (!process.env.DATABASE_URL) {
     return NextResponse.json({
@@ -155,15 +161,17 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { 
       name, 
-      description, 
+      shortName, 
+      shortDescription, 
+      fullDescription, 
+      thumbnailUrl,
+      bannerUrl,
       icon, 
       color, 
       orderIndex,
-      domainId,
-      thumbnailUrl,
-      bannerUrl,
       status,
       visibility,
+      isFeatured,
       seoTitle,
       seoDescription,
       seoKeywords
@@ -176,41 +184,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate domain exists if provided
-    if (domainId) {
-      const domain = await prisma.domain.findUnique({
-        where: { id: domainId }
-      })
-      
-      if (!domain) {
-        return NextResponse.json(
-          { success: false, error: "Domain not found" },
-          { status: 404 }
-        )
-      }
-    }
-
     const slug = generateSlug(name)
 
-    // Check if slug already exists within the same domain
-    const existingSlug = await prisma.category.findFirst({
-      where: { 
-        slug,
-        domainId: domainId || null
-      }
+    // Check if slug already exists
+    const existing = await prisma.domain.findFirst({
+      where: { OR: [{ slug }, { name }] }
     })
 
-    // Check if name already exists within the same domain
-    const existingName = await prisma.category.findFirst({
-      where: { 
-        name,
-        domainId: domainId || null
-      }
-    })
-
-    if (existingSlug || existingName) {
+    if (existing) {
       return NextResponse.json(
-        { success: false, error: "A category with this name already exists in this domain" },
+        { success: false, error: "A domain with this name already exists" },
         { status: 409 }
       )
     }
@@ -218,51 +201,42 @@ export async function POST(request: NextRequest) {
     // Get max orderIndex if not provided
     let finalOrderIndex = orderIndex
     if (finalOrderIndex === undefined) {
-      const maxOrder = await prisma.category.aggregate({
-        where: { domainId: domainId || null },
+      const maxOrder = await prisma.domain.aggregate({
         _max: { orderIndex: true }
       })
       finalOrderIndex = (maxOrder._max.orderIndex || 0) + 1
     }
 
-    const category = await prisma.category.create({
+    const domain = await prisma.domain.create({
       data: {
         name: name.trim(),
+        shortName: shortName?.trim() || null,
         slug,
-        description: description?.trim() || null,
+        shortDescription: shortDescription?.trim() || null,
+        fullDescription: fullDescription?.trim() || null,
+        thumbnailUrl: thumbnailUrl?.trim() || null,
+        bannerUrl: bannerUrl?.trim() || null,
         icon: icon?.trim() || null,
         color: color?.trim() || null,
         orderIndex: finalOrderIndex,
-        domainId: domainId || null,
-        thumbnailUrl: thumbnailUrl?.trim() || null,
-        bannerUrl: bannerUrl?.trim() || null,
-        status: status || "ACTIVE",
+        status: status || "DRAFT",
         visibility: visibility || "PUBLIC",
+        isFeatured: isFeatured || false,
         seoTitle: seoTitle?.trim() || null,
         seoDescription: seoDescription?.trim() || null,
         seoKeywords: seoKeywords || null
-      },
-      include: {
-        domain: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            color: true,
-            icon: true
-          }
-        }
       }
     })
 
     return NextResponse.json({
       success: true,
       data: {
-        category: {
-          ...category,
+        domain: {
+          ...domain,
+          categoryCount: 0,
           courseCount: 0,
-          createdAt: category.createdAt.toISOString(),
-          updatedAt: category.updatedAt.toISOString()
+          createdAt: domain.createdAt.toISOString(),
+          updatedAt: domain.updatedAt.toISOString()
         }
       }
     }, { status: 201 })
@@ -270,7 +244,7 @@ export async function POST(request: NextRequest) {
     console.error(`[${endpoint}] Error:`, error)
     return NextResponse.json({
       success: false,
-      error: "Failed to create category",
+      error: "Failed to create domain",
       details: error?.message
     }, { status: 500 })
   }

@@ -76,24 +76,79 @@ model Profile {
 }
 
 // ============================================
-// 3. CATEGORIES - Dynamic course categories
+// 3. DOMAINS - Top-level academic domains
+// ============================================
+
+model Domain {
+  id              String   @id @default(uuid())
+  name            String   @unique
+  shortName       String?
+  slug            String   @unique
+  shortDescription String? @db.Text
+  fullDescription String? @db.Text
+  thumbnailUrl    String?
+  bannerUrl       String?
+  icon            String?  // Icon name or emoji
+  color           String?  // Hex color code
+  orderIndex      Int      @default(0)
+  status          String   @default("DRAFT") // DRAFT, PUBLISHED, ARCHIVED
+  visibility      String   @default("PUBLIC") // PUBLIC, PRIVATE, FEATURED
+  isFeatured      Boolean  @default(false)
+  
+  // SEO
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String?
+  
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  categories Category[]
+
+  @@index([slug])
+  @@index([status])
+  @@index([visibility])
+  @@index([isFeatured])
+  @@map("domains")
+}
+
+// ============================================
+// 4. CATEGORIES - Dynamic course categories (belongs to Domain)
 // ============================================
 
 model Category {
   id          String   @id @default(uuid())
-  name        String   @unique
-  slug        String   @unique
+  name        String
+  slug        String
   description String?  @db.Text
   icon        String?  // Icon name or emoji
+  thumbnailUrl String?
+  bannerUrl   String?
   color       String?  // Hex color code
   orderIndex  Int      @default(0)
   isActive    Boolean  @default(true)
+  status      String   @default("ACTIVE") // ACTIVE, INACTIVE
+  visibility  String   @default("PUBLIC") // PUBLIC, PRIVATE
+  
+  // SEO
+  seoTitle       String?
+  seoDescription String?
+  seoKeywords    String?
+  
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
   // Relations
-  courses Course[]
+  domainId String?
+  domain   Domain? @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  courses  Course[]
 
+  @@unique([domainId, slug])
+  @@unique([domainId, name])
+  @@index([domainId])
+  @@index([slug])
+  @@index([isActive])
   @@map("categories")
 }
 

@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Users, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
   Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap,
-  Layers, BookOpen
+  Layers, BookOpen, LayoutGrid
 } from "lucide-react"
 
 // =============================================================================
@@ -28,6 +28,18 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "Academic Management",
+    href: "/admin/domains",
+    icon: LayoutGrid,
+    submenu: [
+      { title: "Domains", href: "/admin/domains" },
+      { title: "Categories", href: "/admin/categories" },
+      { title: "Courses", href: "/admin/mccs/courses" },
+      { title: "Difficulty Capstones", href: "/admin/courses/capstones/difficulty" },
+      { title: "Professional Capstones", href: "/admin/courses/capstones/professional" },
+    ],
+  },
+  {
     title: "Users",
     href: "/admin/users",
     icon: Users,
@@ -36,29 +48,6 @@ const menuItems = [
     title: "Learning Materials",
     href: "/admin/materials",
     icon: FileText,
-  },
-  {
-    title: "Courses",
-    href: "/admin/mccs/courses",
-    icon: GraduationCap,
-    submenu: [
-      { title: "All Courses", href: "/admin/mccs/courses" },
-      { title: "Create Course", href: "/admin/courses/wizard" },
-    ],
-  },
-  {
-    title: "Capstones",
-    href: "/admin/courses/capstones/difficulty",
-    icon: Layers,
-    submenu: [
-      { title: "Difficulty Capstones", href: "/admin/courses/capstones/difficulty" },
-      { title: "Professional Capstones", href: "/admin/courses/capstones/professional" },
-    ],
-  },
-  {
-    title: "Categories",
-    href: "/admin/categories",
-    icon: Folder,
   },
   {
     title: "Videos",

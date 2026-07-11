@@ -113,6 +113,7 @@ export async function GET(request: NextRequest) {
       enrollmentsOverTime,
       revenueOverTime,
       coursesByCategory,
+      coursesByDomain,
       topCourses,
       revenueByDay,
       newUsersThisMonth,
@@ -125,6 +126,8 @@ export async function GET(request: NextRequest) {
       recentEnrollments,
       recentPayments,
       subscriptionStats,
+      totalDomains,
+      publishedDomains,
     ] = await Promise.all([
       prisma.user.count(),
       prisma.course.count(),
@@ -157,6 +160,23 @@ export async function GET(request: NextRequest) {
         _count: true,
         where: { status: "published", categoryId: { not: null } },
         orderBy: { _count: { categoryId: "desc" } },
+      }),
+      // Courses grouped by domain (through category)
+      prisma.domain.findMany({
+        include: {
+          _count: {
+            select: {
+              categories: {
+                include: {
+                  _count: {
+                    select: { courses: true }
+                  }
+                }
+              }
+            }
+          }
+        },
+        orderBy: { name: 'asc' }
       }),
       prisma.course.findMany({
         take: 10,
@@ -227,6 +247,9 @@ export async function GET(request: NextRequest) {
         by: ["status"],
         _count: true,
       }),
+      // Domain counts
+      prisma.domain.count(),
+      prisma.domain.count({ where: { status: "PUBLISHED" } }),
     ])
 
     // Process time series data
@@ -285,6 +308,9 @@ export async function GET(request: NextRequest) {
         lessonViews,
         certificatesIssued,
         period,
+        // Domain stats
+        totalDomains,
+        publishedDomains,
       },
       charts: {
         usersOverTime: Object.entries(usersByDate).map(([date, count]) => ({ date, count })),
@@ -296,6 +322,18 @@ export async function GET(request: NextRequest) {
         categoryId: c.categoryId || "uncategorized", 
         count: c._count as unknown as number 
       })),
+      domains: coursesByDomain.map((d: any) => {
+        const courseCount = d._count.categories.reduce((acc: number, cat: any) => acc + cat._count.courses, 0)
+        return {
+          id: d.id,
+          name: d.name,
+          slug: d.slug,
+          icon: d.icon,
+          color: d.color,
+          categoryCount: d._count.categories.length,
+          courseCount,
+        }
+      }),
       topCourses: topCourses.map((c) => ({ 
         id: c.id, 
         title: c.title, 

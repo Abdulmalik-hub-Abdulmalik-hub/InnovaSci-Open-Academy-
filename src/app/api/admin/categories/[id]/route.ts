@@ -65,6 +65,15 @@ export async function GET(
     const category = await prisma.category.findUnique({
       where: { id },
       include: {
+        domain: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+            icon: true
+          }
+        },
         _count: {
           select: { courses: true }
         }
@@ -111,7 +120,22 @@ export async function PUT(
 
   try {
     const body = await request.json()
-    const { name, description, icon, color, orderIndex, isActive } = body
+    const { 
+      name, 
+      description, 
+      icon, 
+      color, 
+      orderIndex, 
+      isActive,
+      domainId,
+      thumbnailUrl,
+      bannerUrl,
+      status,
+      visibility,
+      seoTitle,
+      seoDescription,
+      seoKeywords
+    } = body
 
     // Check if category exists
     const existing = await prisma.category.findUnique({ where: { id } })
@@ -119,16 +143,42 @@ export async function PUT(
       return NextResponse.json({ success: false, error: "Category not found" }, { status: 404 })
     }
 
-    // If name is being updated, check for conflicts
+    // If name is being updated, check for conflicts within the same domain
     if (name && name !== existing.name) {
       const slugConflict = await prisma.category.findFirst({
-        where: { slug: generateSlug(name), NOT: { id } }
+        where: { 
+          slug: generateSlug(name), 
+          domainId: domainId || existing.domainId,
+          NOT: { id } 
+        }
       })
-      if (slugConflict) {
+      const nameConflict = await prisma.category.findFirst({
+        where: { 
+          name, 
+          domainId: domainId || existing.domainId,
+          NOT: { id } 
+        }
+      })
+      if (slugConflict || nameConflict) {
         return NextResponse.json(
-          { success: false, error: "A category with this name already exists" },
+          { success: false, error: "A category with this name already exists in this domain" },
           { status: 409 }
         )
+      }
+    }
+
+    // Validate domain exists if provided
+    if (domainId !== undefined) {
+      if (domainId) {
+        const domain = await prisma.domain.findUnique({
+          where: { id: domainId }
+        })
+        if (!domain) {
+          return NextResponse.json(
+            { success: false, error: "Domain not found" },
+            { status: 404 }
+          )
+        }
       }
     }
 
@@ -139,6 +189,14 @@ export async function PUT(
     if (color !== undefined) updateData.color = color?.trim() || null
     if (orderIndex !== undefined) updateData.orderIndex = orderIndex
     if (isActive !== undefined) updateData.isActive = isActive
+    if (domainId !== undefined) updateData.domainId = domainId || null
+    if (thumbnailUrl !== undefined) updateData.thumbnailUrl = thumbnailUrl?.trim() || null
+    if (bannerUrl !== undefined) updateData.bannerUrl = bannerUrl?.trim() || null
+    if (status !== undefined) updateData.status = status
+    if (visibility !== undefined) updateData.visibility = visibility
+    if (seoTitle !== undefined) updateData.seoTitle = seoTitle?.trim() || null
+    if (seoDescription !== undefined) updateData.seoDescription = seoDescription?.trim() || null
+    if (seoKeywords !== undefined) updateData.seoKeywords = seoKeywords || null
 
     // Update slug if name changed
     if (name && name !== existing.name) {
@@ -149,6 +207,15 @@ export async function PUT(
       where: { id },
       data: updateData,
       include: {
+        domain: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            color: true,
+            icon: true
+          }
+        },
         _count: { select: { courses: true } }
       }
     })
@@ -200,8 +267,8 @@ export async function DELETE(
 
     if (category._count.courses > 0) {
       return NextResponse.json(
-        { 
-          success: false, 
+        {
+          success: false,
           error: `Cannot delete category with ${category._count.courses} courses. Move or delete courses first.`
         },
         { status: 400 }

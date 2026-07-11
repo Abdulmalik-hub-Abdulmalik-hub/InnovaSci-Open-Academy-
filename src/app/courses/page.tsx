@@ -4,93 +4,131 @@ import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import Image from "next/image"
 import { useSearchParams } from "next/navigation"
-import { Search, Filter, Loader2, BookOpen, Users, Clock, ChevronDown } from "lucide-react"
+import { Search, Filter, Loader2, BookOpen, Users, Clock, ChevronDown, LayoutGrid } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+
+interface Domain {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  icon: string | null
+}
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+}
 
 interface Course {
   id: string
   title: string
-  description: string | null
+  slug: string
+  shortDescription: string | null
   thumbnailUrl: string | null
   price: number
   isFree: boolean
-  difficulty: string
+  difficultyLevel: string | null
   category: string | null
-  duration: number | null
-  totalStudents: number
-  totalLessons: number
-  instructor: {
-    name: string | null
-    avatar: string | null
+  categoryId: string | null
+  domainId: string | null
+  domain: {
+    id: string
+    name: string
+    slug: string
+    color: string | null
+    icon: string | null
   } | null
-  avgRating: number | null
-  isPublished: boolean
+  durationHours: number | null
+  enrollments: number
 }
 
-const difficultyColors = {
-  Beginner: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-  Intermediate: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-  Advanced: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+const difficultyColors: Record<string, string> = {
+  BEGINNER: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  INTERMEDIATE: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  ADVANCED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
 }
 
-const categories = [
-  "All Categories",
-  "Artificial Intelligence",
-  "Data Science",
-  "Machine Learning",
-  "Computational Biology",
-  "Quantum Computing",
-  "Drug Discovery",
-  "Web Development",
-  "Cloud Computing",
-]
-
-const difficulties = ["All Levels", "Beginner", "Intermediate", "Advanced"]
+const difficulties = ["All Levels", "BEGINNER", "INTERMEDIATE", "ADVANCED"]
 
 function CoursesContent() {
   const searchParams = useSearchParams()
   const [courses, setCourses] = useState<Course[]>([])
+  const [domains, setDomains] = useState<Domain[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState(searchParams.get("q") || "")
-  const [selectedCategory, setSelectedCategory] = useState("All Categories")
-  const [selectedDifficulty, setSelectedDifficulty] = useState("All Levels")
+  const [selectedDomain, setSelectedDomain] = useState<string>("all")
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All Levels")
   const [showFilters, setShowFilters] = useState(false)
   const [totalCourses, setTotalCourses] = useState(0)
 
+  // Fetch domains and categories
+  const fetchFilters = async () => {
+    try {
+      const [domainsRes, categoriesRes] = await Promise.all([
+        fetch("/api/public/domains"),
+        fetch("/api/admin/categories?includeInactive=true")
+      ])
+      
+      const domainsData = await domainsRes.json()
+      if (domainsData.success) {
+        setDomains(domainsData.data.domains)
+      }
+      
+      const categoriesData = await categoriesRes.json()
+      if (categoriesData.success) {
+        setCategories(categoriesData.data.categories)
+      }
+    } catch (err) {
+      console.error("Failed to fetch filters:", err)
+    }
+  }
+
+  useEffect(() => {
+    fetchFilters()
+  }, [])
+
   useEffect(() => {
     fetchCourses()
-  }, [])
+  }, [selectedDomain, selectedCategory, selectedDifficulty])
 
   const fetchCourses = async () => {
     setLoading(true)
     try {
       const params = new URLSearchParams()
-      const q = searchParams.get("q")
-      const category = searchParams.get("category")
-      const difficulty = searchParams.get("difficulty")
-
-      if (q) {
-        setSearchQuery(q)
-        params.set("q", q)
+      
+      if (selectedDomain && selectedDomain !== "all") {
+        params.set("domainId", selectedDomain)
       }
-      if (category) {
-        setSelectedCategory(category)
-        params.set("category", category)
+      if (selectedCategory && selectedCategory !== "all") {
+        params.set("categoryId", selectedCategory)
       }
-      if (difficulty) {
-        setSelectedDifficulty(difficulty)
-        params.set("difficulty", difficulty)
+      if (selectedDifficulty && selectedDifficulty !== "All Levels") {
+        params.set("difficultyLevel", selectedDifficulty)
+      }
+      if (searchQuery) {
+        params.set("q", searchQuery)
       }
 
       const response = await fetch(`/api/public/courses?${params.toString()}`)
       const result = await response.json()
 
       if (result.success) {
-        setCourses(result.data.courses)
-        setTotalCourses(result.data.total)
+        setCourses(result.data)
+        setTotalCourses(result.data.length)
       }
     } catch (err) {
       console.error("Failed to fetch courses:", err)
@@ -99,22 +137,30 @@ function CoursesContent() {
     }
   }
 
-  const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault()
-    const params = new URLSearchParams()
-    if (searchQuery) params.set("q", searchQuery)
-    if (selectedCategory !== "All Categories") params.set("category", selectedCategory)
-    if (selectedDifficulty !== "All Levels") params.set("difficulty", selectedDifficulty)
-    
-    const newUrl = `/courses${params.toString() ? `?${params.toString()}` : ""}`
-    window.location.href = newUrl
+  const handleDomainChange = (domainId: string) => {
+    setSelectedDomain(domainId)
+    // Reset category when domain changes
+    setSelectedCategory("all")
   }
 
-  const filteredCourses = courses.filter(course => {
-    if (selectedCategory !== "All Categories" && course.category !== selectedCategory) return false
-    if (selectedDifficulty !== "All Levels" && course.difficulty !== selectedDifficulty) return false
-    return true
-  })
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    fetchCourses()
+  }
+
+  // Filter categories based on selected domain
+  const filteredCategories = categories.filter(
+    cat => !selectedDomain || selectedDomain === "all" || cat.domainId === selectedDomain
+  )
+
+  const getDifficultyLabel = (difficulty: string | null) => {
+    switch (difficulty) {
+      case "BEGINNER": return "Beginner"
+      case "INTERMEDIATE": return "Intermediate"
+      case "ADVANCED": return "Advanced"
+      default: return difficulty || ""
+    }
+  }
 
   return (
     <>
@@ -168,56 +214,113 @@ function CoursesContent() {
 
           {/* Desktop Filters */}
           <div className="hidden lg:flex items-center gap-4">
-            <div className="relative">
-              <button
-                onClick={() => setSelectedCategory(selectedCategory === "All Categories" ? categories[1] : selectedCategory)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-background hover:bg-muted transition-colors"
-              >
-                <span>{selectedCategory}</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            </div>
+            {/* Domain Filter */}
+            <Select value={selectedDomain} onValueChange={handleDomainChange}>
+              <SelectTrigger className="w-[200px]">
+                <LayoutGrid className="h-4 w-4 mr-2" />
+                <SelectValue placeholder="All Domains" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Domains</SelectItem>
+                {domains.map((domain) => (
+                  <SelectItem key={domain.id} value={domain.id}>
+                    <div className="flex items-center gap-2">
+                      {domain.icon && <span>{domain.icon}</span>}
+                      {domain.color && (
+                        <span className="w-3 h-3 rounded-full" style={{ backgroundColor: domain.color }} />
+                      )}
+                      <span>{domain.name}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-            <div className="relative">
-              <button
-                onClick={() => setSelectedDifficulty(selectedDifficulty === "All Levels" ? "Beginner" : selectedDifficulty)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg border bg-background hover:bg-muted transition-colors"
-              >
-                <span>{selectedDifficulty}</span>
-                <ChevronDown className="h-4 w-4" />
-              </button>
-            </div>
+            {/* Category Filter */}
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-[200px]" disabled={!selectedDomain && filteredCategories.length === 0}>
+                <SelectValue placeholder="All Categories" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Categories</SelectItem>
+                {filteredCategories.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id}>
+                    {cat.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Difficulty Filter */}
+            <Select value={selectedDifficulty} onValueChange={setSelectedDifficulty}>
+              <SelectTrigger className="w-[160px]">
+                <SelectValue placeholder="All Levels" />
+              </SelectTrigger>
+              <SelectContent>
+                {difficulties.map((diff) => (
+                  <SelectItem key={diff} value={diff}>
+                    {diff === "All Levels" ? diff : getDifficultyLabel(diff)}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </div>
 
         {/* Mobile Filters */}
         {showFilters && (
-          <div className="lg:hidden mb-8 p-4 bg-background rounded-lg border">
-            <h3 className="font-medium mb-3">Category</h3>
-            <div className="flex flex-wrap gap-2 mb-4">
-              {categories.map((cat) => (
-                <Badge
-                  key={cat}
-                  variant={selectedCategory === cat ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedCategory(cat)}
-                >
-                  {cat}
-                </Badge>
-              ))}
+          <div className="lg:hidden mb-8 p-4 bg-background rounded-lg border space-y-4">
+            <div>
+              <h3 className="font-medium mb-3">Domain</h3>
+              <Select value={selectedDomain} onValueChange={handleDomainChange}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Domains" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Domains</SelectItem>
+                  {domains.map((domain) => (
+                    <SelectItem key={domain.id} value={domain.id}>
+                      <div className="flex items-center gap-2">
+                        {domain.icon && <span>{domain.icon}</span>}
+                        <span>{domain.name}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-            <h3 className="font-medium mb-3">Difficulty</h3>
-            <div className="flex flex-wrap gap-2">
-              {difficulties.map((diff) => (
-                <Badge
-                  key={diff}
-                  variant={selectedDifficulty === diff ? "default" : "outline"}
-                  className="cursor-pointer"
-                  onClick={() => setSelectedDifficulty(diff)}
-                >
-                  {diff}
-                </Badge>
-              ))}
+
+            <div>
+              <h3 className="font-medium mb-3">Category</h3>
+              <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                <SelectTrigger>
+                  <SelectValue placeholder="All Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {filteredCategories.map((cat) => (
+                    <SelectItem key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div>
+              <h3 className="font-medium mb-3">Difficulty</h3>
+              <div className="flex flex-wrap gap-2">
+                {difficulties.map((diff) => (
+                  <Badge
+                    key={diff}
+                    variant={selectedDifficulty === diff ? "default" : "outline"}
+                    className="cursor-pointer"
+                    onClick={() => setSelectedDifficulty(diff)}
+                  >
+                    {diff === "All Levels" ? diff : getDifficultyLabel(diff)}
+                  </Badge>
+                ))}
+              </div>
             </div>
           </div>
         )}
@@ -227,7 +330,7 @@ function CoursesContent() {
           <div className="flex items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-purple-600" />
           </div>
-        ) : filteredCourses.length === 0 ? (
+        ) : courses.length === 0 ? (
           <div className="text-center py-20">
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <h3 className="text-xl font-medium mb-2">No courses found</h3>
@@ -235,7 +338,7 @@ function CoursesContent() {
           </div>
         ) : (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {filteredCourses.map((course) => (
+            {courses.map((course) => (
               <Card key={course.id} className="overflow-hidden hover:shadow-lg transition-shadow">
                 <div className="relative aspect-video">
                   {course.thumbnailUrl ? (
@@ -255,34 +358,48 @@ function CoursesContent() {
                       Free
                     </Badge>
                   )}
-                  {course.difficulty && (
+                  {course.difficultyLevel && (
                     <Badge
-                      className={`absolute top-3 right-3 ${difficultyColors[course.difficulty as keyof typeof difficultyColors] || ""}`}
+                      className={`absolute top-3 right-3 ${difficultyColors[course.difficultyLevel] || ""}`}
                     >
-                      {course.difficulty}
+                      {getDifficultyLabel(course.difficultyLevel)}
                     </Badge>
                   )}
                 </div>
 
                 <CardContent className="p-4">
+                  {/* Domain Badge */}
+                  {course.domain && (
+                    <div className="flex items-center gap-2 mb-2">
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs"
+                        style={{ borderColor: course.domain.color || '#6366f1', color: course.domain.color || '#6366f1' }}
+                      >
+                        {course.domain.icon && <span className="mr-1">{course.domain.icon}</span>}
+                        {course.domain.name}
+                      </Badge>
+                    </div>
+                  )}
+                  
                   {course.category && (
                     <p className="text-sm text-purple-600 font-medium mb-2">{course.category}</p>
                   )}
                   <h3 className="font-semibold text-lg mb-2 line-clamp-2">{course.title}</h3>
-                  {course.description && (
-                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{course.description}</p>
+                  {course.shortDescription && (
+                    <p className="text-sm text-muted-foreground mb-4 line-clamp-2">{course.shortDescription}</p>
                   )}
                   
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    {course.duration && (
+                    {course.durationHours && (
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        {course.duration}h
+                        {course.durationHours}h
                       </div>
                     )}
                     <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      {course.totalStudents.toLocaleString()}
+                      {course.enrollments.toLocaleString()}
                     </div>
                   </div>
                 </CardContent>

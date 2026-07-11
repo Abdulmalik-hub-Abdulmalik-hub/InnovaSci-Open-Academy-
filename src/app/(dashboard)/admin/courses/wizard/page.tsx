@@ -39,6 +39,7 @@ import {
   AlertCircle,
   X,
   Check,
+  LayoutGrid,
 } from "lucide-react"
 import toast from "react-hot-toast"
 import { cn } from "@/lib/utils"
@@ -98,10 +99,19 @@ const courseSchema = z.object({
 
 type CourseFormData = z.infer<typeof courseSchema>
 
+interface Domain {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  icon: string | null
+}
+
 interface Category {
   id: string
   name: string
   slug: string
+  domainId: string | null
 }
 
 interface Instructor {
@@ -135,8 +145,10 @@ export default function CourseWizardPage() {
   const [activeTab, setActiveTab] = useState("basic")
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(isEditing)
+  const [domains, setDomains] = useState<Domain[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [instructors, setInstructors] = useState<Instructor[]>([])
+  const [selectedDomainId, setSelectedDomainId] = useState<string>("")
 
   const {
     register,
@@ -182,9 +194,21 @@ export default function CourseWizardPage() {
   const watchedValues = watch()
   const isFree = watch("isFree")
 
+  const fetchDomains = useCallback(async () => {
+    try {
+      const response = await fetch("/api/admin/domains?includeInactive=true")
+      const result = await response.json()
+      if (result.success) {
+        setDomains(result.data.domains)
+      }
+    } catch (error) {
+      console.error("Error fetching domains:", error)
+    }
+  }, [])
+
   const fetchCategories = useCallback(async () => {
     try {
-      const response = await fetch("/api/mccs/categories")
+      const response = await fetch("/api/admin/categories?includeInactive=true")
       const result = await response.json()
       if (result.success) {
         setCategories(result.data.categories)
@@ -216,6 +240,10 @@ export default function CourseWizardPage() {
       const result = await response.json()
       if (result.success) {
         const course = result.data.course
+        // Set the domain based on the course's category
+        if (course.category?.domainId) {
+          setSelectedDomainId(course.category.domainId)
+        }
         reset({
           title: course.title,
           slug: course.slug,
@@ -247,12 +275,31 @@ export default function CourseWizardPage() {
   }, [courseId, reset])
 
   useEffect(() => {
+    fetchDomains()
     fetchCategories()
     fetchInstructors()
     if (isEditing) {
       fetchCourseData()
     }
-  }, [fetchCategories, fetchInstructors, isEditing, fetchCourseData])
+  }, [fetchDomains, fetchCategories, fetchInstructors, isEditing, fetchCourseData])
+
+  // Filter categories based on selected domain
+  const filteredCategories = categories.filter(
+    cat => !selectedDomainId || cat.domainId === selectedDomainId
+  )
+
+  // Handle domain change
+  const handleDomainChange = (domainId: string) => {
+    setSelectedDomainId(domainId)
+    // Reset category if it's not in the new domain
+    const currentCategoryId = watchedValues.categoryId
+    if (currentCategoryId) {
+      const categoryExists = categories.find(c => c.id === currentCategoryId && c.domainId === domainId)
+      if (!categoryExists) {
+        setValue("categoryId", "")
+      }
+    }
+  }
 
   const generateSlug = (title: string) => {
     return title
@@ -410,16 +457,49 @@ export default function CourseWizardPage() {
                   {errors.slug && <p className="text-red-500 text-sm">{errors.slug.message}</p>}
                 </div>
 
+                <div className="space-y-2">
+                  <Label className="flex items-center gap-2">
+                    <LayoutGrid className="h-4 w-4" />
+                    Domain *
+                  </Label>
+                  <Select value={selectedDomainId} onValueChange={handleDomainChange}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select domain" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {domains.map((domain) => (
+                        <SelectItem key={domain.id} value={domain.id}>
+                          <div className="flex items-center gap-2">
+                            {domain.icon && <span>{domain.icon}</span>}
+                            {domain.color && (
+                              <span className="w-3 h-3 rounded-full" style={{ backgroundColor: domain.color }} />
+                            )}
+                            <span>{domain.name}</span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label>Category *</Label>
-                    <Select value={watchedValues.categoryId} onValueChange={(v) => setValue("categoryId", v)}>
+                    <Select 
+                      value={watchedValues.categoryId} 
+                      onValueChange={(v) => setValue("categoryId", v)}
+                      disabled={!selectedDomainId}
+                    >
                       <SelectTrigger className={errors.categoryId ? "border-red-500" : ""}>
-                        <SelectValue placeholder="Select category" />
+                        <SelectValue placeholder={selectedDomainId ? "Select category" : "Select domain first"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                        {filteredCategories.map((cat) => (
+                          <SelectItem key={cat.id} value={cat.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{cat.name}</span>
+                            </div>
+                          </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>

@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
 
 // GET /api/public/courses - List published courses for public view
-export async function GET() {
+export async function GET(request: NextRequest) {
   const endpoint = "/api/public/courses"
   const method = "GET"
   
@@ -20,13 +20,60 @@ export async function GET() {
       )
     }
 
+    const { searchParams } = new URL(request.url)
+    const domainId = searchParams.get("domainId")
+    const categoryId = searchParams.get("categoryId")
+    const difficultyLevel = searchParams.get("difficultyLevel")
+    const searchQuery = searchParams.get("q")
+
+    let where: any = { 
+      status: "published",
+      isActive: true
+    }
+    
+    if (categoryId) {
+      where.categoryId = categoryId
+    }
+    
+    if (difficultyLevel) {
+      where.difficultyLevel = difficultyLevel
+    }
+    
+    if (searchQuery) {
+      where.OR = [
+        { title: { contains: searchQuery, mode: 'insensitive' } },
+        { shortDescription: { contains: searchQuery, mode: 'insensitive' } },
+        { fullDescription: { contains: searchQuery, mode: 'insensitive' } }
+      ]
+    }
+
+    // If domainId is provided, filter by domain through category
+    if (domainId) {
+      where.category = {
+        domainId: domainId,
+        isActive: true
+      }
+    }
+
     let courses: any[] = []
     
     try {
       courses = await prisma.course.findMany({
-        where: { status: "published" },
+        where,
         include: {
-          category: true,
+          category: {
+            include: {
+              domain: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  color: true,
+                  icon: true
+                }
+              }
+            }
+          },
           _count: {
             select: { enrollments: true }
           }
@@ -55,6 +102,14 @@ export async function GET() {
         isFree: c.isFree,
         category: c.category?.name || null,
         categoryId: c.categoryId,
+        domain: c.category?.domain ? {
+          id: c.category.domain.id,
+          name: c.category.domain.name,
+          slug: c.category.domain.slug,
+          color: c.category.domain.color,
+          icon: c.category.domain.icon
+        } : null,
+        domainId: c.category?.domainId,
         difficultyLevel: c.difficultyLevel,
         durationHours: c.durationHours,
         enrollments: c._count.enrollments,
