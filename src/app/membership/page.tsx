@@ -1,80 +1,40 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 import { 
   Check, X, CreditCard, Award, Download, 
-  Infinity, Clock, Zap, Shield, BookOpen, MessageCircle, Headphones
+  Infinity, Clock, Zap, Shield, BookOpen, MessageCircle, Headphones,
+  Star, Sparkles, ChevronRight
 } from "lucide-react"
 
-type BillingCycle = "monthly" | "annual"
+interface Plan {
+  id: string
+  name: string
+  description: string | null
+  planType: string
+  billingCycle: string
+  price: number
+  currency: string
+  pricing: any
+  features: string[]
+  isActive: boolean
+  isFeatured: boolean
+  discountPercentage: number | null
+  maxCourses: number | null
+  maxCertificates: number | null
+  allowedCourseIds: string[]
+  trialDays: number | null
+  sortOrder: number
+}
 
-const plans = [
-  {
-    id: "free",
-    name: "Free",
-    description: "Get started with basic learning",
-    monthlyPrice: 0,
-    annualPrice: 0,
-    features: [
-      { name: "Access to free courses", included: true },
-      { name: "Community forum access", included: true },
-      { name: "Basic progress tracking", included: true },
-      { name: "Email support", included: true },
-      { name: "Certificate of completion", included: false },
-      { name: "Downloadable resources", included: false },
-      { name: "Priority support", included: false },
-      { name: "All-access to premium content", included: false },
-    ],
-    cta: "Start Learning",
-    popular: false,
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    description: "Everything you need to master scientific computing",
-    monthlyPrice: 29,
-    annualPrice: 24,
-    savings: "Save $60/year",
-    features: [
-      { name: "Access to all courses", included: true },
-      { name: "Community forum access", included: true },
-      { name: "Advanced progress tracking", included: true },
-      { name: "Priority email support", included: true },
-      { name: "Certificate of completion", included: true },
-      { name: "Downloadable resources", included: true },
-      { name: "Priority support", included: false },
-      { name: "All-access to premium content", included: false },
-    ],
-    cta: "Start Pro Trial",
-    popular: true,
-  },
-  {
-    id: "team",
-    name: "Team",
-    description: "For teams and organizations",
-    monthlyPrice: 79,
-    annualPrice: 65,
-    savings: "Save $168/year",
-    features: [
-      { name: "Everything in Pro", included: true },
-      { name: "Team management dashboard", included: true },
-      { name: "Collaborative learning", included: true },
-      { name: "24/7 phone support", included: true },
-      { name: "Custom certificates", included: true },
-      { name: "Offline downloads", included: true },
-      { name: "Dedicated account manager", included: true },
-      { name: "Custom learning paths", included: true },
-    ],
-    cta: "Contact Sales",
-    popular: false,
-  },
-]
+type BillingCycle = "monthly" | "annual"
 
 const features = [
   { icon: BookOpen, title: "Expert-Led Courses", description: "Learn from world-class instructors with hands-on projects" },
@@ -86,10 +46,143 @@ const features = [
 ]
 
 export default function MembershipPage() {
+  const [plans, setPlans] = useState<Plan[]>([])
+  const [loading, setLoading] = useState(true)
   const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual")
-
-  const getPrice = (plan: typeof plans[0]) => {
-    return billingCycle === "monthly" ? plan.monthlyPrice : plan.annualPrice
+  
+  const fetchPlans = useCallback(async () => {
+    try {
+      const response = await fetch("/api/public/plans")
+      const result = await response.json()
+      
+      if (result.success && result.data?.plans) {
+        setPlans(result.data.plans)
+      } else {
+        setPlans([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch plans:", err)
+      setPlans([])
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+  
+  useEffect(() => {
+    fetchPlans()
+  }, [fetchPlans])
+  
+  // If no plans in database, show demo mode with default plans
+  const displayPlans = plans.length > 0 ? plans : [
+    {
+      id: "free",
+      name: "Free",
+      description: "Get started with basic learning",
+      price: 0,
+      features: [
+        "Access to free courses",
+        "Community forum access",
+        "Basic progress tracking",
+        "Email support"
+      ],
+      isFeatured: false,
+      sortOrder: 0
+    },
+    {
+      id: "pro",
+      name: "Pro",
+      description: "Everything you need to master scientific computing",
+      price: 29,
+      features: [
+        "Access to all courses",
+        "Community forum access",
+        "Advanced progress tracking",
+        "Priority email support",
+        "Certificate of completion",
+        "Downloadable resources",
+        "Priority support"
+      ],
+      isFeatured: true,
+      sortOrder: 1
+    },
+    {
+      id: "team",
+      name: "Team",
+      description: "For teams and organizations",
+      price: 79,
+      features: [
+        "Everything in Pro",
+        "Team management dashboard",
+        "Collaborative learning",
+        "24/7 phone support",
+        "Custom certificates",
+        "Offline downloads",
+        "Dedicated account manager",
+        "Custom learning paths"
+      ],
+      isFeatured: false,
+      sortOrder: 2
+    }
+  ]
+  
+  const sortedPlans = [...displayPlans].sort((a, b) => a.sortOrder - b.sortOrder)
+  
+  // Get price from plan
+  const getPlanPrice = (plan: any) => {
+    // Use pricing data if available
+    if (plan.pricing && typeof plan.pricing === 'object') {
+      const currency = "USD"
+      if (plan.pricing[currency]) {
+        const amount = plan.pricing[currency].amount
+        return billingCycle === "annual" ? Math.round(amount * 0.8) : amount // 20% discount for annual
+      }
+    }
+    // Fallback to simple price
+    const basePrice = plan.price || 0
+    return billingCycle === "annual" ? Math.round(basePrice * 0.8) : basePrice
+  }
+  
+  // Determine which features to show based on plan
+  const getFeatures = (plan: any) => {
+    if (plan.features && Array.isArray(plan.features) && plan.features.length > 0) {
+      return plan.features.map((f: string) => ({ name: f, included: true }))
+    }
+    
+    // Default features based on plan type
+    if (plan.name === "Free" || plan.id === "free") {
+      return [
+        { name: "Access to free courses", included: true },
+        { name: "Community forum access", included: true },
+        { name: "Basic progress tracking", included: true },
+        { name: "Email support", included: true },
+        { name: "Certificate of completion", included: false },
+        { name: "Downloadable resources", included: false },
+        { name: "Priority support", included: false },
+        { name: "All-access to premium content", included: false },
+      ]
+    } else if (plan.name === "Pro" || plan.id === "pro") {
+      return [
+        { name: "Access to all courses", included: true },
+        { name: "Community forum access", included: true },
+        { name: "Advanced progress tracking", included: true },
+        { name: "Priority email support", included: true },
+        { name: "Certificate of completion", included: true },
+        { name: "Downloadable resources", included: true },
+        { name: "Priority support", included: true },
+        { name: "All-access to premium content", included: false },
+      ]
+    } else {
+      return [
+        { name: "Everything in Pro", included: true },
+        { name: "Team management dashboard", included: true },
+        { name: "Collaborative learning", included: true },
+        { name: "24/7 phone support", included: true },
+        { name: "Custom certificates", included: true },
+        { name: "Offline downloads", included: true },
+        { name: "Dedicated account manager", included: true },
+        { name: "Custom learning paths", included: true },
+      ]
+    }
   }
 
   return (
@@ -149,92 +242,129 @@ export default function MembershipPage() {
       {/* Pricing Cards */}
       <section className="py-12 -mt-8">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            {plans.map((plan, index) => (
-              <motion.div
-                key={plan.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card className={cn(
-                  "relative h-full transition-all duration-300",
-                  plan.popular && "border-[#7C3AED] shadow-lg shadow-[#7C3AED]/10 scale-[1.02]"
-                )}>
-                  {plan.popular && (
-                    <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                      <Badge className="bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white px-4 py-1">
-                        Most Popular
-                      </Badge>
-                    </div>
-                  )}
-                  
+          {loading ? (
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {[1, 2, 3].map((i) => (
+                <Card key={i} className="h-full">
                   <CardHeader className="text-center pb-4">
-                    <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                    <CardDescription>{plan.description}</CardDescription>
+                    <Skeleton className="h-8 w-24 mx-auto mb-2" />
+                    <Skeleton className="h-4 w-full" />
                   </CardHeader>
-                  
                   <CardContent className="text-center">
-                    <div className="mb-6">
-                      <div className="flex items-baseline justify-center gap-1">
-                        <span className="text-4xl font-bold tracking-tight">
-                          ${getPrice(plan)}
-                        </span>
-                        <span className="text-muted-foreground">
-                          /{billingCycle === "monthly" ? "mo" : "mo"}
-                        </span>
-                      </div>
-                      {plan.savings && (
-                        <p className="text-sm text-green-600 font-medium mt-1">
-                          {plan.savings}
-                        </p>
-                      )}
-                      {billingCycle === "annual" && plan.monthlyPrice > 0 && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Billed ${plan.annualPrice * 12}/year
-                        </p>
-                      )}
-                    </div>
-
-                    <ul className="space-y-3 text-left mb-8">
-                      {plan.features.map((feature, idx) => (
-                        <li key={idx} className="flex items-start gap-3">
-                          <div className={cn(
-                            "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5",
-                            feature.included ? "bg-green-500/10" : "bg-muted"
-                          )}>
-                            {feature.included ? (
-                              <Check className="h-3 w-3 text-green-600" />
-                            ) : (
-                              <X className="h-3 w-3 text-muted-foreground/50" />
-                            )}
-                          </div>
-                          <span className={cn(
-                            "text-sm",
-                            feature.included ? "text-foreground" : "text-muted-foreground"
-                          )}>
-                            {feature.name}
-                          </span>
-                        </li>
+                    <Skeleton className="h-12 w-32 mx-auto mb-6" />
+                    <div className="space-y-3 mb-8">
+                      {[1, 2, 3, 4].map((j) => (
+                        <Skeleton key={j} className="h-5 w-full" />
                       ))}
-                    </ul>
-
-                    <Button 
-                      className={cn(
-                        "w-full",
-                        plan.popular 
-                          ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] hover:opacity-90" 
-                          : ""
-                      )}
-                      variant={plan.popular ? "default" : "outline"}
-                    >
-                      {plan.cta}
-                    </Button>
+                    </div>
+                    <Skeleton className="h-10 w-full" />
                   </CardContent>
                 </Card>
-              </motion.div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+              {sortedPlans.map((plan, index) => {
+                const features = getFeatures(plan)
+                const price = plan.price === 0 ? 0 : getPlanPrice(plan)
+                const isPopular = plan.isFeatured || plan.name === "Pro" || plan.id === "pro"
+                const trialDays = (plan as any).trialDays
+                
+                return (
+                  <motion.div
+                    key={plan.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, delay: index * 0.1 }}
+                  >
+                    <Card className={cn(
+                      "relative h-full transition-all duration-300",
+                      isPopular && "border-[#7C3AED] shadow-lg shadow-[#7C3AED]/10 scale-[1.02]"
+                    )}>
+                      {isPopular && (
+                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
+                          <Badge className="bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white px-4 py-1">
+                            Most Popular
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      <CardHeader className="text-center pb-4">
+                        <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
+                        <CardDescription>{plan.description}</CardDescription>
+                      </CardHeader>
+                      
+                      <CardContent className="text-center">
+                        <div className="mb-6">
+                          <div className="flex items-baseline justify-center gap-1">
+                            <span className="text-4xl font-bold tracking-tight">
+                              ${price}
+                            </span>
+                            <span className="text-muted-foreground">
+                              /{billingCycle === "monthly" ? "mo" : "mo"}
+                            </span>
+                          </div>
+                          {billingCycle === "annual" && plan.price > 0 && (
+                            <p className="text-sm text-green-600 font-medium mt-1">
+                              Save ${plan.price - price}/month
+                            </p>
+                          )}
+                          {billingCycle === "annual" && plan.price > 0 && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Billed ${price * 12}/year
+                            </p>
+                          )}
+                          {trialDays && trialDays > 0 && (
+                            <p className="text-xs text-purple-600 mt-1">
+                              {trialDays} day free trial
+                            </p>
+                          )}
+                        </div>
+
+                        <ul className="space-y-3 text-left mb-8">
+                          {features.map((feature: any, idx: number) => (
+                            <li key={idx} className="flex items-start gap-3">
+                              <div className={cn(
+                                "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5",
+                                feature.included ? "bg-green-500/10" : "bg-muted"
+                              )}>
+                                {feature.included ? (
+                                  <Check className="h-3 w-3 text-green-600" />
+                                ) : (
+                                  <X className="h-3 w-3 text-muted-foreground/50" />
+                                )}
+                              </div>
+                              <span className={cn(
+                                "text-sm",
+                                feature.included ? "text-foreground" : "text-muted-foreground"
+                              )}>
+                                {feature.name}
+                              </span>
+                            </li>
+                          ))}
+                        </ul>
+
+                        <Link href={plan.price === 0 ? "/auth/signup" : `/membership/${plan.id}`}>
+                          <Button 
+                            className={cn(
+                              "w-full",
+                              isPopular 
+                                ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] hover:opacity-90" 
+                                : ""
+                            )}
+                            variant={isPopular ? "default" : "outline"}
+                          >
+                            {plan.price === 0 ? "Start Learning" : "Get Started"}
+                            <ChevronRight className="h-4 w-4 ml-2" />
+                          </Button>
+                        </Link>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+              })}
+            </div>
+          )}
         </div>
       </section>
 

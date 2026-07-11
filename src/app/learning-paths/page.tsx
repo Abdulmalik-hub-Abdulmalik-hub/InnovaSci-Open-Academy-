@@ -1,178 +1,207 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import Link from "next/link"
 import { motion } from "framer-motion"
+import Image from "next/image"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { 
-  ChevronRight, CheckCircle2, Circle, Clock, BookOpen,
-  Code, Database, Palette, FlaskConical, BarChart3, Cpu,
-  Lock, GraduationCap, ArrowRight
+  GraduationCap, ArrowRight, Clock, BookOpen, 
+  Search, X, ChevronRight,
+  BookMarked, Play
 } from "lucide-react"
 
-// Learning path categories with courses
-const learningPaths = [
-  {
-    id: "fundamentals",
-    name: "Fundamentals",
-    description: "Master the core concepts every scientist and developer needs",
-    icon: GraduationCap,
-    color: "purple",
-    courses: [
-      { 
-        id: "f1", 
-        title: "Python Programming Basics", 
-        duration: "8 hours",
-        lessons: 24,
-        level: "Beginner",
-        thumbnail: "https://images.unsplash.com/photo-1526379095098-d400fd0bf935?w=400&h=300&fit=crop"
-      },
-      { 
-        id: "f2", 
-        title: "Data Structures & Algorithms", 
-        duration: "12 hours",
-        lessons: 36,
-        level: "Intermediate",
-        thumbnail: "https://images.unsplash.com/photo-1509228468518-180dd4864904?w=400&h=300&fit=crop"
-      },
-      { 
-        id: "f3", 
-        title: "Mathematics for Scientists", 
-        duration: "10 hours",
-        lessons: 30,
-        level: "Intermediate",
-        thumbnail: "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=300&fit=crop"
-      },
-    ]
-  },
-  {
-    id: "frontend",
-    name: "Front-end Development",
-    description: "Build beautiful, responsive web interfaces",
-    icon: Palette,
-    color: "blue",
-    courses: [
-      { 
-        id: "fe1", 
-        title: "HTML & CSS Fundamentals", 
-        duration: "6 hours",
-        lessons: 18,
-        level: "Beginner",
-        thumbnail: "https://images.unsplash.com/photo-1621839673705-6617adf9e890?w=400&h=300&fit=crop"
-      },
-      { 
-        id: "fe2", 
-        title: "JavaScript for Beginners", 
-        duration: "10 hours",
-        lessons: 32,
-        level: "Beginner",
-        thumbnail: "https://images.unsplash.com/photo-1579468118864-1b9ea3c0db4a?w=400&h=300&fit=crop"
-      },
-      { 
-        id: "fe3", 
-        title: "React & TypeScript Mastery", 
-        duration: "15 hours",
-        lessons: 45,
-        level: "Advanced",
-        thumbnail: "https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=400&h=300&fit=crop"
-      },
-    ]
-  },
-  {
-    id: "backend",
-    name: "Back-end Development",
-    description: "Build robust APIs and data systems",
-    icon: Database,
-    color: "teal",
-    courses: [
-      { 
-        id: "be1", 
-        title: "API Design & RESTful Services", 
-        duration: "8 hours",
-        lessons: 22,
-        level: "Intermediate",
-        thumbnail: "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=400&h=300&fit=crop"
-      },
-      { 
-        id: "be2", 
-        title: "Database Management", 
-        duration: "10 hours",
-        lessons: 28,
-        level: "Intermediate",
-        thumbnail: "https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=400&h=300&fit=crop"
-      },
-      { 
-        id: "be3", 
-        title: "Authentication & Security", 
-        duration: "6 hours",
-        lessons: 18,
-        level: "Advanced",
-        thumbnail: "https://images.unsplash.com/photo-1563986768609-322da13575f3?w=400&h=300&fit=crop"
-      },
-    ]
-  },
-  {
-    id: "research",
-    name: "Research Methods",
-    description: "Scientific computing and research tools",
-    icon: FlaskConical,
-    color: "amber",
-    courses: [
-      { 
-        id: "r1", 
-        title: "Introduction to Machine Learning", 
-        duration: "14 hours",
-        lessons: 42,
-        level: "Intermediate",
-        thumbnail: "https://images.unsplash.com/photo-1555949963-aa79dcee981c?w=400&h=300&fit=crop"
-      },
-      { 
-        id: "r2", 
-        title: "Computational Biology", 
-        duration: "12 hours",
-        lessons: 36,
-        level: "Advanced",
-        thumbnail: "https://images.unsplash.com/photo-1532187863486-abf9dbad1b69?w=400&h=300&fit=crop"
-      },
-      { 
-        id: "r3", 
-        title: "Data Visualization & Storytelling", 
-        duration: "8 hours",
-        lessons: 24,
-        level: "Intermediate",
-        thumbnail: "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=400&h=300&fit=crop"
-      },
-    ]
-  },
-]
-
-// Demo user progress
-const userProgress = {
-  f1: { completed: true, progress: 100 },
-  f2: { completed: false, progress: 45 },
+// Types
+interface Domain {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  icon: string | null
 }
 
-const colorMap: Record<string, { bg: string; border: string; text: string }> = {
-  purple: { bg: "bg-purple-500/10", border: "border-purple-500/30", text: "text-purple-600" },
-  blue: { bg: "bg-blue-500/10", border: "border-blue-500/30", text: "text-blue-600" },
-  teal: { bg: "bg-teal-500/10", border: "border-teal-500/30", text: "text-teal-600" },
-  amber: { bg: "bg-amber-500/10", border: "border-amber-500/30", text: "text-amber-600" },
+interface Category {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  domainId: string | null
+  domain?: Domain
+}
+
+interface Course {
+  id: string
+  title: string
+  slug: string
+  shortDescription: string | null
+  thumbnailUrl: string | null
+  price: number
+  isFree: boolean
+  durationHours: number | null
+  difficultyLevel: string | null
+  totalLessons: number | null
+  enrollments: number
+  category: {
+    id: string
+    name: string
+    slug: string
+    color: string | null
+    domain: Domain
+  } | null
+}
+
+interface LearningPath {
+  id: string
+  title: string
+  slug: string
+  subtitle: string | null
+  description: string | null
+  thumbnailUrl: string | null
+  difficultyLevel: string
+  estimatedHours: number | null
+  totalCourses: number
+  requiredCourses: number
+  domains: Domain[]
+  categories: Category[]
+  difficultyLevels: string[]
+  courses: Course[]
+}
+
+const DIFFICULTY_COLORS: Record<string, string> = {
+  BEGINNER: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
+  INTERMEDIATE: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
+  ADVANCED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
+}
+
+const DIFFICULTY_LABELS: Record<string, string> = {
+  BEGINNER: "Beginner",
+  INTERMEDIATE: "Intermediate",
+  ADVANCED: "Advanced",
+}
+
+const colorMap: Record<string, string> = {
+  purple: "border-purple-500 bg-purple-500/5",
+  blue: "border-blue-500 bg-blue-500/5",
+  teal: "border-teal-500 bg-teal-500/5",
+  amber: "border-amber-500 bg-amber-500/5",
+  green: "border-green-500 bg-green-500/5",
+  pink: "border-pink-500 bg-pink-500/5",
+  orange: "border-orange-500 bg-orange-500/5",
+  indigo: "border-indigo-500 bg-indigo-500/5",
 }
 
 export default function LearningPathsPage() {
-  const [selectedPath, setSelectedPath] = useState<string | null>(null)
+  // Filter states
+  const [searchQuery, setSearchQuery] = useState("")
+  const [selectedDomain, setSelectedDomain] = useState("")
+  const [selectedCategory, setSelectedCategory] = useState("")
+  const [selectedDifficulty, setSelectedDifficulty] = useState("all")
+  
+  // Data states
+  const [learningPaths, setLearningPaths] = useState<LearningPath[]>([])
+  const [domains, setDomains] = useState<Domain[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loading, setLoading] = useState(true)
+  
+  // Fetch filters (domains and categories)
+  const fetchFilters = useCallback(async () => {
+    try {
+      const [domainsRes, categoriesRes] = await Promise.all([
+        fetch("/api/public/domains"),
+        fetch("/api/admin/categories?includeInactive=true")
+      ])
+      
+      const domainsData = await domainsRes.json()
+      if (domainsData.success && domainsData.data?.domains) {
+        setDomains(domainsData.data.domains || [])
+      }
+      
+      const categoriesData = await categoriesRes.json()
+      if (categoriesData.success && categoriesData.data?.categories) {
+        setCategories(categoriesData.data.categories || [])
+      }
+    } catch (err) {
+      console.error("Failed to fetch filters:", err)
+    }
+  }, [])
+  
+  // Fetch learning paths with filters
+  const fetchLearningPaths = useCallback(async () => {
+    setLoading(true)
+    try {
+      const params = new URLSearchParams()
+      
+      if (searchQuery) params.set("q", searchQuery)
+      if (selectedDomain) params.set("domainId", selectedDomain)
+      if (selectedCategory) params.set("categoryId", selectedCategory)
+      if (selectedDifficulty && selectedDifficulty !== "all") {
+        params.set("difficultyLevel", selectedDifficulty)
+      }
+      
+      const response = await fetch(`/api/learning-paths?${params.toString()}`)
+      const result = await response.json()
+      
+      if (result.success && result.data?.learningPaths) {
+        setLearningPaths(result.data.learningPaths)
+      } else {
+        setLearningPaths([])
+      }
+    } catch (err) {
+      console.error("Failed to fetch learning paths:", err)
+      setLearningPaths([])
+    } finally {
+      setLoading(false)
+    }
+  }, [searchQuery, selectedDomain, selectedCategory, selectedDifficulty])
+  
+  useEffect(() => {
+    fetchFilters()
+  }, [fetchFilters])
+  
+  useEffect(() => {
+    fetchLearningPaths()
+  }, [fetchLearningPaths])
+  
+  // Filter categories based on selected domain
+  const filteredCategories = useMemo(() => {
+    if (!selectedDomain) return categories
+    return categories.filter(cat => cat.domainId === selectedDomain)
+  }, [categories, selectedDomain])
+  
+  // Handle filter changes
+  const handleDomainChange = (domainId: string) => {
+    setSelectedDomain(domainId)
+    setSelectedCategory("") // Reset category when domain changes
+  }
+  
+  const clearFilters = () => {
+    setSearchQuery("")
+    setSelectedDomain("")
+    setSelectedCategory("")
+    setSelectedDifficulty("all")
+  }
+  
+  const hasActiveFilters = searchQuery || selectedDomain || selectedCategory || selectedDifficulty !== "all"
+  
+  const getDomainColor = (domain: Domain | undefined) => {
+    if (domain?.color) return domain.color
+    return "purple"
+  }
 
-  const selectedPathData = learningPaths.find(p => p.id === selectedPath)
-  const pathColor = selectedPathData ? colorMap[selectedPathData.color] : null
-
+  // Calculate total lessons from all courses
+  const getTotalLessons = (path: LearningPath) => {
+    return path.courses.reduce((sum, course) => sum + (course.totalLessons || 0), 0)
+  }
+  
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
-      <section className="relative py-20 lg:py-28 overflow-hidden">
+      <section className="relative py-16 lg:py-24 overflow-hidden">
         <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 via-transparent to-[#2563EB]/5" />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <motion.div
@@ -181,14 +210,21 @@ export default function LearningPathsPage() {
             transition={{ duration: 0.5 }}
             className="text-center max-w-3xl mx-auto"
           >
+            {/* Breadcrumbs */}
+            <nav className="flex items-center justify-center gap-2 text-sm text-muted-foreground mb-4">
+              <Link href="/" className="hover:text-foreground transition-colors">Home</Link>
+              <ChevronRight className="h-4 w-4" />
+              <span className="text-foreground font-medium">Learning Paths</span>
+            </nav>
+            
             <Badge variant="outline" className="mb-4 px-4 py-1 text-sm border-[#7C3AED]/30 text-[#7C3AED]">
               <GraduationCap className="h-3.5 w-3.5 mr-1" />
               Curated Learning Roadmaps
             </Badge>
-            <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-6">
+            <h1 className="text-3xl lg:text-5xl font-bold tracking-tight mb-4">
               Your Learning Path to Mastery
             </h1>
-            <p className="text-lg text-muted-foreground mb-8">
+            <p className="text-lg text-muted-foreground">
               Follow structured, sequential roadmaps designed by experts. 
               Master scientific computing step by step with clear progression paths.
             </p>
@@ -196,249 +232,276 @@ export default function LearningPathsPage() {
         </div>
       </section>
 
-      {/* Learning Paths Grid */}
-      <section className="py-12">
+      {/* Filters Section */}
+      <section className="py-6 border-b bg-muted/30 sticky top-0 z-10 backdrop-blur-sm">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto">
-            {learningPaths.map((path, index) => {
-              const Icon = path.icon
-              const colors = colorMap[path.color]
-              const isSelected = selectedPath === path.id
-              
-              return (
-                <motion.div
-                  key={path.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
+          <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center">
+            {/* Search */}
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search learning paths..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery("")}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  <Card 
-                    className={cn(
-                      "relative overflow-hidden cursor-pointer transition-all duration-300",
-                      isSelected && `${colors.border} border-2 shadow-lg`
-                    )}
-                    onClick={() => setSelectedPath(isSelected ? null : path.id)}
-                  >
-                    {/* Color accent bar */}
-                    <div className={cn("absolute top-0 left-0 right-0 h-1", `bg-${path.color}-500`)} />
-                    
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className={cn(
-                          "w-12 h-12 rounded-xl flex items-center justify-center mb-4",
-                          colors.bg
-                        )}>
-                          <Icon className={cn("h-6 w-6", colors.text)} />
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          {path.courses.length} Courses
-                        </Badge>
-                      </div>
-                      <CardTitle className="text-xl">{path.name}</CardTitle>
-                      <CardDescription>{path.description}</CardDescription>
-                    </CardHeader>
-                    
-                    <CardContent>
-                      {/* Course previews */}
-                      <div className="space-y-2">
-                        {path.courses.slice(0, 2).map((course, idx) => {
-                          const progress = userProgress[course.id as keyof typeof userProgress]
-                          return (
-                            <div key={course.id} className="flex items-center gap-3">
-                              <div className={cn(
-                                "w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0",
-                                progress?.completed ? "bg-green-500 text-white" : "bg-muted"
-                              )}>
-                                {progress?.completed ? (
-                                  <CheckCircle2 className="h-4 w-4" />
-                                ) : (
-                                  <Circle className="h-4 w-4" />
-                                )}
-                              </div>
-                              <span className={cn(
-                                "text-sm flex-1 truncate",
-                                progress?.completed && "text-muted-foreground line-through"
-                              )}>
-                                {course.title}
-                              </span>
-                              <span className="text-xs text-muted-foreground">{course.duration}</span>
-                            </div>
-                          )
-                        })}
-                        {path.courses.length > 2 && (
-                          <p className="text-xs text-muted-foreground pl-9">
-                            +{path.courses.length - 2} more courses
-                          </p>
-                        )}
-                      </div>
-
-                      {/* Expand indicator */}
-                      <div className="mt-4 pt-4 border-t flex items-center justify-between">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className={cn("gap-2", colors.text)}
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            setSelectedPath(isSelected ? null : path.id)
-                          }}
-                        >
-                          {isSelected ? "Hide Details" : "View Details"}
-                          <ChevronRight className={cn("h-4 w-4 transition-transform", isSelected && "rotate-90")} />
-                        </Button>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )
-            })}
+                  <X className="h-4 w-4" />
+                </button>
+              )}
+            </div>
+            
+            {/* Domain Filter */}
+            <select
+              value={selectedDomain}
+              onChange={(e) => handleDomainChange(e.target.value)}
+              className="h-10 px-3 rounded-lg border border-input bg-background text-sm min-w-[180px]"
+            >
+              <option value="">All Domains</option>
+              {domains.map((domain) => (
+                <option key={domain.id} value={domain.id}>
+                  {domain.icon ? `${domain.icon} ` : ""}{domain.name}
+                </option>
+              ))}
+            </select>
+            
+            {/* Category Filter */}
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              disabled={!selectedDomain && filteredCategories.length === 0}
+              className="h-10 px-3 rounded-lg border border-input bg-background text-sm min-w-[180px] disabled:opacity-50"
+            >
+              <option value="">All Categories</option>
+              {filteredCategories.map((cat) => (
+                <option key={cat.id} value={cat.id}>
+                  {cat.name}
+                </option>
+              ))}
+            </select>
+            
+            {/* Difficulty Filter */}
+            <select
+              value={selectedDifficulty}
+              onChange={(e) => setSelectedDifficulty(e.target.value)}
+              className="h-10 px-3 rounded-lg border border-input bg-background text-sm min-w-[150px]"
+            >
+              <option value="all">All Levels</option>
+              <option value="BEGINNER">Beginner</option>
+              <option value="INTERMEDIATE">Intermediate</option>
+              <option value="ADVANCED">Advanced</option>
+            </select>
+            
+            {/* Clear Filters */}
+            {hasActiveFilters && (
+              <Button variant="ghost" size="sm" onClick={clearFilters} className="text-sm">
+                <X className="h-4 w-4 mr-1" />
+                Clear Filters
+              </Button>
+            )}
           </div>
+          
+          {/* Active Filters */}
+          {hasActiveFilters && (
+            <div className="flex flex-wrap gap-2 mt-4">
+              {searchQuery && (
+                <Badge variant="secondary" className="gap-1">
+                  Search: {searchQuery}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery("")} />
+                </Badge>
+              )}
+              {selectedDomain && domains.find(d => d.id === selectedDomain) && (
+                <Badge variant="secondary" className="gap-1">
+                  {domains.find(d => d.id === selectedDomain)?.icon} {domains.find(d => d.id === selectedDomain)?.name}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedDomain("")} />
+                </Badge>
+              )}
+              {selectedCategory && (
+                <Badge variant="secondary" className="gap-1">
+                  {categories.find(c => c.id === selectedCategory)?.name}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedCategory("")} />
+                </Badge>
+              )}
+              {selectedDifficulty !== "all" && (
+                <Badge variant="secondary" className="gap-1">
+                  {DIFFICULTY_LABELS[selectedDifficulty]}
+                  <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedDifficulty("all")} />
+                </Badge>
+              )}
+            </div>
+          )}
         </div>
       </section>
 
-      {/* Expanded Timeline View */}
-      {selectedPathData && pathColor && (
-        <motion.section 
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          exit={{ opacity: 0, height: 0 }}
-          className="py-12 bg-muted/30"
-        >
-          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center gap-4 mb-8">
-                <div className={cn(
-                  "w-12 h-12 rounded-xl flex items-center justify-center",
-                  pathColor.bg
-                )}>
-                  <selectedPathData.icon className={cn("h-6 w-6", pathColor.text)} />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold">{selectedPathData.name}</h2>
-                  <p className="text-muted-foreground">{selectedPathData.description}</p>
-                </div>
-              </div>
-
-              {/* Timeline */}
-              <div className="relative">
-                {/* Timeline line */}
-                <div className="absolute left-6 top-0 bottom-0 w-0.5 bg-border" />
-                
-                {/* Course timeline items */}
-                <div className="space-y-6">
-                  {selectedPathData.courses.map((course, index) => {
-                    const progress = userProgress[course.id as keyof typeof userProgress]
-                    const isCompleted = progress?.completed
-                    const courseProgress = progress?.progress || 0
-                    
-                    return (
-                      <motion.div
-                        key={course.id}
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        transition={{ delay: index * 0.1 }}
-                        className="relative pl-14"
-                      >
-                        {/* Timeline node */}
-                        <div className={cn(
-                          "absolute left-3 w-6 h-6 rounded-full border-2 bg-background flex items-center justify-center",
-                          isCompleted 
-                            ? "border-green-500 bg-green-500" 
-                            : "border-muted-foreground"
-                        )}>
-                          {isCompleted ? (
-                            <CheckCircle2 className="h-4 w-4 text-white" />
-                          ) : (
-                            <div className="w-2 h-2 rounded-full bg-muted-foreground" />
-                          )}
-                        </div>
-
-                        {/* Course card */}
-                        <Card className="hover:shadow-md transition-shadow">
-                          <CardContent className="p-6">
-                            <div className="flex flex-col md:flex-row gap-6">
-                              {/* Thumbnail */}
-                              <div className="relative w-full md:w-48 h-32 md:h-24 rounded-lg overflow-hidden flex-shrink-0">
-                                <img 
-                                  src={course.thumbnail} 
-                                  alt={course.title}
-                                  className="w-full h-full object-cover"
-                                />
-                                {isCompleted && (
-                                  <div className="absolute inset-0 bg-green-500/20 flex items-center justify-center">
-                                    <CheckCircle2 className="h-8 w-8 text-white" />
-                                  </div>
-                                )}
-                              </div>
-                              
-                              {/* Content */}
-                              <div className="flex-1">
-                                <div className="flex items-start justify-between mb-2">
-                                  <div>
-                                    <h3 className="font-semibold text-lg">{course.title}</h3>
-                                    <div className="flex items-center gap-3 mt-1 text-sm text-muted-foreground">
-                                      <span className="flex items-center gap-1">
-                                        <Clock className="h-3.5 w-3.5" />
-                                        {course.duration}
-                                      </span>
-                                      <span className="flex items-center gap-1">
-                                        <BookOpen className="h-3.5 w-3.5" />
-                                        {course.lessons} lessons
-                                      </span>
-                                      <Badge variant="outline" className="text-xs">
-                                        {course.level}
-                                      </Badge>
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Progress */}
-                                {!isCompleted && courseProgress > 0 && (
-                                  <div className="mt-3">
-                                    <div className="flex items-center justify-between text-sm mb-1">
-                                      <span className="text-muted-foreground">Progress</span>
-                                      <span className="font-medium">{courseProgress}%</span>
-                                    </div>
-                                    <Progress value={courseProgress} className="h-2" />
-                                  </div>
-                                )}
-
-                                {/* Action */}
-                                <div className="mt-4">
-                                  <Link href={`/learn/${course.id}`}>
-                                    <Button 
-                                      size="sm"
-                                      className={cn(
-                                        isCompleted 
-                                          ? "bg-green-500 hover:bg-green-600" 
-                                          : "bg-gradient-to-r from-[#7C3AED] to-[#2563EB]"
-                                      )}
-                                    >
-                                      {isCompleted ? "Review Course" : courseProgress > 0 ? "Continue" : "Start Course"}
-                                      <ArrowRight className="h-4 w-4 ml-2" />
-                                    </Button>
-                                  </Link>
-                                </div>
-                              </div>
-                            </div>
-                          </CardContent>
-                        </Card>
-                      </motion.div>
-                    )
-                  })}
-                </div>
-              </div>
-
-              {/* Back button */}
-              <div className="mt-8 text-center">
-                <Button variant="outline" onClick={() => setSelectedPath(null)}>
-                  View All Paths
-                </Button>
-              </div>
+      {/* Learning Paths Grid */}
+      <section className="py-12">
+        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+          {loading ? (
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <Card key={i} className="overflow-hidden">
+                  <Skeleton className="h-32 w-full" />
+                  <CardHeader>
+                    <Skeleton className="h-6 w-3/4 mb-2" />
+                    <Skeleton className="h-4 w-full mb-1" />
+                    <Skeleton className="h-4 w-2/3" />
+                  </CardHeader>
+                  <CardContent>
+                    <Skeleton className="h-4 w-1/2 mb-4" />
+                    <Skeleton className="h-10 w-full" />
+                  </CardContent>
+                </Card>
+              ))}
             </div>
-          </div>
-        </motion.section>
-      )}
+          ) : learningPaths.length > 0 ? (
+            <>
+              <p className="text-sm text-muted-foreground mb-6">
+                Showing {learningPaths.length} learning path{learningPaths.length !== 1 ? "s" : ""}
+              </p>
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {learningPaths.map((path, index) => {
+                  const domain = path.domains[0]
+                  const colorKey = getDomainColor(domain)
+                  const colorClass = colorMap[colorKey] || colorMap.purple
+                  const totalLessons = getTotalLessons(path)
+                  
+                  return (
+                    <motion.div
+                      key={path.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.4, delay: index * 0.05 }}
+                    >
+                      <Card className={cn(
+                        "h-full overflow-hidden hover:shadow-lg transition-all duration-300 group border-l-4",
+                        colorClass.split(" ")[0]
+                      )}>
+                        {/* Thumbnail */}
+                        <div className="relative h-36 overflow-hidden">
+                          {path.thumbnailUrl ? (
+                            <Image
+                              src={path.thumbnailUrl}
+                              alt={path.title}
+                              fill
+                              className="object-cover group-hover:scale-105 transition-transform duration-300"
+                            />
+                          ) : (
+                            <div className="absolute inset-0 bg-gradient-to-br from-purple-500/20 to-blue-500/20 flex items-center justify-center">
+                              <GraduationCap className="h-12 w-12 text-muted-foreground/30" />
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
+                          
+                          {/* Badges */}
+                          <div className="absolute top-2 left-2 flex flex-wrap gap-1">
+                            {path.domains.slice(0, 2).map((d) => (
+                              <Badge 
+                                key={d.id} 
+                                variant="secondary" 
+                                className="text-xs backdrop-blur-sm"
+                                style={{ 
+                                  backgroundColor: d.color ? `${d.color}30` : undefined,
+                                  borderColor: d.color || undefined
+                                }}
+                              >
+                                {d.icon && <span className="mr-1">{d.icon}</span>}
+                                {d.name}
+                              </Badge>
+                            ))}
+                          </div>
+                          
+                          <Badge 
+                            className={cn(
+                              "absolute top-2 right-2",
+                              DIFFICULTY_COLORS[path.difficultyLevel?.toUpperCase()] || DIFFICULTY_COLORS.BEGINNER
+                            )}
+                          >
+                            {DIFFICULTY_LABELS[path.difficultyLevel?.toUpperCase()] || path.difficultyLevel}
+                          </Badge>
+                        </div>
+                        
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg line-clamp-1 group-hover:text-[hsl(var(--brand-purple))] transition-colors">
+                            {path.title}
+                          </CardTitle>
+                          <CardDescription className="line-clamp-2 text-sm">
+                            {path.description || path.subtitle || `Structured path covering ${path.totalCourses} courses`}
+                          </CardDescription>
+                        </CardHeader>
+                        
+                        <CardContent className="pt-0">
+                          {/* Stats */}
+                          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground mb-3">
+                            <span className="flex items-center gap-1">
+                              <BookOpen className="h-3.5 w-3.5" />
+                              {path.totalCourses} courses
+                            </span>
+                            {path.estimatedHours && (
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {path.estimatedHours}h
+                              </span>
+                            )}
+                            {totalLessons > 0 && (
+                              <span className="flex items-center gap-1">
+                                <Play className="h-3.5 w-3.5" />
+                                {totalLessons} lessons
+                              </span>
+                            )}
+                          </div>
+                          
+                          {/* Categories */}
+                          {path.categories.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mb-3">
+                              {path.categories.slice(0, 2).map((cat) => (
+                                <Badge key={cat.id} variant="outline" className="text-xs">
+                                  {cat.name}
+                                </Badge>
+                              ))}
+                              {path.categories.length > 2 && (
+                                <Badge variant="outline" className="text-xs">
+                                  +{path.categories.length - 2}
+                                </Badge>
+                              )}
+                            </div>
+                          )}
+                          
+                          {/* Action */}
+                          <Link href={`/learning-paths/${path.slug}`}>
+                            <Button className="w-full group/btn text-sm">
+                              Explore Path
+                              <ArrowRight className="h-4 w-4 ml-2 group-hover/btn:translate-x-1 transition-transform" />
+                            </Button>
+                          </Link>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-20">
+              <BookMarked className="h-16 w-16 text-muted-foreground/30 mx-auto mb-4" />
+              <h3 className="text-xl font-medium mb-2">No Learning Paths Found</h3>
+              <p className="text-muted-foreground mb-6">
+                {hasActiveFilters 
+                  ? "Try adjusting your filters to find more learning paths."
+                  : "Learning paths will appear here once they are created."}
+              </p>
+              {hasActiveFilters && (
+                <Button variant="outline" onClick={clearFilters}>
+                  Clear Filters
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="py-20 bg-gradient-to-r from-[#7C3AED] to-[#2563EB]">
