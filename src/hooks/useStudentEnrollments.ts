@@ -2,6 +2,14 @@
 
 import { useState, useEffect, useCallback } from "react"
 
+export interface StudentCourseDomain {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  icon: string | null
+}
+
 export interface StudentCourseCategory {
   id?: string
   name: string
@@ -13,6 +21,9 @@ export interface StudentCourse {
   slug: string
   thumbnailUrl: string | null
   category: StudentCourseCategory | string | null
+  categoryId: string | null
+  domain: StudentCourseDomain | null
+  domainId: string | null
   shortDescription: string | null
   durationHours: number | null
   difficultyLevel: string | null
@@ -94,9 +105,9 @@ export function useStudentEnrollments(): UseStudentEnrollmentsReturn {
         throw new Error(result.error || "Failed to fetch enrollments")
       }
 
-      setEnrollments(result.data.enrollments)
-      setPagination(result.data.pagination)
-      setCategories(result.data.filters?.categories || [])
+      setEnrollments(result.data?.enrollments || [])
+      setPagination(result.data?.pagination || { page: 1, limit: 20, total: 0, totalPages: 0 })
+      setCategories(result.data?.filters?.categories || [])
     } catch (err) {
       console.error("Fetch enrollments error:", err)
       setError(err instanceof Error ? err.message : "Failed to load enrollments")

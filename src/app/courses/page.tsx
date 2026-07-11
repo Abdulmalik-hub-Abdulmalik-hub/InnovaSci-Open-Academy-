@@ -85,13 +85,13 @@ function CoursesContent() {
       ])
       
       const domainsData = await domainsRes.json()
-      if (domainsData.success) {
-        setDomains(domainsData.data.domains)
+      if (domainsData.success && domainsData.data?.domains) {
+        setDomains(domainsData.data.domains || [])
       }
       
       const categoriesData = await categoriesRes.json()
-      if (categoriesData.success) {
-        setCategories(categoriesData.data.categories)
+      if (categoriesData.success && categoriesData.data?.categories) {
+        setCategories(categoriesData.data.categories || [])
       }
     } catch (err) {
       console.error("Failed to fetch filters:", err)

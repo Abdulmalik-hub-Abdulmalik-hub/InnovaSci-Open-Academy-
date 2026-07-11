@@ -48,12 +48,12 @@ export default function MyCoursesPage() {
         ])
         
         const domainsData = await domainsRes.json()
-        if (domainsData.success) {
+        if (domainsData.success && domainsData.data?.domains) {
           setDomains(domainsData.data.domains || [])
         }
         
         const categoriesData = await categoriesRes.json()
-        if (categoriesData.success) {
+        if (categoriesData.success && categoriesData.data?.categories) {
           setAllCategories(categoriesData.data.categories || [])
         }
       } catch (err) {

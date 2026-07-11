@@ -54,35 +54,37 @@ export async function GET() {
       console.error(`[${endpoint}] Database query failed:`, dbError)
       return NextResponse.json({
         success: true,
-        data: [],
+        data: { domains: [] },
         warning: "Could not fetch domains from database"
       })
     }
 
     return NextResponse.json({
       success: true,
-      data: domains.map((d: any) => ({
-        id: d.id,
-        name: d.name,
-        shortName: d.shortName,
-        slug: d.slug,
-        shortDescription: d.shortDescription,
-        fullDescription: d.fullDescription,
-        thumbnailUrl: d.thumbnailUrl,
-        bannerUrl: d.bannerUrl,
-        icon: d.icon,
-        color: d.color,
-        isFeatured: d.isFeatured,
-        categoryCount: d._count.categories,
-        categories: d.categories.map((c: any) => ({
-          id: c.id,
-          name: c.name,
-          slug: c.slug,
-          icon: c.icon,
-          color: c.color,
-          courseCount: c._count.courses
+      data: {
+        domains: domains.map((d: any) => ({
+          id: d.id,
+          name: d.name,
+          shortName: d.shortName,
+          slug: d.slug,
+          shortDescription: d.shortDescription,
+          fullDescription: d.fullDescription,
+          thumbnailUrl: d.thumbnailUrl,
+          bannerUrl: d.bannerUrl,
+          icon: d.icon,
+          color: d.color,
+          isFeatured: d.isFeatured,
+          categoryCount: d._count.categories,
+          categories: d.categories.map((c: any) => ({
+            id: c.id,
+            name: c.name,
+            slug: c.slug,
+            icon: c.icon,
+            color: c.color,
+            courseCount: c._count.courses
+          }))
         }))
-      }))
+      }
     })
   } catch (error) {
     console.error(`[${endpoint}] [${method}] Unexpected error:`, error)
