@@ -1,12 +1,16 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { triggerEligibilityCheck } from "@/lib/certificate-eligibility"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
+
+export const dynamic = "force-dynamic"
 
 // GET /api/student/progress - Get user's learning progress
-// Force dynamic rendering - API routes that use request properties must be dynamic
-export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
     const { searchParams } = new URL(request.url)
     const courseId = searchParams.get("courseId")
 
@@ -70,10 +74,11 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST /api/student/progress - Update lesson progress
+// POST /api/student/progress - Update lesson progress and trigger eligibility check
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    const session = await getServerSession(authOptions)
+    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
     const body = await request.json()
     const { lessonId, courseId, watchTime, completed, lastPosition } = body
 
@@ -149,6 +154,14 @@ export async function POST(request: NextRequest) {
         completedAt: progressPercent === 100 ? new Date() : null
       }
     })
+
+    // Trigger certificate eligibility check after progress update
+    // This runs asynchronously to avoid blocking the response
+    if (completed) {
+      triggerEligibilityCheck(userId).catch(err => {
+        console.error("Background eligibility check failed:", err)
+      })
+    }
 
     return NextResponse.json({
       success: true,

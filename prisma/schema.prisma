@@ -45,6 +45,12 @@ model User {
   capstoneEnrollments  CapstoneEnrollment[]
   projectSubmissions   ProjectSubmission[]
   portfolioEntries     PortfolioEntry[]
+  
+  // New Certificate Relations
+  categoryIssuedCerts    CategoryIssuedCert[]
+  domainIssuedCerts     DomainIssuedCert[]
+  certificateProgress    CertificateProgress[]
+  certificateEligibility CertificateEligibility[]
 
   @@map("users")
 }
@@ -105,6 +111,7 @@ model Domain {
 
   // Relations
   categories Category[]
+  domainCertificates DomainCertificate[]
 
   @@index([slug])
   @@index([status])
@@ -143,6 +150,7 @@ model Category {
   domainId String?
   domain   Domain? @relation(fields: [domainId], references: [id], onDelete: SetNull)
   courses  Course[]
+  categoryCertificate CategoryCertificate?
 
   @@unique([domainId, slug])
   @@unique([domainId, name])
@@ -411,13 +419,14 @@ model Certificate {
 }
 
 // ============================================
-// 11a. CERTIFICATE TEMPLATES - Configurable certificate layouts
+// 11a. CERTIFICATE TEMPLATES - Configurable certificate layouts (ENHANCED)
 // ============================================
 
 model CertificateTemplate {
   id           String   @id @default(uuid())
   name         String   // Template name (e.g., "Standard Certificate", "Premium Certificate")
   description  String?  // Template description
+  type         String   @default("COURSE") // COURSE, CATEGORY, DOMAIN
   backgroundUrl String  @db.Text // URL to template background image
   width        Int      @default(1200) // Template width in pixels
   height       Int      @default(900) // Template height in pixels
@@ -443,6 +452,39 @@ model CertificateTemplate {
   certificateIdSize Int    @default(18)
   certificateIdFont String @default("Courier")
   
+  // Additional fields for category/domain certificates
+  domainNameX           Float?
+  domainNameY           Float?
+  domainNameSize        Int?
+  domainNameFont        String?
+  
+  categoryNameX         Float?
+  categoryNameY         Float?
+  categoryNameSize      Int?
+  categoryNameFont      String?
+  
+  certificateTypeX      Float?
+  certificateTypeY      Float?
+  certificateTypeSize   Int?
+  certificateTypeFont   String?
+  
+  // Signatures
+  ceoSignatureX         Float?
+  ceoSignatureY         Float?
+  ceoSignatureWidth     Int?
+  ceoSignatureHeight    Int?
+  
+  academicDirectorSignatureX     Float?
+  academicDirectorSignatureY     Float?
+  academicDirectorSignatureWidth Int?
+  academicDirectorSignatureHeight Int?
+  
+  // Official seal
+  officialSealX        Float?
+  officialSealY        Float?
+  officialSealWidth   Int?
+  officialSealHeight  Int?
+  
   // Styling
   textColor      String   @default("#1a1a2e") // Dark navy color for text
   
@@ -452,7 +494,7 @@ model CertificateTemplate {
   updatedAt      DateTime @updatedAt
 
   // Relations
-  courses       Course[]
+  courses Course[]
 
   @@map("certificate_templates")
 }
@@ -485,6 +527,204 @@ model IssuedCertificate {
   @@index([courseId])
   @@index([issuedAt])
   @@map("issued_certificates")
+}
+
+// ============================================
+// 11c. CATEGORY CERTIFICATES - Professional Certificates for completing categories
+// ============================================
+model CategoryCertificate {
+  id              String   @id @default(uuid())
+  categoryId      String
+  certificateName String   // e.g., "Professional Data Science Certificate"
+  description     String?  @db.Text
+  requirements    Json?    // Stores requirements: { courses: [], difficultyCapstones: [], professionalCapstone: true }
+  templateData   Json?    // Template configuration snapshot
+  isActive       Boolean  @default(true)
+  orderIndex     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  category      Category              @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  issued        CategoryIssuedCert[]
+
+  @@unique([categoryId])
+  @@index([categoryId])
+  @@map("category_certificates")
+}
+
+// ============================================
+// 11d. DOMAIN CERTIFICATES - Master Certificates for completing domains
+// ============================================
+model DomainCertificate {
+  id              String   @id @default(uuid())
+  domainId        String
+  certificateName String   // e.g., "Master AI & Data Science Professional"
+  description     String?  @db.Text
+  requirements    Json?    // Stores requirements: { categories: [], domainCapstones: [] }
+  templateData   Json?    // Template configuration snapshot
+  isActive       Boolean  @default(true)
+  orderIndex     Int      @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  // Relations
+  domain  Domain                  @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  issued  DomainIssuedCert[]
+
+  @@unique([domainId])
+  @@index([domainId])
+  @@map("domain_certificates")
+}
+
+// ============================================
+// 11e. CATEGORY ISSUED CERTIFICATES - Track issued category certificates
+// ============================================
+model CategoryIssuedCert {
+  id                  String    @id @default(uuid())
+  categoryCertificateId String
+  userId              String
+  certificateCode     String    @unique // e.g., "CAT-CERT-2026-XXXX"
+  qrCode              String?   @db.Text
+  pdfUrl              String?   @db.Text
+  verificationUrl     String    @db.Text
+  templateSnapshot    Json?    // Snapshot of certificate template at generation time
+  issuedAt            DateTime  @default(now())
+  revokedAt           DateTime?
+  revokeReason        String?
+
+  // Digital signatures
+  ceoSignature        String?   @db.Text // CEO signature URL or data
+  academicDirectorSignature String? @db.Text // Academic Director signature URL or data
+  officialSeal        String?   @db.Text // Official seal URL or data
+
+  // Status
+  status              String    @default("ACTIVE") // ACTIVE, REVOKED, EXPIRED
+
+  user                User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryCertificate CategoryCertificate @relation(fields: [categoryCertificateId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryCertificateId, userId])
+  @@index([userId])
+  @@index([categoryCertificateId])
+  @@index([status])
+  @@map("category_issued_certs")
+}
+
+// ============================================
+// 11f. DOMAIN ISSUED CERTIFICATES - Track issued domain certificates
+// ============================================
+model DomainIssuedCert {
+  id                 String    @id @default(uuid())
+  domainCertificateId String
+  userId             String
+  certificateCode    String    @unique // e.g., "DOM-CERT-2026-XXXX"
+  qrCode             String?   @db.Text
+  pdfUrl             String?   @db.Text
+  verificationUrl    String    @db.Text
+  templateSnapshot   Json?     // Snapshot of certificate template at generation time
+  issuedAt           DateTime  @default(now())
+  revokedAt          DateTime?
+  revokeReason       String?
+
+  // Digital signatures
+  ceoSignature        String?   @db.Text
+  academicDirectorSignature String? @db.Text
+
+  // Status
+  status             String    @default("ACTIVE") // ACTIVE, REVOKED, EXPIRED
+
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  domainCertificate  DomainCertificate @relation(fields: [domainCertificateId], references: [id], onDelete: Cascade)
+
+  @@unique([domainCertificateId, userId])
+  @@index([userId])
+  @@index([domainCertificateId])
+  @@index([status])
+  @@map("domain_issued_certs")
+}
+
+// ============================================
+// 11g. CERTIFICATE PROGRESS - Track student progress toward certificates
+// ============================================
+model CertificateProgress {
+  id                    String   @id @default(uuid())
+  userId                String
+  // For Category Certificates
+  categoryCertificateId String?
+  // For Domain Certificates
+  domainCertificateId   String?
+  
+  // Progress tracking
+  coursesCompleted      Int      @default(0)
+  totalCourses         Int      @default(0)
+  lessonsCompleted      Int      @default(0)
+  totalLessons         Int      @default(0)
+  exercisesCompleted    Int      @default(0)
+  totalExercises       Int      @default(0)
+  miniProjectsCompleted Int      @default(0)
+  totalMiniProjects    Int      @default(0)
+  capstonesCompleted   Int      @default(0)
+  totalCapstones       Int      @default(0)
+  
+  // Progress percentages
+  overallProgress       Int      @default(0) // 0-100
+  
+  // Detailed completion tracking
+  completedCourseIds    String[] @default([])
+  completedLessonIds    String[] @default([])
+  completedExerciseIds  String[] @default([])
+  completedMiniProjectIds String[] @default([])
+  completedCapstoneIds  String[] @default([])
+  earnedCategoryCertIds String[] @default([]) // For Domain certificates
+  
+  lastActivityAt       DateTime @default(now())
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user                 User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, categoryCertificateId])
+  @@unique([userId, domainCertificateId])
+  @@index([userId])
+  @@index([categoryCertificateId])
+  @@index([domainCertificateId])
+  @@map("certificate_progress")
+}
+
+// ============================================
+// 11h. CERTIFICATE ELIGIBILITY - Track eligibility status
+// ============================================
+model CertificateEligibility {
+  id                    String   @id @default(uuid())
+  userId                String
+  
+  // Certificate type and ID
+  certificateType       String   // 'CATEGORY' or 'DOMAIN'
+  certificateId         String   // categoryCertificateId or domainCertificateId
+  
+  // Eligibility status
+  isEligible            Boolean  @default(false)
+  eligibilityCheckedAt  DateTime @default(now())
+  lastCheckedAt         DateTime @default(now())
+  
+  // Requirements breakdown
+  requirements          Json     // { courses: { required: X, completed: Y }, lessons: {...}, exercises: {...}, ... }
+  
+  // Eligibility triggers
+  eligibleAt            DateTime? // When eligibility was achieved
+  notifiedAt            DateTime? // When user was notified
+
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, certificateType, certificateId])
+  @@index([userId])
+  @@index([certificateType, certificateId])
+  @@index([isEligible])
+  @@map("certificate_eligibility")
 }
 
 // ============================================
