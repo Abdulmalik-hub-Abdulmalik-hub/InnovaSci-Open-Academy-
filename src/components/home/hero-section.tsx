@@ -1,21 +1,24 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { motion } from "framer-motion"
-import { Search, ChevronDown, BookOpen, Users, Award, Zap } from "lucide-react"
+import { Search, ChevronDown, BookOpen, Users, Award, Zap, LayoutGrid } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-const categories = [
-  "All Categories",
-  "Artificial Intelligence",
-  "Data Science",
-  "Machine Learning",
-  "Computational Biology",
-  "Quantum Computing",
-  "Drug Discovery",
-  "Web Development",
-  "Cloud Computing",
-]
+interface Domain {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  icon: string | null
+}
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  domainId: string | null
+}
 
 const difficultyLevels = [
   "All Difficulty Levels",
@@ -26,18 +29,65 @@ const difficultyLevels = [
 
 export function HeroSection() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("All Categories")
-  const [selectedDifficulty, setSelectedDifficulty] = useState("All Difficulty Levels")
+  const [domains, setDomains] = useState<Domain[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
+  const [selectedDomain, setSelectedDomain] = useState<string>("")
+  const [selectedCategory, setSelectedCategory] = useState<string>("")
+  const [selectedDifficulty, setSelectedDifficulty] = useState<string>("All Difficulty Levels")
+  const [isDomainOpen, setIsDomainOpen] = useState(false)
   const [isCategoryOpen, setIsCategoryOpen] = useState(false)
   const [isDifficultyOpen, setIsDifficultyOpen] = useState(false)
+
+  // Fetch domains and categories
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [domainsRes, categoriesRes] = await Promise.all([
+          fetch("/api/public/domains"),
+          fetch("/api/admin/categories?includeInactive=true")
+        ])
+        
+        const domainsData = await domainsRes.json()
+        if (domainsData.success) {
+          setDomains(domainsData.data.domains || [])
+        }
+        
+        const categoriesData = await categoriesRes.json()
+        if (categoriesData.success) {
+          setCategories(categoriesData.data.categories || [])
+        }
+      } catch (err) {
+        console.error("Failed to fetch filters:", err)
+      }
+    }
+    fetchData()
+  }, [])
+
+  // Filter categories based on selected domain
+  const filteredCategories = categories.filter(
+    cat => !selectedDomain || cat.domainId === selectedDomain
+  )
 
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault()
     const params = new URLSearchParams()
     if (searchQuery) params.set("q", searchQuery)
-    if (selectedCategory !== "All Categories") params.set("category", selectedCategory)
-    if (selectedDifficulty !== "All Difficulty Levels") params.set("difficulty", selectedDifficulty)
+    if (selectedDomain) params.set("domainId", selectedDomain)
+    if (selectedCategory) params.set("categoryId", selectedCategory)
+    if (selectedDifficulty !== "All Difficulty Levels") params.set("difficultyLevel", selectedDifficulty)
     window.location.href = `/courses?${params.toString()}`
+  }
+
+  const getSelectedDomainName = () => {
+    if (!selectedDomain) return "All Domains"
+    const domain = domains.find(d => d.id === selectedDomain)
+    return domain ? `${domain.icon || ''} ${domain.name}` : "All Domains"
+  }
+
+  const getSelectedCategoryName = () => {
+    if (!selectedCategory) return "All Categories"
+    const cat = categories.find(c => c.id === selectedCategory)
+    return cat ? cat.name : "All Categories"
   }
 
   return (
@@ -125,21 +175,88 @@ export function HeroSection() {
                   </div>
 
                   {/* Filters Row - Responsive grid */}
-                  <div className="grid grid-cols-1 gap-3 sm:gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+                    {/* Domain Filter */}
+                    <div className="relative">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsDomainOpen(!isDomainOpen)
+                          setIsCategoryOpen(false)
+                          setIsDifficultyOpen(false)
+                        }}
+                        className="w-full h-11 sm:h-12 px-3 sm:px-4 flex items-center justify-between rounded-lg sm:rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 hover:border-[hsl(var(--brand-purple))/50] transition-all duration-200 text-left text-sm"
+                      >
+                        <span className={!selectedDomain ? "text-muted-foreground" : "text-foreground truncate pr-2"}>
+                          {getSelectedDomainName()}
+                        </span>
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 ${isDomainOpen ? "rotate-180" : ""}`} />
+                      </button>
+                      
+                      {/* Domain Dropdown */}
+                      {isDomainOpen && (
+                        <motion.div
+                          initial={{ opacity: 0, y: -10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-input dark:border-slate-700 overflow-hidden z-50 max-h-52 sm:max-h-64 overflow-y-auto"
+                        >
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedDomain("")
+                              setSelectedCategory("")
+                              setIsDomainOpen(false)
+                            }}
+                            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm transition-colors flex items-center gap-2 ${
+                              !selectedDomain 
+                                ? "bg-[hsl(var(--brand-purple))/10] text-[hsl(var(--brand-purple))] dark:text-[hsl(var(--brand-purple-light))] font-medium" 
+                                : "text-foreground hover:bg-[hsl(var(--brand-purple))/5]"
+                            }`}
+                          >
+                            <LayoutGrid className="h-4 w-4" />
+                            All Domains
+                          </button>
+                          {domains.map((domain) => (
+                            <button
+                              key={domain.id}
+                              type="button"
+                              onClick={() => {
+                                setSelectedDomain(domain.id)
+                                setSelectedCategory("")
+                                setIsDomainOpen(false)
+                              }}
+                              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm transition-colors flex items-center gap-2 ${
+                                selectedDomain === domain.id 
+                                  ? "bg-[hsl(var(--brand-purple))/10] text-[hsl(var(--brand-purple))] dark:text-[hsl(var(--brand-purple-light))] font-medium" 
+                                  : "text-foreground hover:bg-[hsl(var(--brand-purple))/5]"
+                              }`}
+                            >
+                              {domain.icon && <span>{domain.icon}</span>}
+                              {domain.color && (
+                                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: domain.color }} />
+                              )}
+                              <span className="truncate">{domain.name}</span>
+                            </button>
+                          ))}
+                        </motion.div>
+                      )}
+                    </div>
+
                     {/* Category Filter */}
                     <div className="relative">
                       <button
                         type="button"
                         onClick={() => {
                           setIsCategoryOpen(!isCategoryOpen)
+                          setIsDomainOpen(false)
                           setIsDifficultyOpen(false)
                         }}
-                        className="w-full h-11 sm:h-12 px-3 sm:px-4 flex items-center justify-between rounded-lg sm:rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 hover:border-[hsl(var(--brand-purple))/50] transition-all duration-200 text-left text-sm sm:text-base"
+                        className="w-full h-11 sm:h-12 px-3 sm:px-4 flex items-center justify-between rounded-lg sm:rounded-xl bg-muted/50 dark:bg-slate-800/50 border border-input dark:border-slate-700 hover:border-[hsl(var(--brand-purple))/50] transition-all duration-200 text-left text-sm"
                       >
-                        <span className={selectedCategory === "All Categories" ? "text-muted-foreground text-sm sm:text-base" : "text-foreground text-sm sm:text-base"}>
-                          {selectedCategory}
+                        <span className={!selectedCategory ? "text-muted-foreground" : "text-foreground truncate pr-2"}>
+                          {getSelectedCategoryName()}
                         </span>
-                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 ${isCategoryOpen ? "rotate-180" : ""}`} />
+                        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform duration-200 flex-shrink-0 ${isCategoryOpen ? "rotate-180" : ""}`} />
                       </button>
                       
                       {/* Category Dropdown */}
@@ -149,21 +266,35 @@ export function HeroSection() {
                           animate={{ opacity: 1, y: 0 }}
                           className="absolute top-full left-0 right-0 mt-2 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-input dark:border-slate-700 overflow-hidden z-50 max-h-52 sm:max-h-64 overflow-y-auto"
                         >
-                          {categories.map((category) => (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setSelectedCategory("")
+                              setIsCategoryOpen(false)
+                            }}
+                            className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm transition-colors ${
+                              !selectedCategory 
+                                ? "bg-[hsl(var(--brand-purple))/10] text-[hsl(var(--brand-purple))] dark:text-[hsl(var(--brand-purple-light))] font-medium" 
+                                : "text-foreground hover:bg-[hsl(var(--brand-purple))/5]"
+                            }`}
+                          >
+                            All Categories
+                          </button>
+                          {filteredCategories.map((category) => (
                             <button
-                              key={category}
+                              key={category.id}
                               type="button"
                               onClick={() => {
-                                setSelectedCategory(category)
+                                setSelectedCategory(category.id)
                                 setIsCategoryOpen(false)
                               }}
-                              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm sm:text-base transition-colors ${
-                                selectedCategory === category 
+                              className={`w-full px-3 sm:px-4 py-2.5 sm:py-3 text-left text-sm transition-colors ${
+                                selectedCategory === category.id 
                                   ? "bg-[hsl(var(--brand-purple))/10] text-[hsl(var(--brand-purple))] dark:text-[hsl(var(--brand-purple-light))] font-medium" 
                                   : "text-foreground hover:bg-[hsl(var(--brand-purple))/5]"
                               }`}
                             >
-                              {category}
+                              {category.name}
                             </button>
                           ))}
                         </motion.div>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { useStudentEnrollments, getCourseCategoryName } from "@/hooks/useStudentEnrollments"
 import { Card, CardContent } from "@/components/ui/card"
@@ -10,26 +10,83 @@ import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 import { 
   BookOpen, Play, Search, Filter, Grid, List,
-  Clock, CheckCircle2, ChevronRight, X
+  Clock, CheckCircle2, ChevronRight, X, LayoutGrid
 } from "lucide-react"
+
+interface Domain {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  icon: string | null
+}
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  domainId: string | null
+}
 
 export default function MyCoursesPage() {
   const { enrollments, loading, error, pagination, categories, fetchEnrollments, refresh } = useStudentEnrollments()
+  const [domains, setDomains] = useState<Domain[]>([])
+  const [allCategories, setAllCategories] = useState<Category[]>([])
   const [searchQuery, setSearchQuery] = useState("")
-  const [selectedCategory, setSelectedCategory] = useState("all")
+  const [selectedDomain, setSelectedDomain] = useState<string>("all")
+  const [selectedCategory, setSelectedCategory] = useState<string>("all")
   const [statusFilter, setStatusFilter] = useState<"all" | "in_progress" | "completed">("all")
   const [viewMode, setViewMode] = useState<"grid" | "list">("grid")
+
+  // Fetch domains and categories
+  useEffect(() => {
+    const fetchFilters = async () => {
+      try {
+        const [domainsRes, categoriesRes] = await Promise.all([
+          fetch("/api/public/domains"),
+          fetch("/api/admin/categories?includeInactive=true")
+        ])
+        
+        const domainsData = await domainsRes.json()
+        if (domainsData.success) {
+          setDomains(domainsData.data.domains || [])
+        }
+        
+        const categoriesData = await categoriesRes.json()
+        if (categoriesData.success) {
+          setAllCategories(categoriesData.data.categories || [])
+        }
+      } catch (err) {
+        console.error("Failed to fetch filters:", err)
+      }
+    }
+    fetchFilters()
+  }, [])
+
+  // Filter categories based on selected domain
+  const filteredCategories = allCategories.filter(
+    cat => selectedDomain === "all" || cat.domainId === selectedDomain
+  )
 
   const filteredEnrollments = enrollments.filter(enrollment => {
     const matchesSearch = enrollment.course.title
       .toLowerCase()
       .includes(searchQuery.toLowerCase())
+    
+    // Get category info - it could be an object with name or a string
+    const courseCategoryName = getCourseCategoryName(enrollment.course.category)
+    const courseCategoryId = (enrollment.course as any).categoryId
+    const courseDomainId = (enrollment.course as any).domainId
+    
+    const matchesDomain = selectedDomain === "all" || courseDomainId === selectedDomain
     const matchesCategory = selectedCategory === "all" || 
-      getCourseCategoryName(enrollment.course.category) === selectedCategory
+      courseCategoryName === selectedCategory ||
+      courseCategoryId === selectedCategory
+    
     const matchesStatus = statusFilter === "all" || 
       (statusFilter === "completed" && enrollment.completed) ||
       (statusFilter === "in_progress" && !enrollment.completed)
-    return matchesSearch && matchesCategory && matchesStatus
+    return matchesSearch && matchesDomain && matchesCategory && matchesStatus
   })
 
   if (loading && enrollments.length === 0) {
@@ -55,17 +112,34 @@ export default function MyCoursesPage() {
 
       {/* Filters & Search */}
       <div className="flex flex-col md:flex-row gap-4 items-start md:items-center justify-between">
-        <div className="flex flex-1 gap-4 items-center">
+        <div className="flex flex-wrap gap-3 items-center">
           {/* Search */}
-          <div className="relative flex-1 max-w-md">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search courses..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
+              className="pl-10 w-48"
             />
           </div>
+
+          {/* Domain Filter */}
+          <select
+            value={selectedDomain}
+            onChange={(e) => {
+              setSelectedDomain(e.target.value)
+              setSelectedCategory("all")
+            }}
+            className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm"
+          >
+            <option value="all">All Domains</option>
+            {domains.map(domain => (
+              <option key={domain.id} value={domain.id}>
+                {domain.icon ? `${domain.icon} ` : ''}{domain.name}
+              </option>
+            ))}
+          </select>
 
           {/* Category Filter */}
           <select
@@ -74,8 +148,8 @@ export default function MyCoursesPage() {
             className="px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-sm"
           >
             <option value="all">All Categories</option>
-            {categories.map(cat => (
-              <option key={cat} value={cat}>{cat}</option>
+            {filteredCategories.map(cat => (
+              <option key={cat.id} value={cat.name}>{cat.name}</option>
             ))}
           </select>
 
@@ -126,13 +200,19 @@ export default function MyCoursesPage() {
       </div>
 
       {/* Active Filters */}
-      {(selectedCategory !== "all" || statusFilter !== "all" || searchQuery) && (
+      {(selectedDomain !== "all" || selectedCategory !== "all" || statusFilter !== "all" || searchQuery) && (
         <div className="flex flex-wrap gap-2 items-center">
           <span className="text-sm text-muted-foreground">Active filters:</span>
           {searchQuery && (
             <Badge variant="secondary" className="gap-1">
               Search: {searchQuery}
               <X className="h-3 w-3 cursor-pointer" onClick={() => setSearchQuery("")} />
+            </Badge>
+          )}
+          {selectedDomain !== "all" && (
+            <Badge variant="secondary" className="gap-1">
+              Domain: {domains.find(d => d.id === selectedDomain)?.name || selectedDomain}
+              <X className="h-3 w-3 cursor-pointer" onClick={() => setSelectedDomain("all")} />
             </Badge>
           )}
           {selectedCategory !== "all" && (
@@ -152,6 +232,7 @@ export default function MyCoursesPage() {
             size="sm" 
             onClick={() => {
               setSearchQuery("")
+              setSelectedDomain("all")
               setSelectedCategory("all")
               setStatusFilter("all")
             }}
@@ -227,7 +308,17 @@ export default function MyCoursesPage() {
 
                 {/* Content */}
                 <CardContent className="p-4">
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-2 flex-wrap">
+                    {(enrollment.course as any).domain && (
+                      <Badge 
+                        variant="outline" 
+                        className="text-xs"
+                        style={{ borderColor: (enrollment.course as any).domain?.color || '#6366f1', color: (enrollment.course as any).domain?.color || '#6366f1' }}
+                      >
+                        {(enrollment.course as any).domain?.icon && <span className="mr-1">{(enrollment.course as any).domain.icon}</span>}
+                        {(enrollment.course as any).domain?.name}
+                      </Badge>
+                    )}
                     {getCourseCategoryName(enrollment.course.category) && (
                       <Badge variant="outline" className="text-xs">
                         {getCourseCategoryName(enrollment.course.category)}

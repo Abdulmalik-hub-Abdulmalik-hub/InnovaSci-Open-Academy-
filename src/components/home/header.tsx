@@ -7,7 +7,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { 
   Menu, X, Moon, Sun, User, 
   LayoutDashboard, BookOpen, Settings, LogOut, ChevronDown,
-  CreditCard, MessageSquare, Compass, Mail, Home, BookText
+  CreditCard, MessageSquare, Compass, Mail, Home, BookText, LayoutGrid
 } from "lucide-react"
 import { AcademyLogo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
@@ -20,7 +20,8 @@ import { cn } from "@/lib/utils"
 // Completely independent from Student Dashboard navigation
 const navItems = [
   { href: "/", label: "Home", icon: Home },
-  { href: "/courses", label: "Courses", icon: BookText },
+  { href: "/courses", label: "Explore", icon: BookText, description: "Browse courses" },
+  { href: "/domains", label: "Domains", icon: LayoutGrid, description: "Browse by domain" },
   { href: "/membership", label: "Membership", icon: CreditCard },
   { href: "/learning-paths", label: "Learning Paths", icon: Compass },
   { href: "/forum", label: "Forum", icon: MessageSquare },

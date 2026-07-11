@@ -15,6 +15,19 @@ export async function GET(
         _count: {
           select: { enrollments: true, lessons: true }
         },
+        category: {
+          include: {
+            domain: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                color: true,
+                icon: true
+              }
+            }
+          }
+        },
         modules: {
           orderBy: { orderIndex: "asc" },
           include: {
@@ -55,6 +68,16 @@ export async function GET(
       success: true,
       data: {
         ...course,
+        categoryName: course.category?.name || null,
+        categoryId: course.categoryId,
+        domain: course.category?.domain ? {
+          id: course.category.domain.id,
+          name: course.category.domain.name,
+          slug: course.category.domain.slug,
+          color: course.category.domain.color,
+          icon: course.category.domain.icon
+        } : null,
+        domainId: course.category?.domainId,
         totalLessons: course._count.lessons,
         totalEnrollments: course._count.enrollments,
         totalDuration,

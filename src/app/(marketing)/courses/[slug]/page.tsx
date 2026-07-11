@@ -28,9 +28,19 @@ import {
   Video,
   FileText,
   Code,
-  BarChart3
+  BarChart3,
+  ChevronRight,
+  Home
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+interface Domain {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  icon: string | null
+}
 
 interface Lesson {
   id: string
@@ -60,6 +70,10 @@ interface CourseData {
   title: string
   slug: string
   category?: string
+  categoryId?: string
+  categoryName?: string
+  domain?: Domain | null
+  domainId?: string | null
   subcategory?: string
   shortDescription?: string
   fullDescription?: string
@@ -365,17 +379,61 @@ export default function CourseDetailsPage() {
           <div className="grid lg:grid-cols-2 gap-12 items-center">
             {/* Left: Course Info */}
             <div>
-              {/* Breadcrumb */}
-              <div className="flex items-center gap-2 text-slate-400 text-sm mb-6">
+              {/* Breadcrumb - Domain > Category > Course */}
+              <div className="flex items-center gap-2 text-slate-400 text-sm mb-6 flex-wrap">
+                <Link href="/" className="hover:text-white transition-colors flex items-center gap-1">
+                  <Home className="w-4 h-4" />
+                  Home
+                </Link>
+                <ChevronRight className="w-4 h-4" />
                 <Link href="/courses" className="hover:text-white transition-colors">
                   Courses
                 </Link>
-                <span>/</span>
-                <span className="text-white">{courseData.category}</span>
+                {courseData.domain && (
+                  <>
+                    <ChevronRight className="w-4 h-4" />
+                    <Link 
+                      href={`/courses?domainId=${courseData.domain.id}`} 
+                      className="hover:text-white transition-colors"
+                      style={{ color: courseData.domain.color || undefined }}
+                    >
+                      {courseData.domain.icon && <span className="mr-1">{courseData.domain.icon}</span>}
+                      {courseData.domain.name}
+                    </Link>
+                  </>
+                )}
+                {courseData.categoryName && (
+                  <>
+                    <ChevronRight className="w-4 h-4" />
+                    <Link 
+                      href={`/courses?domainId=${courseData.domain?.id || ''}&categoryId=${courseData.categoryId || ''}`} 
+                      className="hover:text-white transition-colors"
+                    >
+                      {courseData.categoryName}
+                    </Link>
+                  </>
+                )}
+                <ChevronRight className="w-4 h-4" />
+                <span className="text-white truncate max-w-[200px]">{courseData.title}</span>
               </div>
 
               {/* Badges */}
               <div className="flex flex-wrap gap-2 mb-4">
+                {courseData.domain && (
+                  <Badge 
+                    variant="secondary" 
+                    className="border-0 text-white"
+                    style={{ backgroundColor: courseData.domain.color || '#6366f1' }}
+                  >
+                    {courseData.domain.icon && <span className="mr-1">{courseData.domain.icon}</span>}
+                    {courseData.domain.name}
+                  </Badge>
+                )}
+                {courseData.categoryName && (
+                  <Badge variant="outline" className="text-white border-white/30">
+                    {courseData.categoryName}
+                  </Badge>
+                )}
                 <Badge variant="secondary" className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30">
                   {courseData.difficultyLevel}
                 </Badge>
