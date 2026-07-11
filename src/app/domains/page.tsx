@@ -8,145 +8,27 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-
-interface Domain {
-  id: string
-  name: string
-  slug: string
-  shortDescription: string | null
-  fullDescription: string | null
-  thumbnailUrl: string | null
-  bannerUrl: string | null
-  icon: string | null
-  color: string | null
-  isFeatured: boolean
-  categoryCount: number
-  courseCount: number
-  categories: {
-    id: string
-    name: string
-    slug: string
-    icon: string | null
-    color: string | null
-    courseCount: number
-  }[]
-}
-
-interface Category {
-  id: string
-  name: string
-  slug: string
-  domainId: string | null
-}
-
-interface Course {
-  id: string
-  title: string
-  slug: string
-  shortDescription: string | null
-  thumbnailUrl: string | null
-  difficultyLevel: string | null
-  durationHours: number | null
-  enrollments: number
-  category: string | null
-  categoryId: string | null
-  domain: {
-    id: string
-    name: string
-    slug: string
-    color: string | null
-    icon: string | null
-  } | null
-  domainId: string | null
-  isFree: boolean
-  price: number
-}
+import { useDomainFilter, type Domain, type Category, type Course } from "@/hooks/useDomainFilter"
 
 export default function DomainsPage() {
-  const [domains, setDomains] = useState<Domain[]>([])
-  const [categories, setCategories] = useState<Category[]>([])
-  const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(true)
-  const [searchQuery, setSearchQuery] = useState("")
-  const [selectedDomain, setSelectedDomain] = useState<string | null>(null)
-  const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const {
+    domains,
+    categories,
+    filteredCategories,
+    courses,
+    filters,
+    setSearchQuery,
+    setSelectedDomain,
+    setSelectedCategory,
+    resetFilters,
+    loading,
+    totalCourses,
+  } = useDomainFilter()
 
-  // Fetch domains and categories
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const [domainsRes, categoriesRes] = await Promise.all([
-          fetch("/api/public/domains"),
-          fetch("/api/admin/categories?includeInactive=true")
-        ])
-        
-        const domainsData = await domainsRes.json()
-        if (domainsData.success && domainsData.data?.domains) {
-          setDomains(domainsData.data.domains || [])
-        }
-        
-        const categoriesData = await categoriesRes.json()
-        if (categoriesData.success && categoriesData.data?.categories) {
-          setCategories(categoriesData.data.categories || [])
-        }
-      } catch (err) {
-        console.error("Failed to fetch data:", err)
-      } finally {
-        setLoading(false)
-      }
-    }
-    fetchData()
-  }, [])
+  const selectedDomainData = domains.find(d => d.id === filters.selectedDomain)
+  const selectedCategoryData = categories.find(c => c.id === filters.selectedCategory)
 
-  // Fetch courses when domain or category is selected
-  useEffect(() => {
-    if (!selectedDomain && !selectedCategory) {
-      setCourses([])
-      return
-    }
-
-    const fetchCourses = async () => {
-      try {
-        const params = new URLSearchParams()
-        if (selectedDomain) params.set("domainId", selectedDomain)
-        if (selectedCategory) params.set("categoryId", selectedCategory)
-        if (searchQuery) params.set("q", searchQuery)
-
-        const response = await fetch(`/api/public/courses?${params.toString()}`)
-        const result = await response.json()
-        if (result.success) {
-          setCourses(result.data)
-        }
-      } catch (err) {
-        console.error("Failed to fetch courses:", err)
-      }
-    }
-    fetchCourses()
-  }, [selectedDomain, selectedCategory, searchQuery])
-
-  // Filter categories based on selected domain
-  const filteredCategories = selectedDomain 
-    ? categories.filter(cat => cat.domainId === selectedDomain)
-    : []
-
-  const selectedDomainData = domains.find(d => d.id === selectedDomain)
-
-  const getDifficultyLabel = (difficulty: string | null) => {
-    switch (difficulty) {
-      case "BEGINNER": return "Beginner"
-      case "INTERMEDIATE": return "Intermediate"
-      case "ADVANCED": return "Advanced"
-      default: return difficulty || ""
-    }
-  }
-
-  const difficultyColors: Record<string, string> = {
-    BEGINNER: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400",
-    INTERMEDIATE: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-400",
-    ADVANCED: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400",
-  }
-
-  if (loading) {
+  if (loading && domains.length === 0) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 to-purple-50 dark:from-slate-900 dark:to-purple-900/20 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -176,7 +58,7 @@ export default function DomainsPage() {
               <Input
                 type="text"
                 placeholder="Search within domains..."
-                value={searchQuery}
+                value={filters.searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-12 h-12 bg-white text-gray-900 border-0 focus-visible:ring-2 focus-visible:ring-yellow-300"
               />
@@ -200,11 +82,11 @@ export default function DomainsPage() {
                 <div className="space-y-2">
                   <button
                     onClick={() => {
-                      setSelectedDomain(null)
-                      setSelectedCategory(null)
+                      setSelectedDomain("")
+                      setSelectedCategory("")
                     }}
                     className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between ${
-                      !selectedDomain 
+                      !filters.selectedDomain 
                         ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" 
                         : "hover:bg-muted"
                     }`}
@@ -217,10 +99,10 @@ export default function DomainsPage() {
                       key={domain.id}
                       onClick={() => {
                         setSelectedDomain(domain.id)
-                        setSelectedCategory(null)
+                        setSelectedCategory("")
                       }}
                       className={`w-full text-left px-4 py-3 rounded-lg transition-colors flex items-center justify-between ${
-                        selectedDomain === domain.id 
+                        filters.selectedDomain === domain.id 
                           ? "bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300" 
                           : "hover:bg-muted"
                       }`}
@@ -230,7 +112,7 @@ export default function DomainsPage() {
                         <div>
                           <span className="font-medium">{domain.name}</span>
                           <div className="text-xs text-muted-foreground">
-                            {domain.categoryCount} categories • {domain.courseCount} courses
+                            {(domain as any).categoryCount || 0} categories • {(domain as any).courseCount || 0} courses
                           </div>
                         </div>
                       </div>
@@ -241,16 +123,16 @@ export default function DomainsPage() {
               </div>
 
               {/* Category List (when domain selected) */}
-              {selectedDomain && filteredCategories.length > 0 && (
+              {filters.selectedDomain && filteredCategories.length > 0 && (
                 <div>
                   <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
                     Categories in {selectedDomainData?.name}
                   </h2>
                   <div className="space-y-2">
                     <button
-                      onClick={() => setSelectedCategory(null)}
+                      onClick={() => setSelectedCategory("")}
                       className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                        !selectedCategory 
+                        !filters.selectedCategory 
                           ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" 
                           : "hover:bg-muted"
                       }`}
@@ -262,7 +144,7 @@ export default function DomainsPage() {
                         key={cat.id}
                         onClick={() => setSelectedCategory(cat.id)}
                         className={`w-full text-left px-4 py-3 rounded-lg transition-colors ${
-                          selectedCategory === cat.id 
+                          filters.selectedCategory === cat.id 
                             ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300" 
                             : "hover:bg-muted"
                         }`}
@@ -279,7 +161,7 @@ export default function DomainsPage() {
           {/* Content Area */}
           <div className="lg:col-span-3">
             {/* Selected Domain/Category Info */}
-            {selectedDomain ? (
+            {filters.selectedDomain ? (
               <div className="mb-6">
                 <div className="flex items-center gap-3 mb-2">
                   {selectedDomainData?.icon && (
@@ -289,15 +171,18 @@ export default function DomainsPage() {
                     <h2 className="text-2xl font-bold">
                       {selectedDomainData?.name}
                     </h2>
-                    {selectedCategory && (
+                    {filters.selectedCategory && selectedCategoryData && (
                       <p className="text-muted-foreground">
-                        {filteredCategories.find(c => c.id === selectedCategory)?.name}
+                        {selectedCategoryData.name}
                       </p>
                     )}
                   </div>
                 </div>
                 {selectedDomainData?.shortDescription && (
                   <p className="text-muted-foreground">{selectedDomainData.shortDescription}</p>
+                )}
+                {totalCourses > 0 && (
+                  <p className="text-muted-foreground mt-2">{totalCourses} courses available</p>
                 )}
               </div>
             ) : (
@@ -310,7 +195,7 @@ export default function DomainsPage() {
             )}
 
             {/* Domain Cards (when no domain selected) */}
-            {!selectedDomain && (
+            {!filters.selectedDomain && (
               <div className="grid md:grid-cols-2 gap-6">
                 {domains.map((domain) => (
                   <Card 
@@ -319,9 +204,9 @@ export default function DomainsPage() {
                     onClick={() => setSelectedDomain(domain.id)}
                   >
                     <div className="aspect-video relative">
-                      {domain.bannerUrl ? (
+                      {(domain as any).bannerUrl ? (
                         <Image
-                          src={domain.bannerUrl}
+                          src={(domain as any).bannerUrl}
                           alt={domain.name}
                           fill
                           className="object-cover"
@@ -350,11 +235,11 @@ export default function DomainsPage() {
                     <CardFooter className="p-4 pt-0 flex items-center justify-between text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
                         <BookOpen className="h-4 w-4" />
-                        {domain.categoryCount} categories
+                        {(domain as any).categoryCount || 0} categories
                       </span>
                       <span className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
-                        {domain.courseCount} courses
+                        {(domain as any).courseCount || 0} courses
                       </span>
                     </CardFooter>
                   </Card>
@@ -363,7 +248,7 @@ export default function DomainsPage() {
             )}
 
             {/* Courses List (when domain or category selected) */}
-            {(selectedDomain || selectedCategory) && (
+            {(filters.selectedDomain || filters.selectedCategory) && (
               <>
                 {courses.length === 0 ? (
                   <div className="text-center py-20">
@@ -375,7 +260,7 @@ export default function DomainsPage() {
                   </div>
                 ) : (
                   <div className="space-y-4">
-                    <p className="text-muted-foreground">{courses.length} courses found</p>
+                    <p className="text-muted-foreground">{totalCourses} courses found</p>
                     <div className="grid md:grid-cols-2 gap-6">
                       {courses.map((course) => (
                         <Link key={course.id} href={`/courses/${course.slug}`}>
@@ -400,9 +285,15 @@ export default function DomainsPage() {
                               )}
                               {course.difficultyLevel && (
                                 <Badge
-                                  className={`absolute top-3 right-3 ${difficultyColors[course.difficultyLevel] || ""}`}
+                                  className={`absolute top-3 right-3 ${
+                                    course.difficultyLevel === "BEGINNER" ? "bg-green-100 text-green-800" :
+                                    course.difficultyLevel === "INTERMEDIATE" ? "bg-yellow-100 text-yellow-800" :
+                                    "bg-red-100 text-red-800"
+                                  }`}
                                 >
-                                  {getDifficultyLabel(course.difficultyLevel)}
+                                  {course.difficultyLevel === "BEGINNER" ? "Beginner" :
+                                   course.difficultyLevel === "INTERMEDIATE" ? "Intermediate" :
+                                   course.difficultyLevel === "ADVANCED" ? "Advanced" : course.difficultyLevel}
                                 </Badge>
                               )}
                             </div>
@@ -433,7 +324,7 @@ export default function DomainsPage() {
                                 )}
                                 <span className="flex items-center gap-1">
                                   <Users className="h-4 w-4" />
-                                  {course.enrollments.toLocaleString()}
+                                  {course.enrollments?.toLocaleString() || 0}
                                 </span>
                               </div>
                               <Button size="sm" variant="ghost">
