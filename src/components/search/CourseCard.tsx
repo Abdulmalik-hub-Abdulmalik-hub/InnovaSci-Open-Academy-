@@ -5,7 +5,7 @@ import Image from "next/image"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Clock, Users, BookOpen, Play, LayoutGrid } from "lucide-react"
+import { Clock, Users, BookOpen, Play, LayoutGrid, ArrowRight } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { Course } from "@/hooks/useDomainFilter"
 
@@ -172,10 +172,14 @@ export function CourseCard({
     )
   }
   
-  // Default variant
+  // Default variant - Full card clickable
   return (
-    <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow h-full", className)}>
-      <Link href={`/courses/${course.slug}`}>
+    <Link 
+      href={`/courses/${course.slug}`}
+      className="block h-full focus:outline-none focus:ring-2 focus:ring-[hsl(var(--brand-purple))] focus:ring-offset-2 rounded-lg"
+      aria-label={`View course: ${course.title}`}
+    >
+      <Card className={cn("overflow-hidden hover:shadow-lg transition-all duration-200 h-full group cursor-pointer", className)}>
         <div className="relative aspect-video">
           {course.thumbnailUrl ? (
             <Image
@@ -203,64 +207,66 @@ export function CourseCard({
           )}
           
           {/* Play button overlay */}
-          <div className="absolute inset-0 flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-            <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center">
+          <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100 transition-opacity">
+            <div className="w-14 h-14 rounded-full bg-white/90 flex items-center justify-center shadow-lg">
               <Play className="h-6 w-6 text-purple-600 ml-1" />
             </div>
           </div>
         </div>
-      </Link>
-      
-      <CardContent className="p-4">
-        {showDomain && course.domain && (
-          <Badge 
-            variant="outline" 
-            className="text-xs mb-2 block w-fit"
-            style={{ borderColor: course.domain.color || '#6366f1', color: course.domain.color || '#6366f1' }}
-          >
-            {course.domain.icon && <span className="mr-1">{course.domain.icon}</span>}
-            {course.domain.name}
-          </Badge>
-        )}
-        {showCategory && course.category && (
-          <p className="text-sm text-purple-600 font-medium mb-2">{course.category}</p>
-        )}
-        <h3 className="font-semibold text-lg line-clamp-2 mb-2">{course.title}</h3>
-        {course.shortDescription && (
-          <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{course.shortDescription}</p>
-        )}
         
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          {course.durationHours && (
-            <span className="flex items-center gap-1">
-              <Clock className="h-4 w-4" />
-              {course.durationHours}h
-            </span>
+        <CardContent className="p-4">
+          {showDomain && course.domain && (
+            <Badge 
+              variant="outline" 
+              className="text-xs mb-2 block w-fit"
+              style={{ borderColor: course.domain.color || '#6366f1', color: course.domain.color || '#6366f1' }}
+            >
+              {course.domain.icon && <span className="mr-1">{course.domain.icon}</span>}
+              {course.domain.name}
+            </Badge>
           )}
-          {course.enrollments !== undefined && (
-            <span className="flex items-center gap-1">
-              <Users className="h-4 w-4" />
-              {course.enrollments.toLocaleString()}
-            </span>
+          {showCategory && course.category && (
+            <p className="text-sm text-purple-600 font-medium mb-2">{course.category}</p>
           )}
-        </div>
-      </CardContent>
-      
-      <CardFooter className="p-4 pt-0 flex items-center justify-between">
-        <span className="font-bold text-lg">
-          {course.isFree ? (
-            <span className="text-green-600">Free</span>
-          ) : (
-            <span>${course.price}</span>
+          <h3 className="font-semibold text-lg line-clamp-2 mb-2 group-hover:text-[hsl(var(--brand-purple))] group-focus-visible:text-[hsl(var(--brand-purple))] transition-colors">{course.title}</h3>
+          {course.shortDescription && (
+            <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{course.shortDescription}</p>
           )}
-        </span>
-        <Link href={`/courses/${course.slug}`}>
-          <Button size="sm" variant="ghost">
+          
+          <div className="flex items-center gap-4 text-sm text-muted-foreground">
+            {course.durationHours && (
+              <span className="flex items-center gap-1">
+                <Clock className="h-4 w-4" />
+                {course.durationHours}h
+              </span>
+            )}
+            {course.enrollments !== undefined && (
+              <span className="flex items-center gap-1">
+                <Users className="h-4 w-4" />
+                {course.enrollments.toLocaleString()}
+              </span>
+            )}
+          </div>
+        </CardContent>
+        
+        <CardFooter className="p-4 pt-0 flex items-center justify-between">
+          <span className="font-bold text-lg">
+            {course.isFree ? (
+              <span className="text-green-600">Free</span>
+            ) : (
+              <span>${course.price}</span>
+            )}
+          </span>
+          <span className="flex items-center gap-1 text-purple-600 text-sm font-medium">
             View Course
-          </Button>
-        </Link>
-      </CardFooter>
-    </Card>
+            <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+          </span>
+        </CardFooter>
+        
+        {/* Active/Click feedback overlay */}
+        <div className="absolute inset-0 bg-purple-500/5 opacity-0 group-active:opacity-100 transition-opacity pointer-events-none" />
+      </Card>
+    </Link>
   )
 }
 
