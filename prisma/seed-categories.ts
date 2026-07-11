@@ -12,7 +12,8 @@ async function main() {
       description: "Learn to build modern websites and web applications",
       icon: "🌐",
       color: "#6366f1",
-      orderIndex: 1
+      orderIndex: 1,
+      domainId: null // Will be assigned to default domain if exists
     },
     {
       name: "Mobile Development",
@@ -20,7 +21,8 @@ async function main() {
       description: "Build iOS and Android applications",
       icon: "📱",
       color: "#ec4899",
-      orderIndex: 2
+      orderIndex: 2,
+      domainId: null
     },
     {
       name: "Data Science",
@@ -28,7 +30,8 @@ async function main() {
       description: "Analyze data and build machine learning models",
       icon: "📊",
       color: "#10b981",
-      orderIndex: 3
+      orderIndex: 3,
+      domainId: null
     },
     {
       name: "Cloud Computing",
@@ -36,7 +39,8 @@ async function main() {
       description: "Master AWS, Azure, and Google Cloud Platform",
       icon: "☁️",
       color: "#3b82f6",
-      orderIndex: 4
+      orderIndex: 4,
+      domainId: null
     },
     {
       name: "DevOps",
@@ -44,7 +48,8 @@ async function main() {
       description: "Learn CI/CD, containerization, and infrastructure",
       icon: "🔄",
       color: "#f59e0b",
-      orderIndex: 5
+      orderIndex: 5,
+      domainId: null
     },
     {
       name: "Cybersecurity",
@@ -52,7 +57,8 @@ async function main() {
       description: "Understand security principles and protect systems",
       icon: "🔒",
       color: "#ef4444",
-      orderIndex: 6
+      orderIndex: 6,
+      domainId: null
     },
     {
       name: "Artificial Intelligence",
@@ -60,7 +66,8 @@ async function main() {
       description: "Deep learning, NLP, and AI applications",
       icon: "🤖",
       color: "#8b5cf6",
-      orderIndex: 7
+      orderIndex: 7,
+      domainId: null
     },
     {
       name: "Programming Fundamentals",
@@ -68,17 +75,23 @@ async function main() {
       description: "Essential programming concepts and logic",
       icon: "💻",
       color: "#14b8a6",
-      orderIndex: 8
+      orderIndex: 8,
+      domainId: null
     }
   ]
 
   for (const category of categories) {
-    await prisma.category.upsert({
-      where: { slug: category.slug },
-      update: {},
-      create: category
+    // Use upsert with unique constraint based on domainId + slug
+    const existingCategory = await prisma.category.findFirst({
+      where: { slug: category.slug, domainId: category.domainId }
     })
-    console.log(`Created category: ${category.name}`)
+    
+    if (!existingCategory) {
+      await prisma.category.create({ data: category })
+      console.log(`Created category: ${category.name}`)
+    } else {
+      console.log(`Category already exists: ${category.name}`)
+    }
   }
 
   console.log("Categories seeded successfully!")
