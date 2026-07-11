@@ -29,6 +29,7 @@ interface Category {
   id: string
   name: string
   slug: string
+  domainId: string | null
 }
 
 interface Course {

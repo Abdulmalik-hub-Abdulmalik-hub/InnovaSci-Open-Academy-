@@ -25,22 +25,33 @@ export async function POST() {
     // Hash the admin password
     const hashedPassword = await bcrypt.hash(ADMIN_PASSWORD, 12)
     
-    // Create Categories first
-    const catDataScience = await prisma.category.upsert({
-      where: { slug: "data-science" },
-      update: {},
-      create: { name: "Data Science", slug: "data-science" }
+    // Find or create Categories
+    let catDataScience = await prisma.category.findFirst({
+      where: { slug: "data-science", domainId: null }
     })
-    const catWebDev = await prisma.category.upsert({
-      where: { slug: "web-development" },
-      update: {},
-      create: { name: "Web Development", slug: "web-development" }
+    if (!catDataScience) {
+      catDataScience = await prisma.category.create({
+        data: { name: "Data Science", slug: "data-science", domainId: null }
+      })
+    }
+    
+    let catWebDev = await prisma.category.findFirst({
+      where: { slug: "web-development", domainId: null }
     })
-    const catMobileDev = await prisma.category.upsert({
-      where: { slug: "mobile-development" },
-      update: {},
-      create: { name: "Mobile Development", slug: "mobile-development" }
+    if (!catWebDev) {
+      catWebDev = await prisma.category.create({
+        data: { name: "Web Development", slug: "web-development", domainId: null }
+      })
+    }
+    
+    let catMobileDev = await prisma.category.findFirst({
+      where: { slug: "mobile-development", domainId: null }
     })
+    if (!catMobileDev) {
+      catMobileDev = await prisma.category.create({
+        data: { name: "Mobile Development", slug: "mobile-development", domainId: null }
+      })
+    }
     
     // Create Admin User with secure password from env
     const admin = await prisma.user.upsert({

@@ -77,31 +77,71 @@ export async function GET(request: NextRequest) {
       where.status = { in: ["DRAFT", "PUBLISHED"] }
     }
 
-    const domains = await prisma.domain.findMany({
-      where,
-      include: {
-        _count: {
-          select: { 
-            categories: {
-              include: {
-                _count: {
-                  select: { courses: true }
-                }
-              }
-            }
+    // Fetch domains and category-domain mapping separately
+    const [domains, categoryDomainMap, courseCountsByCategory] = await Promise.all([
+      prisma.domain.findMany({
+        where,
+        select: {
+          id: true,
+          name: true,
+          shortName: true,
+          slug: true,
+          shortDescription: true,
+          fullDescription: true,
+          thumbnailUrl: true,
+          bannerUrl: true,
+          icon: true,
+          color: true,
+          orderIndex: true,
+          status: true,
+          visibility: true,
+          isFeatured: true,
+          seoTitle: true,
+          seoDescription: true,
+          seoKeywords: true,
+          createdAt: true,
+          updatedAt: true,
+          _count: {
+            select: { categories: true }
           }
+        },
+        orderBy: [
+          { orderIndex: 'asc' },
+          { name: 'asc' }
+        ]
+      }),
+      // Get category to domain mapping
+      prisma.category.findMany({
+        select: { id: true, domainId: true },
+      }),
+      // Get course counts by category
+      prisma.course.groupBy({
+        by: ['categoryId'],
+        _count: { id: true },
+      }),
+    ])
+
+    // Build category to domain mapping
+    const categoryToDomain = new Map<string, string | null>(
+      categoryDomainMap.map(c => [c.id, c.domainId])
+    )
+    
+    // Compute course counts per domain
+    const courseCountsByDomain = new Map<string, number>()
+    courseCountsByCategory.forEach(c => {
+      if (c.categoryId) {
+        const domainId = categoryToDomain.get(c.categoryId)
+        if (domainId) {
+          const currentCount = courseCountsByDomain.get(domainId) || 0
+          courseCountsByDomain.set(
+            domainId,
+            currentCount + (c._count as unknown as number)
+          )
         }
-      },
-      orderBy: [
-        { orderIndex: 'asc' },
-        { name: 'asc' }
-      ]
+      }
     })
 
     const formattedDomains = domains.map(domain => {
-      const categoryCount = domain._count.categories.length
-      const courseCount = domain._count.categories.reduce((acc, cat) => acc + cat._count.courses, 0)
-      
       return {
         id: domain.id,
         name: domain.name,
@@ -120,8 +160,8 @@ export async function GET(request: NextRequest) {
         seoTitle: domain.seoTitle,
         seoDescription: domain.seoDescription,
         seoKeywords: domain.seoKeywords,
-        categoryCount,
-        courseCount,
+        categoryCount: domain._count.categories,
+        courseCount: courseCountsByDomain.get(domain.id) || 0,
         createdAt: domain.createdAt.toISOString(),
         updatedAt: domain.updatedAt.toISOString()
       }

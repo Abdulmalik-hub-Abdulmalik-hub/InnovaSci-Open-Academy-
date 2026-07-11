@@ -61,7 +61,7 @@ export async function GET() {
 
     return NextResponse.json({
       success: true,
-      data: domains.map(d => ({
+      data: domains.map((d: any) => ({
         id: d.id,
         name: d.name,
         shortName: d.shortName,
@@ -74,7 +74,7 @@ export async function GET() {
         color: d.color,
         isFeatured: d.isFeatured,
         categoryCount: d._count.categories,
-        categories: d.categories.map(c => ({
+        categories: d.categories.map((c: any) => ({
           id: c.id,
           name: c.name,
           slug: c.slug,

@@ -1,5 +1,5 @@
 import { PrismaClient } from "@prisma/client"
-import bcrypt from "bcryptjs"
+import * as bcrypt from "bcryptjs"
 
 const prisma = new PrismaClient()
 
@@ -30,11 +30,16 @@ async function main() {
     
     const createdCategories: Record<string, any> = {}
     for (const cat of categories) {
-      createdCategories[cat.slug] = await prisma.category.upsert({
-        where: { slug: cat.slug },
-        update: {},
-        create: { name: cat.name, slug: cat.slug }
+      // Find or create category using compound unique constraint (domainId + slug)
+      let existingCategory = await prisma.category.findFirst({
+        where: { slug: cat.slug, domainId: null }
       })
+      if (!existingCategory) {
+        existingCategory = await prisma.category.create({
+          data: { name: cat.name, slug: cat.slug, domainId: null }
+        })
+      }
+      createdCategories[cat.slug] = existingCategory
       console.log("✓ Category:", cat.name)
     }
     

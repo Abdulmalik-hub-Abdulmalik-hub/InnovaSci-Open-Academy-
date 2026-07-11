@@ -167,45 +167,59 @@ export async function POST() {
   try {
     console.log("🚀 Seeding Python for Drug Discovery course...")
 
-    // Create Categories
-    const drugDiscoveryCategory = await prisma.category.upsert({
-      where: { slug: "drug-discovery" },
-      update: {},
-      create: {
-        name: "Drug Discovery",
-        slug: "drug-discovery",
-        description: "Learn computational methods and Python programming for modern drug discovery, from molecular representations to virtual screening.",
-        icon: "🧬",
-        color: "#8b5cf6",
-        orderIndex: 9
-      }
+    // Find or create Drug Discovery category
+    let drugDiscoveryCategory = await prisma.category.findFirst({
+      where: { slug: "drug-discovery", domainId: null }
     })
+    if (!drugDiscoveryCategory) {
+      drugDiscoveryCategory = await prisma.category.create({
+        data: {
+          name: "Drug Discovery",
+          slug: "drug-discovery",
+          description: "Learn computational methods and Python programming for modern drug discovery, from molecular representations to virtual screening.",
+          icon: "🧬",
+          color: "#8b5cf6",
+          orderIndex: 9,
+          domainId: null
+        }
+      })
+    }
 
-    await prisma.category.upsert({
-      where: { slug: "computational-biology" },
-      update: {},
-      create: {
-        name: "Computational Biology",
-        slug: "computational-biology",
-        description: "Explore computational approaches to understanding biological systems, including bioinformatics and systems biology.",
-        icon: "🧫",
-        color: "#10b981",
-        orderIndex: 10
-      }
+    // Find or create Computational Biology category
+    let compBioCategory = await prisma.category.findFirst({
+      where: { slug: "computational-biology", domainId: null }
     })
+    if (!compBioCategory) {
+      await prisma.category.create({
+        data: {
+          name: "Computational Biology",
+          slug: "computational-biology",
+          description: "Explore computational approaches to understanding biological systems, including bioinformatics and systems biology.",
+          icon: "🧫",
+          color: "#10b981",
+          orderIndex: 10,
+          domainId: null
+        }
+      })
+    }
 
-    await prisma.category.upsert({
-      where: { slug: "python-programming" },
-      update: {},
-      create: {
-        name: "Python Programming",
-        slug: "python-programming",
-        description: "Master Python programming from basics to advanced concepts for scientific computing and data analysis.",
-        icon: "🐍",
-        color: "#3b82f6",
-        orderIndex: 11
-      }
+    // Find or create Python Programming category
+    let pythonCategory = await prisma.category.findFirst({
+      where: { slug: "python-programming", domainId: null }
     })
+    if (!pythonCategory) {
+      await prisma.category.create({
+        data: {
+          name: "Python Programming",
+          slug: "python-programming",
+          description: "Master Python programming from basics to advanced concepts for scientific computing and data analysis.",
+          icon: "🐍",
+          color: "#3b82f6",
+          orderIndex: 11,
+          domainId: null
+        }
+      })
+    }
     console.log("✓ Categories created")
 
     // Create Course
