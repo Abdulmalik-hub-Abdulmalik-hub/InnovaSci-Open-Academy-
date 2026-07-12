@@ -10,7 +10,8 @@ import {
   LayoutDashboard, Users, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
   Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap,
-  Layers, BookOpen, LayoutGrid
+  Layers, BookOpen, LayoutGrid, BadgeCheck, Shield, ChartLine,
+  FileBadge, Scroll, Bookmark
 } from "lucide-react"
 
 // =============================================================================
@@ -55,12 +56,16 @@ const menuItems = [
     icon: Video,
   },
   {
-    title: "Certificates",
+    title: "Certificate Management",
     href: "/admin/certificates",
     icon: Award,
     submenu: [
-      { title: "Manage Certificates", href: "/admin/certificates" },
+      { title: "Category Certificates", href: "/admin/certificates/categories" },
+      { title: "Domain Certificates", href: "/admin/certificates/domains" },
       { title: "Certificate Templates", href: "/admin/certificates/templates" },
+      { title: "Certificate Verification", href: "/admin/certificates/verification" },
+      { title: "Certificate Analytics", href: "/admin/certificates/analytics" },
+      { title: "Certificate Settings", href: "/admin/certificates/settings" },
     ],
   },
   {

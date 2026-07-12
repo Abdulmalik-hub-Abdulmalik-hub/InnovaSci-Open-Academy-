@@ -8,7 +8,7 @@ import { FooterBranding, AcademyLogo } from "./logo"
 import { 
   BookOpen, Award, Settings,
   Heart, Clock, X, HelpCircle,
-  Code2, Briefcase
+  Code2, Briefcase, TrendingUp, Star, GraduationCap, Target
 } from "lucide-react"
 
 interface MenuItem {
@@ -16,6 +16,7 @@ interface MenuItem {
   href: string
   icon: React.ElementType
   badge?: string
+  description?: string
 }
 
 // =============================================================================
@@ -30,7 +31,7 @@ const quickAccessItems: MenuItem[] = [
   { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
   { title: "My Projects", href: "/dashboard/projects", icon: Code2 },
   { title: "Portfolio", href: "/portfolio", icon: Briefcase },
-  { title: "Certificates", href: "/dashboard/certificates", icon: Award },
+  { title: "Certifications", href: "/dashboard/certificates", icon: Award, description: "Category & Domain Progress" },
   { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
 ]

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
-// Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
 
 // Admin authentication helper
@@ -46,12 +45,23 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url)
     const includeInactive = searchParams.get("includeInactive") === "true"
+    const type = searchParams.get("type") // Filter by type: CATEGORY, DOMAIN
+
+    const where: Record<string, unknown> = {}
+    if (!includeInactive) {
+      where.isActive = true
+    }
+    if (type && (type === "CATEGORY" || type === "DOMAIN")) {
+      where.type = type
+    }
 
     const templates = await prisma.certificateTemplate.findMany({
-      where: includeInactive ? {} : { isActive: true },
+      where,
       include: {
         _count: {
-          select: { courses: true }
+          select: { 
+            courses: true 
+          }
         }
       },
       orderBy: { createdAt: "desc" }
@@ -61,19 +71,38 @@ export async function GET(request: NextRequest) {
       id: t.id,
       name: t.name,
       description: t.description,
+      type: t.type,
       backgroundUrl: t.backgroundUrl,
       width: t.width,
       height: t.height,
       // Field positions
       fields: {
         studentName: { x: t.studentNameX, y: t.studentNameY, size: t.studentNameSize, font: t.studentNameFont },
-        courseName: { x: t.courseNameX, y: t.courseNameY, size: t.courseNameSize, font: t.courseNameFont },
+        certificateType: { x: t.certificateTypeX, y: t.certificateTypeY, size: t.certificateTypeSize || 32, font: t.certificateTypeFont || "Georgia" },
         issueDate: { x: t.issueDateX, y: t.issueDateY, size: t.issueDateSize, font: t.issueDateFont },
         certificateId: { x: t.certificateIdX, y: t.certificateIdY, size: t.certificateIdSize, font: t.certificateIdFont }
       },
+      // Additional fields for category/domain certificates
+      domainName: t.domainNameX ? { x: t.domainNameX, y: t.domainNameY, size: t.domainNameSize, font: t.domainNameFont } : null,
+      categoryName: t.categoryNameX ? { x: t.categoryNameX, y: t.categoryNameY, size: t.categoryNameSize, font: t.categoryNameFont } : null,
+      // Signatures
+      ceoSignature: t.ceoSignatureX ? {
+        x: t.ceoSignatureX, y: t.ceoSignatureY, 
+        width: t.ceoSignatureWidth, height: t.ceoSignatureHeight
+      } : null,
+      academicDirectorSignature: t.academicDirectorSignatureX ? {
+        x: t.academicDirectorSignatureX, y: t.academicDirectorSignatureY,
+        width: t.academicDirectorSignatureWidth, height: t.academicDirectorSignatureHeight
+      } : null,
+      // Official seal
+      officialSeal: t.officialSealX ? {
+        x: t.officialSealX, y: t.officialSealY,
+        width: t.officialSealWidth, height: t.officialSealHeight
+      } : null,
       textColor: t.textColor,
       isActive: t.isActive,
-      coursesCount: t._count.courses,
+      categoryCount: 0, // Will be populated from category certificates
+      domainCount: 0,   // Will be populated from domain certificates
       createdAt: t.createdAt.toISOString(),
       updatedAt: t.updatedAt.toISOString()
     }))
@@ -84,7 +113,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Get templates error:", error)
-    // Return a more helpful error message
     const errorMessage = error instanceof Error ? error.message : "Database error"
     return NextResponse.json(
       { success: false, error: `Failed to fetch templates: ${errorMessage}` },
@@ -106,11 +134,14 @@ export async function POST(request: NextRequest) {
     const {
       name,
       description,
+      type = "CATEGORY", // Default to CATEGORY for new templates
       backgroundUrl,
       width = 1200,
       height = 900,
-      fields,
-      textColor = "#1a1a2e"
+      textColor = "#1a1a2e",
+      ceoSignatureUrl,
+      academicDirectorSignatureUrl,
+      officialSealUrl,
     } = body
 
     if (!name || !backgroundUrl) {
@@ -120,30 +151,57 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // Validate type
+    if (type !== "CATEGORY" && type !== "DOMAIN") {
+      return NextResponse.json(
+        { success: false, error: "Type must be CATEGORY or DOMAIN" },
+        { status: 400 }
+      )
+    }
+
     const template = await prisma.certificateTemplate.create({
       data: {
         name,
         description,
+        type,
         backgroundUrl,
         width,
         height,
-        studentNameX: fields?.studentName?.x ?? 0.5,
-        studentNameY: fields?.studentName?.y ?? 0.35,
-        studentNameSize: fields?.studentName?.size ?? 48,
-        studentNameFont: fields?.studentName?.font ?? "Georgia",
-        courseNameX: fields?.courseName?.x ?? 0.5,
-        courseNameY: fields?.courseName?.y ?? 0.5,
-        courseNameSize: fields?.courseName?.size ?? 32,
-        courseNameFont: fields?.courseName?.font ?? "Georgia",
-        issueDateX: fields?.issueDate?.x ?? 0.5,
-        issueDateY: fields?.issueDate?.y ?? 0.65,
-        issueDateSize: fields?.issueDate?.size ?? 24,
-        issueDateFont: fields?.issueDate?.font ?? "Georgia",
-        certificateIdX: fields?.certificateId?.x ?? 0.5,
-        certificateIdY: fields?.certificateId?.y ?? 0.75,
-        certificateIdSize: fields?.certificateId?.size ?? 18,
-        certificateIdFont: fields?.certificateId?.font ?? "Courier",
-        textColor
+        studentNameX: 0.5,
+        studentNameY: 0.35,
+        studentNameSize: 48,
+        studentNameFont: "Georgia",
+        certificateTypeX: 0.5,
+        certificateTypeY: 0.25,
+        certificateTypeSize: 24,
+        certificateTypeFont: "Georgia",
+        courseNameX: 0.5,
+        courseNameY: 0.5,
+        courseNameSize: 32,
+        courseNameFont: "Georgia",
+        issueDateX: 0.5,
+        issueDateY: 0.75,
+        issueDateSize: 20,
+        issueDateFont: "Georgia",
+        certificateIdX: 0.5,
+        certificateIdY: 0.85,
+        certificateIdSize: 14,
+        certificateIdFont: "Courier",
+        textColor,
+        // Signature positions
+        ceoSignatureX: 0.3,
+        ceoSignatureY: 0.8,
+        ceoSignatureWidth: 150,
+        ceoSignatureHeight: 50,
+        academicDirectorSignatureX: 0.7,
+        academicDirectorSignatureY: 0.8,
+        academicDirectorSignatureWidth: 150,
+        academicDirectorSignatureHeight: 50,
+        // Official seal
+        officialSealX: 0.85,
+        officialSealY: 0.85,
+        officialSealWidth: 80,
+        officialSealHeight: 80,
       }
     })
 
@@ -152,6 +210,7 @@ export async function POST(request: NextRequest) {
       data: {
         id: template.id,
         name: template.name,
+        type: template.type,
         backgroundUrl: template.backgroundUrl
       }
     }, { status: 201 })

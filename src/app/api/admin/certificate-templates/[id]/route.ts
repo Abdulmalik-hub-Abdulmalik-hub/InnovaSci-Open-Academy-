@@ -69,11 +69,13 @@ export async function GET(
         id: template.id,
         name: template.name,
         description: template.description,
+        type: template.type,
         backgroundUrl: template.backgroundUrl,
         width: template.width,
         height: template.height,
         fields: {
           studentName: { x: template.studentNameX, y: template.studentNameY, size: template.studentNameSize, font: template.studentNameFont },
+          certificateType: { x: template.certificateTypeX, y: template.certificateTypeY, size: template.certificateTypeSize || 24, font: template.certificateTypeFont || "Georgia" },
           courseName: { x: template.courseNameX, y: template.courseNameY, size: template.courseNameSize, font: template.courseNameFont },
           issueDate: { x: template.issueDateX, y: template.issueDateY, size: template.issueDateSize, font: template.issueDateFont },
           certificateId: { x: template.certificateIdX, y: template.certificateIdY, size: template.certificateIdSize, font: template.certificateIdFont }
@@ -94,8 +96,8 @@ export async function GET(
   }
 }
 
-// PATCH /api/admin/certificate-templates/[id] - Update template
-export async function PATCH(
+// PUT /api/admin/certificate-templates/[id] - Update template
+export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -123,6 +125,7 @@ export async function PATCH(
     const {
       name,
       description,
+      type,
       backgroundUrl,
       width,
       height,
@@ -131,10 +134,11 @@ export async function PATCH(
       isActive
     } = body
 
-    const updateData: any = {}
+    const updateData: Record<string, unknown> = {}
     
     if (name !== undefined) updateData.name = name
     if (description !== undefined) updateData.description = description
+    if (type !== undefined && (type === "CATEGORY" || type === "DOMAIN")) updateData.type = type
     if (backgroundUrl !== undefined) updateData.backgroundUrl = backgroundUrl
     if (width !== undefined) updateData.width = width
     if (height !== undefined) updateData.height = height
@@ -148,6 +152,12 @@ export async function PATCH(
         if (fields.studentName.y !== undefined) updateData.studentNameY = fields.studentName.y
         if (fields.studentName.size !== undefined) updateData.studentNameSize = fields.studentName.size
         if (fields.studentName.font !== undefined) updateData.studentNameFont = fields.studentName.font
+      }
+      if (fields.certificateType) {
+        if (fields.certificateType.x !== undefined) updateData.certificateTypeX = fields.certificateType.x
+        if (fields.certificateType.y !== undefined) updateData.certificateTypeY = fields.certificateType.y
+        if (fields.certificateType.size !== undefined) updateData.certificateTypeSize = fields.certificateType.size
+        if (fields.certificateType.font !== undefined) updateData.certificateTypeFont = fields.certificateType.font
       }
       if (fields.courseName) {
         if (fields.courseName.x !== undefined) updateData.courseNameX = fields.courseName.x
@@ -167,6 +177,19 @@ export async function PATCH(
         if (fields.certificateId.size !== undefined) updateData.certificateIdSize = fields.certificateId.size
         if (fields.certificateId.font !== undefined) updateData.certificateIdFont = fields.certificateId.font
       }
+      // Additional fields for category/domain certificates
+      if (fields.domainName) {
+        if (fields.domainName.x !== undefined) updateData.domainNameX = fields.domainName.x
+        if (fields.domainName.y !== undefined) updateData.domainNameY = fields.domainName.y
+        if (fields.domainName.size !== undefined) updateData.domainNameSize = fields.domainName.size
+        if (fields.domainName.font !== undefined) updateData.domainNameFont = fields.domainName.font
+      }
+      if (fields.categoryName) {
+        if (fields.categoryName.x !== undefined) updateData.categoryNameX = fields.categoryName.x
+        if (fields.categoryName.y !== undefined) updateData.categoryNameY = fields.categoryName.y
+        if (fields.categoryName.size !== undefined) updateData.categoryNameSize = fields.categoryName.size
+        if (fields.categoryName.font !== undefined) updateData.categoryNameFont = fields.categoryName.font
+      }
     }
 
     const template = await prisma.certificateTemplate.update({
@@ -179,9 +202,11 @@ export async function PATCH(
       data: {
         id: template.id,
         name: template.name,
+        type: template.type,
         backgroundUrl: template.backgroundUrl,
         fields: {
           studentName: { x: template.studentNameX, y: template.studentNameY, size: template.studentNameSize, font: template.studentNameFont },
+          certificateType: { x: template.certificateTypeX, y: template.certificateTypeY, size: template.certificateTypeSize || 24, font: template.certificateTypeFont || "Georgia" },
           courseName: { x: template.courseNameX, y: template.courseNameY, size: template.courseNameSize, font: template.courseNameFont },
           issueDate: { x: template.issueDateX, y: template.issueDateY, size: template.issueDateSize, font: template.issueDateFont },
           certificateId: { x: template.certificateIdX, y: template.certificateIdY, size: template.certificateIdSize, font: template.certificateIdFont }
