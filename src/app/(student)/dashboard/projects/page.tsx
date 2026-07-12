@@ -175,54 +175,65 @@ export default function StudentProjectsPage() {
       
       if (coursesData.success) {
         const available: AvailableProject[] = []
+        const enrollments = coursesData.data?.enrollments || coursesData.data || []
         
-        for (const enrollment of coursesData.data) {
+        for (const enrollment of enrollments) {
           if (!enrollment.course) continue
           
           // Check completion status
-          const progress = enrollment.progress || 0
+          const progress = enrollment.progressPercent || enrollment.progress || 0
           const isLocked = progress < 50 // Lock projects until 50% complete
           
           // Get mini-projects for the course
-          const miniProjectsRes = await fetch(`/api/admin/courses/${enrollment.course.id}/mini-project`)
-          const miniProjectsData = await miniProjectsRes.json()
-          
-          if (miniProjectsData.success && miniProjectsData.data) {
-            available.push({
-              id: miniProjectsData.data.id,
-              title: miniProjectsData.data.title,
-              type: "mini_project",
-              courseId: enrollment.course.id,
-              courseTitle: enrollment.course.title,
-              isLocked,
-              modulesCompleted: Math.floor(progress * (enrollment.course.modulesCount || 10) / 100),
-              totalModules: enrollment.course.modulesCount || 10,
-            })
+          try {
+            const miniProjectsRes = await fetch(`/api/admin/courses/${enrollment.course.id}/mini-project`)
+            const miniProjectsData = await miniProjectsRes.json()
+            
+            if (miniProjectsData.success && miniProjectsData.data) {
+              available.push({
+                id: miniProjectsData.data.id,
+                title: miniProjectsData.data.title,
+                type: "mini_project",
+                courseId: enrollment.course.id,
+                courseTitle: enrollment.course.title,
+                isLocked,
+                modulesCompleted: Math.floor(progress * (enrollment.course.modulesCount || 10) / 100),
+                totalModules: enrollment.course.modulesCount || 10,
+              })
+            }
+          } catch (e) {
+            // Mini-project fetch failed, skip
+            console.log("No mini-project found for course:", enrollment.course.id)
           }
         }
         
         // Also fetch capstone projects
-        const capstoneRes = await fetch("/api/admin/capstones/difficulty")
-        const capstoneData = await capstoneRes.json()
-        
-        if (capstoneData.success) {
-          for (const capstone of capstoneData.data) {
-            // Check if user has courses in this difficulty level
-            const hasRequiredCourses = coursesData.data.some(
-              (e: { course: { difficultyLevel: string }; progress?: number }) => 
-                e.course?.difficultyLevel === capstone.difficultyLevel && 
-                (e.progress || 0) >= 100
-            )
-            
-            available.push({
-              id: capstone.id,
-              title: capstone.title,
-              type: "capstone",
-              courseTitle: capstone.difficultyLevel,
-              difficulty: capstone.difficultyLevel,
-              isLocked: !hasRequiredCourses,
-            })
+        try {
+          const capstoneRes = await fetch("/api/admin/capstones/difficulty")
+          const capstoneData = await capstoneRes.json()
+          
+          if (capstoneData.success && capstoneData.data) {
+            for (const capstone of capstoneData.data) {
+              // Check if user has courses in this difficulty level
+              const hasRequiredCourses = enrollments.some(
+                (e: any) => 
+                  e.course?.difficultyLevel === capstone.difficultyLevel && 
+                  (e.progressPercent || e.progress || 0) >= 100
+              )
+              
+              available.push({
+                id: capstone.id,
+                title: capstone.title,
+                type: "capstone",
+                courseTitle: capstone.difficultyLevel,
+                difficulty: capstone.difficultyLevel,
+                isLocked: !hasRequiredCourses,
+              })
+            }
           }
+        } catch (e) {
+          // Capstone fetch failed, skip
+          console.log("No capstones found")
         }
         
         setAvailableProjects(available)

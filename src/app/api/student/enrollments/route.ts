@@ -45,6 +45,7 @@ export async function GET(request: NextRequest) {
       orderBy: { enrolledAt: "desc" }
     })
 
+    // Filter by category if specified
     let filteredEnrollments = enrollments
     if (category && category !== "all") {
       filteredEnrollments = enrollments.filter(
@@ -52,6 +53,7 @@ export async function GET(request: NextRequest) {
       )
     }
 
+    // Get unique categories
     const categorySet = new Set<string>()
     enrollments.forEach(e => {
       if (e.course.category?.name) {
@@ -60,6 +62,7 @@ export async function GET(request: NextRequest) {
     })
     const categories = Array.from(categorySet)
 
+    // Format enrollments with progress
     const enrollmentsWithProgress = filteredEnrollments.map(enrollment => ({
       id: enrollment.id,
       courseId: enrollment.courseId,
@@ -70,22 +73,22 @@ export async function GET(request: NextRequest) {
       completedAt: enrollment.completedAt
     }))
 
+    // Pagination
     const start = (page - 1) * limit
     const end = start + limit
     const paginatedEnrollments = enrollmentsWithProgress.slice(start, end)
 
+    // Return data in original format
     return NextResponse.json({
       success: true,
-      data: {
-        enrollments: paginatedEnrollments,
-        pagination: {
-          page,
-          limit,
-          total: filteredEnrollments.length,
-          totalPages: Math.ceil(filteredEnrollments.length / limit)
-        },
-        filters: { categories }
-      }
+      data: paginatedEnrollments,
+      pagination: {
+        page,
+        limit,
+        total: filteredEnrollments.length,
+        totalPages: Math.ceil(filteredEnrollments.length / limit)
+      },
+      filters: { categories }
     })
   } catch (error) {
     console.error("Enrollments API error:", error)
