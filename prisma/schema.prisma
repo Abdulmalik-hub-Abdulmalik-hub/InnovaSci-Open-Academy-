@@ -825,6 +825,15 @@ enum PurchaseScope {
   CATEGORY    // All courses within specific category(ies)
 }
 
+// ============================================
+// HYBRID PRICING MODE
+// ============================================
+enum PricingMode {
+  MANUAL          // Administrator manually enters every supported currency
+  AUTO_CONVERSION // System auto-converts from a base currency
+  HYBRID          // Auto-generated with manual override capability
+}
+
 model Plan {
   id                 String   @id @default(uuid())
   name               String
@@ -857,6 +866,30 @@ model Plan {
   trialDays          Int?     @default(0)
   sortOrder          Int      @default(0)
   
+  // Multi-Currency Pricing Fields
+  pricingMode        PricingMode @default(MANUAL)
+  baseCurrency       String   @default("NGN") // Base currency for auto-conversion: NGN or USD
+  supportedCurrencies String[] @default(["NGN"]) // ["NGN"], ["USD"], or ["NGN", "USD"]
+  
+  // Manual Prices
+  ngnPrice           Decimal? @default(0) // Manual NGN price
+  usdPrice           Decimal? @default(0) // Manual USD price
+  
+  // Auto-Generated Prices (from conversion)
+  generatedNgnPrice  Decimal? // System-generated NGN price
+  generatedUsdPrice  Decimal? // System-generated USD price
+  
+  // Exchange Rate Info
+  exchangeRate       Decimal? @default(1) // Exchange rate used (e.g., 1650 for NGN to USD)
+  exchangeRateSource String?  // Provider used for exchange rate
+  exchangeRateTimestamp DateTime? // When the rate was fetched
+  
+  // Legacy Pricing JSON - enhanced structure:
+  // {
+  //   "NGN": { "manualAmount": 80000, "generatedAmount": 80000, "isManualOverride": true, "paystackPlanId": "xxx" },
+  //   "USD": { "manualAmount": 49.99, "generatedAmount": 50.12, "isManualOverride": true, "stripePriceId": "xxx" }
+  // }
+  
   // Visual customization
   icon               String?
   bannerUrl          String?
@@ -886,7 +919,44 @@ model Plan {
 }
 
 // ============================================
-// 14c. CATEGORY PURCHASE - One-time purchase for category access
+// 14c. CURRENCY SETTINGS - Platform-wide currency configuration
+// ============================================
+model CurrencySetting {
+  id                  String   @id @default(uuid())
+  currency            String   @unique // NGN, USD, etc.
+  name                String   // Nigerian Naira, US Dollar, etc.
+  symbol              String   // ₦, $, etc.
+  code                String   // NGN, USD, etc.
+  exchangeRate        Decimal  @default(1) // Rate relative to base currency
+  isEnabled           Boolean  @default(true)
+  isDefault           Boolean  @default(false)
+  sortOrder           Int      @default(0)
+  
+  // Gateway Configuration
+  gatewayProvider     String?  // paystack, stripe, flutterwave, paypal
+  gatewayEnabled      Boolean  @default(false)
+  gatewayConfig       Json?    // { apiKey, secret, etc. }
+  
+  // Display Settings
+  decimalPlaces       Int      @default(2)
+  thousandsSeparator  String   @default(",")
+  decimalSeparator    String   @default(".")
+  symbolPosition      String   @default("before") // before or after
+  
+  // Exchange Rate Settings
+  exchangeRateProvider String? // fixer, openexchangerates, exchangerate-api
+  lastRateUpdate      DateTime?
+  autoUpdateRates     Boolean  @default(false)
+  updateIntervalHours Int      @default(24)
+  
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  
+  @@map("currency_settings")
+}
+
+// ============================================
+// 14d. CATEGORY PURCHASE - One-time purchase for category access
 // ============================================
 model CategoryPurchase {
   id              String    @id @default(uuid())

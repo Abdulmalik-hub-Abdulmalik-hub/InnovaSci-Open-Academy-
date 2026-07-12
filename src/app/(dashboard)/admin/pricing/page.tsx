@@ -43,6 +43,17 @@ interface Plan {
   price: number
   currency: string
   pricing: any
+  // Multi-currency fields
+  pricingMode?: 'MANUAL' | 'AUTO_CONVERSION' | 'HYBRID'
+  baseCurrency?: string
+  supportedCurrencies?: string[]
+  ngnPrice?: number | null
+  usdPrice?: number | null
+  generatedNgnPrice?: number | null
+  generatedUsdPrice?: number | null
+  exchangeRate?: number | null
+  exchangeRateSource?: string | null
+  exchangeRateTimestamp?: string | null
   features: string[]
   isActive: boolean
   isFeatured: boolean
@@ -674,6 +685,15 @@ function PlanModal({
     allowedCategoryIds: plan?.allowedCategoryIds || [],
     price: plan?.price || 0,
     currency: plan?.currency || "USD",
+    // Multi-currency fields
+    pricingMode: plan?.pricingMode || "MANUAL",
+    baseCurrency: plan?.baseCurrency || "NGN",
+    supportedCurrencies: plan?.supportedCurrencies || ["NGN"],
+    ngnPrice: plan?.ngnPrice || 0,
+    usdPrice: plan?.usdPrice || 0,
+    generatedNgnPrice: plan?.generatedNgnPrice || null,
+    generatedUsdPrice: plan?.generatedUsdPrice || null,
+    exchangeRate: plan?.exchangeRate || 1650,
     features: plan?.features?.join("\n") || "",
     isActive: plan?.isActive ?? true,
     isFeatured: plan?.isFeatured ?? false,
@@ -690,6 +710,10 @@ function PlanModal({
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState("")
   const [activeSection, setActiveSection] = useState("basic")
+  const [refreshingRates, setRefreshingRates] = useState(false)
+  const [currentExchangeRate, setCurrentExchangeRate] = useState<{ rate: number; source: string } | null>(
+    plan?.exchangeRate ? { rate: Number(plan.exchangeRate), source: plan.exchangeRateSource || 'manual' } : null
+  )
 
   // Pricing tiers
   const [pricingTiers, setPricingTiers] = useState<{currency: string, monthly: number, quarterly: number, yearly: number, lifetime: number}[]>([
@@ -755,6 +779,52 @@ function PlanModal({
     } finally {
       setSaving(false)
     }
+  }
+
+  // Refresh exchange rates
+  const refreshExchangeRates = async () => {
+    setRefreshingRates(true)
+    try {
+      const response = await fetch('/api/exchange-rates')
+      const data = await response.json()
+      if (data.success && data.rates) {
+        const rate = formData.baseCurrency === 'NGN' ? data.rates.usdToNgn : data.rates.ngnToUsd
+        setCurrentExchangeRate({ rate: rate.rate, source: rate.source })
+        setFormData({ ...formData, exchangeRate: rate.rate })
+        
+        // Auto-calculate prices if in AUTO_CONVERSION or HYBRID mode
+        if (formData.pricingMode !== 'MANUAL') {
+          if (formData.baseCurrency === 'NGN' && formData.ngnPrice > 0) {
+            const usdPrice = Number((formData.ngnPrice / rate.rate).toFixed(2))
+            setFormData(prev => ({ ...prev, generatedUsdPrice: usdPrice }))
+          } else if (formData.baseCurrency === 'USD' && formData.usdPrice > 0) {
+            const ngnPrice = Number((formData.usdPrice * rate.rate).toFixed(2))
+            setFormData(prev => ({ ...prev, generatedNgnPrice: ngnPrice }))
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Failed to refresh rates:', err)
+    } finally {
+      setRefreshingRates(false)
+    }
+  }
+
+  // Calculate auto-generated prices when base price or rate changes
+  const calculateGeneratedPrices = () => {
+    if (formData.pricingMode === 'AUTO_CONVERSION' || formData.pricingMode === 'HYBRID') {
+      const rate = formData.exchangeRate || 1650
+      if (formData.baseCurrency === 'NGN' && formData.ngnPrice > 0) {
+        return {
+          generatedUsdPrice: Number((formData.ngnPrice / rate).toFixed(2))
+        }
+      } else if (formData.baseCurrency === 'USD' && formData.usdPrice > 0) {
+        return {
+          generatedNgnPrice: Number((formData.usdPrice * rate).toFixed(2))
+        }
+      }
+    }
+    return {}
   }
 
   // Filter categories by selected domain for Domain scope plans
@@ -1093,81 +1163,252 @@ function PlanModal({
             {/* Pricing Section */}
             {activeSection === "pricing" && (
               <div className="space-y-6">
+                {/* Pricing Mode Selection */}
                 <div>
-                  <label className="text-sm text-white/70 mb-3 block">Multi-Currency Pricing</label>
-                  <p className="text-white/50 text-sm mb-4">
-                    Set prices for different billing cycles. Leave as 0 if not applicable.
-                  </p>
-
-                  {/* Pricing Table */}
-                  <div className="space-y-4">
-                    {pricingTiers.map((tier, index) => (
-                      <div key={tier.currency} className="p-4 bg-white/5 rounded-lg border border-white/10">
-                        <div className="flex items-center justify-between mb-3">
-                          <span className="text-white font-medium">{tier.currency}</span>
-                        </div>
-                        <div className="grid grid-cols-4 gap-3">
-                          <div>
-                            <label className="text-xs text-white/50 mb-1 block">Monthly</label>
-                            <Input
-                              type="number"
-                              value={tier.monthly}
-                              onChange={(e) => {
-                                const newTiers = [...pricingTiers]
-                                newTiers[index].monthly = parseFloat(e.target.value) || 0
-                                setPricingTiers(newTiers)
-                              }}
-                              className="bg-white/5 border-white/10 text-white"
-                              placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-white/50 mb-1 block">Quarterly</label>
-                            <Input
-                              type="number"
-                              value={tier.quarterly}
-                              onChange={(e) => {
-                                const newTiers = [...pricingTiers]
-                                newTiers[index].quarterly = parseFloat(e.target.value) || 0
-                                setPricingTiers(newTiers)
-                              }}
-                              className="bg-white/5 border-white/10 text-white"
-                              placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-white/50 mb-1 block">Yearly</label>
-                            <Input
-                              type="number"
-                              value={tier.yearly}
-                              onChange={(e) => {
-                                const newTiers = [...pricingTiers]
-                                newTiers[index].yearly = parseFloat(e.target.value) || 0
-                                setPricingTiers(newTiers)
-                              }}
-                              className="bg-white/5 border-white/10 text-white"
-                              placeholder="0"
-                            />
-                          </div>
-                          <div>
-                            <label className="text-xs text-white/50 mb-1 block">Lifetime</label>
-                            <Input
-                              type="number"
-                              value={tier.lifetime}
-                              onChange={(e) => {
-                                const newTiers = [...pricingTiers]
-                                newTiers[index].lifetime = parseFloat(e.target.value) || 0
-                                setPricingTiers(newTiers)
-                              }}
-                              className="bg-white/5 border-white/10 text-white"
-                              placeholder="0"
-                            />
-                          </div>
-                        </div>
-                      </div>
+                  <label className="text-sm text-white/70 mb-3 block">Pricing Mode</label>
+                  <div className="grid grid-cols-3 gap-3">
+                    {[
+                      { value: 'MANUAL', label: 'Manual', desc: 'Enter prices manually' },
+                      { value: 'AUTO_CONVERSION', label: 'Auto Convert', desc: 'Auto-convert from base' },
+                      { value: 'HYBRID', label: 'Hybrid', desc: 'Auto + manual override' },
+                    ].map((mode) => (
+                      <button
+                        key={mode.value}
+                        type="button"
+                        onClick={() => setFormData({ ...formData, pricingMode: mode.value as any })}
+                        className={`p-4 rounded-lg border text-left transition-all ${
+                          formData.pricingMode === mode.value
+                            ? 'bg-purple-500/20 border-purple-500'
+                            : 'bg-white/5 border-white/10 hover:border-white/20'
+                        }`}
+                      >
+                        <div className="text-white font-medium">{mode.label}</div>
+                        <div className="text-white/50 text-xs">{mode.desc}</div>
+                      </button>
                     ))}
                   </div>
                 </div>
+
+                {/* Supported Currencies */}
+                <div>
+                  <label className="text-sm text-white/70 mb-3 block">Supported Currencies</label>
+                  <div className="flex gap-4">
+                    {['NGN', 'USD'].map((currency) => (
+                      <label key={currency} className="flex items-center gap-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={formData.supportedCurrencies.includes(currency)}
+                          onChange={(e) => {
+                            const newCurrencies = e.target.checked
+                              ? [...formData.supportedCurrencies, currency]
+                              : formData.supportedCurrencies.filter(c => c !== currency)
+                            setFormData({ ...formData, supportedCurrencies: newCurrencies })
+                          }}
+                          className="rounded border-white/20"
+                        />
+                        <span className="text-white">{currency === 'NGN' ? '₦ NGN' : '$ USD'}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Base Currency & Exchange Rate (for Auto/Hybrid modes) */}
+                {(formData.pricingMode === 'AUTO_CONVERSION' || formData.pricingMode === 'HYBRID') && (
+                  <div className="p-4 bg-white/5 rounded-lg border border-white/10 space-y-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <label className="text-sm text-white/70 block mb-1">Base Currency</label>
+                        <select
+                          value={formData.baseCurrency}
+                          onChange={(e) => setFormData({ ...formData, baseCurrency: e.target.value })}
+                          className="px-3 py-2 rounded-lg bg-white/10 border border-white/10 text-white"
+                        >
+                          <option value="NGN">₦ Nigerian Naira (NGN)</option>
+                          <option value="USD">$ US Dollar (USD)</option>
+                        </select>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-white/50 text-xs">Current Rate</p>
+                        <p className="text-white font-medium">
+                          {currentExchangeRate 
+                            ? `1 ${formData.baseCurrency === 'NGN' ? 'USD' : 'NGN'} = ${formData.exchangeRate?.toFixed(2)} ${formData.baseCurrency}`
+                            : 'Click refresh to load'
+                          }
+                        </p>
+                        {currentExchangeRate && (
+                          <p className="text-white/30 text-xs">Source: {currentExchangeRate.source}</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3">
+                      <Input
+                        type="number"
+                        value={formData.exchangeRate}
+                        onChange={(e) => setFormData({ ...formData, exchangeRate: parseFloat(e.target.value) || 0 })}
+                        className="bg-white/5 border-white/10 text-white w-32"
+                        placeholder="1650"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={refreshExchangeRates}
+                        disabled={refreshingRates}
+                        className="border-white/10 text-white hover:bg-white/10"
+                      >
+                        {refreshingRates ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <Zap className="h-4 w-4 mr-2" />
+                        )}
+                        Refresh Rate
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Manual Prices */}
+                {formData.supportedCurrencies.includes('NGN') && (
+                  <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-white font-medium flex items-center gap-2">
+                        <span>₦</span> Nigerian Naira (NGN)
+                      </span>
+                      {(formData.pricingMode === 'AUTO_CONVERSION' || formData.pricingMode === 'HYBRID') && formData.baseCurrency !== 'NGN' && (
+                        <span className="text-xs text-white/50">Auto-converted</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div>
+                        <label className="text-xs text-white/50 mb-1 block">Monthly</label>
+                        <Input
+                          type="number"
+                          value={pricingTiers[1]?.monthly || 0}
+                          onChange={(e) => {
+                            const newTiers = [...pricingTiers]
+                            newTiers[1] = { ...newTiers[1], monthly: parseFloat(e.target.value) || 0 }
+                            setPricingTiers(newTiers)
+                          }}
+                          className="bg-white/5 border-white/10 text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/50 mb-1 block">Quarterly</label>
+                        <Input
+                          type="number"
+                          value={pricingTiers[1]?.quarterly || 0}
+                          onChange={(e) => {
+                            const newTiers = [...pricingTiers]
+                            newTiers[1] = { ...newTiers[1], quarterly: parseFloat(e.target.value) || 0 }
+                            setPricingTiers(newTiers)
+                          }}
+                          className="bg-white/5 border-white/10 text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/50 mb-1 block">Yearly</label>
+                        <Input
+                          type="number"
+                          value={pricingTiers[1]?.yearly || 0}
+                          onChange={(e) => {
+                            const newTiers = [...pricingTiers]
+                            newTiers[1] = { ...newTiers[1], yearly: parseFloat(e.target.value) || 0 }
+                            setPricingTiers(newTiers)
+                          }}
+                          className="bg-white/5 border-white/10 text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/50 mb-1 block">Lifetime</label>
+                        <Input
+                          type="number"
+                          value={pricingTiers[1]?.lifetime || 0}
+                          onChange={(e) => {
+                            const newTiers = [...pricingTiers]
+                            newTiers[1] = { ...newTiers[1], lifetime: parseFloat(e.target.value) || 0 }
+                            setPricingTiers(newTiers)
+                          }}
+                          className="bg-white/5 border-white/10 text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {formData.supportedCurrencies.includes('USD') && (
+                  <div className="p-4 bg-white/5 rounded-lg border border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-white font-medium flex items-center gap-2">
+                        <span>$</span> US Dollar (USD)
+                      </span>
+                      {(formData.pricingMode === 'AUTO_CONVERSION' || formData.pricingMode === 'HYBRID') && formData.baseCurrency !== 'USD' && (
+                        <span className="text-xs text-white/50">Auto-converted</span>
+                      )}
+                    </div>
+                    <div className="grid grid-cols-4 gap-3">
+                      <div>
+                        <label className="text-xs text-white/50 mb-1 block">Monthly</label>
+                        <Input
+                          type="number"
+                          value={pricingTiers[0]?.monthly || 0}
+                          onChange={(e) => {
+                            const newTiers = [...pricingTiers]
+                            newTiers[0] = { ...newTiers[0], monthly: parseFloat(e.target.value) || 0 }
+                            setPricingTiers(newTiers)
+                          }}
+                          className="bg-white/5 border-white/10 text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/50 mb-1 block">Quarterly</label>
+                        <Input
+                          type="number"
+                          value={pricingTiers[0]?.quarterly || 0}
+                          onChange={(e) => {
+                            const newTiers = [...pricingTiers]
+                            newTiers[0] = { ...newTiers[0], quarterly: parseFloat(e.target.value) || 0 }
+                            setPricingTiers(newTiers)
+                          }}
+                          className="bg-white/5 border-white/10 text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/50 mb-1 block">Yearly</label>
+                        <Input
+                          type="number"
+                          value={pricingTiers[0]?.yearly || 0}
+                          onChange={(e) => {
+                            const newTiers = [...pricingTiers]
+                            newTiers[0] = { ...newTiers[0], yearly: parseFloat(e.target.value) || 0 }
+                            setPricingTiers(newTiers)
+                          }}
+                          className="bg-white/5 border-white/10 text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs text-white/50 mb-1 block">Lifetime</label>
+                        <Input
+                          type="number"
+                          value={pricingTiers[0]?.lifetime || 0}
+                          onChange={(e) => {
+                            const newTiers = [...pricingTiers]
+                            newTiers[0] = { ...newTiers[0], lifetime: parseFloat(e.target.value) || 0 }
+                            setPricingTiers(newTiers)
+                          }}
+                          className="bg-white/5 border-white/10 text-white"
+                          placeholder="0"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -1181,6 +1422,37 @@ function PlanModal({
                       className="bg-white/5 border-white/10 text-white"
                       placeholder="0"
                     />
+                  </div>
+                </div>
+
+                {/* Price Preview */}
+                <div className="p-4 bg-gradient-to-r from-purple-500/10 to-blue-500/10 rounded-lg border border-purple-500/20">
+                  <p className="text-white/70 text-sm mb-3 flex items-center gap-2">
+                    <BarChart3 className="h-4 w-4" />
+                    Price Preview
+                  </p>
+                  <div className="flex flex-wrap gap-4">
+                    {formData.supportedCurrencies.includes('NGN') && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/50">NGN:</span>
+                        <span className="text-white font-bold text-lg">
+                          ₦{pricingTiers[1]?.lifetime?.toLocaleString() || 0}
+                        </span>
+                      </div>
+                    )}
+                    {formData.supportedCurrencies.includes('USD') && (
+                      <div className="flex items-center gap-2">
+                        <span className="text-white/50">USD:</span>
+                        <span className="text-white font-bold text-lg">
+                          ${pricingTiers[0]?.lifetime?.toLocaleString() || 0}
+                        </span>
+                      </div>
+                    )}
+                    {formData.supportedCurrencies.includes('NGN') && formData.supportedCurrencies.includes('USD') && (
+                      <div className="w-full text-sm text-white/50">
+                        or
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
