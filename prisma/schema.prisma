@@ -59,6 +59,11 @@ model User {
   invoices           Invoice[]
   accessLicenses     AccessLicense[]
 
+  // Project Review Relations
+  reviewsConducted   ProjectReview[]    @relation("Reviewer")
+  reviewAssignments  ReviewerAssignment[]
+  commentsAuthored  ProjectComment[]
+
   @@map("users")
 }
 
@@ -1998,25 +2003,49 @@ model ProjectSubmission {
   fileUrls        Json?    // Array of uploaded file URLs
   screenshots     Json?    // Array of screenshot URLs
   
-  // Status
-  status          String   @default("not_started") // not_started, in_progress, submitted, graded
+  // Enhanced Status
+  status          String   @default("DRAFT") // DRAFT, SUBMITTED, UNDER_REVIEW, REVISION_REQUIRED, RESUBMITTED, APPROVED, REJECTED, COMPLETED, ARCHIVED
+  isLocked        Boolean  @default(false) // Lock after submission unless revision required
+  isDeleted       Boolean  @default(false) // Soft delete
+  
+  // Project type for filtering
+  projectType     String   @default("MINI_PROJECT") // PRACTICAL_EXERCISE, MINI_PROJECT, DIFFICULTY_CAPSTONE, PROFESSIONAL_CAPSTONE
+  
+  // Grading
   grade           Int?
+  gradeType       String?  // PERCENTAGE, POINTS, PASS_FAIL, LETTER
+  rubricId        String?  // Which rubric was used
+  rubricScore     Decimal? @default(0) // Total score from rubric
+  maxScore        Decimal? @default(100)
+  
+  // Legacy feedback
   feedback        String?  @db.Text
-  submittedAt      DateTime?
+  submittedAt     DateTime?
   gradedAt        DateTime?
   
   // MCCS Link
   isFromMCCS      Boolean  @default(false) // Was this imported from MCCS
   
   createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
+  // Relations
   course          Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
   miniProject     MiniProject? @relation(fields: [miniProjectId], references: [id], onDelete: SetNull)
+  
+  // New relations
+  versions        SubmissionVersion[]
+  reviews         ProjectReview[]
+  statusHistory   ProjectStatusHistory[]
+  comments        ProjectComment[]
+  assignments     ReviewerAssignment[]
 
   @@index([userId])
   @@index([courseId])
   @@index([miniProjectId])
   @@index([status])
+  @@index([capstoneType])
+  @@index([projectType])
   @@map("project_submissions")
 }
 
@@ -2066,3 +2095,249 @@ model PortfolioEntry {
   @@index([publicSlug])
   @@map("portfolio_entries")
 }
+
+// ============================================
+// 49. PROJECT SUBMISSION STATUS HISTORY
+// ============================================
+model ProjectStatusHistory {
+  id              String    @id @default(uuid())
+  submissionId    String
+  previousStatus  String?
+  newStatus       String
+  changedBy       String    // userId of who made the change
+  reason          String?   @db.Text
+  createdAt       DateTime  @default(now())
+
+  submission      ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("project_status_history")
+}
+
+// ============================================
+// 50. PROJECT RUBRIC
+// ============================================
+model ProjectRubric {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?   @db.Text
+  
+  // Rubric type
+  type            String    @default("MINI_PROJECT") // MINI_PROJECT, DIFFICULTY_CAPSTONE, PROFESSIONAL_CAPSTONE, PRACTICAL_EXERCISE
+  courseId        String?   // Optional - link to specific course
+  difficultyLevel String?   // BEGINNER, INTERMEDIATE, ADVANCED
+  
+  // Criteria stored as JSON
+  criteria        Json      // [{ name: string, description: string, weight: number, maxPoints: number }]
+  
+  // Status
+  isActive        Boolean   @default(true)
+  isDefault       Boolean   @default(false) // Default rubric for this type
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  scores          ProjectScore[]
+
+  @@map("project_rubrics")
+}
+
+// ============================================
+// 51. PROJECT SUBMISSION VERSION
+// ============================================
+model SubmissionVersion {
+  id              String    @id @default(uuid())
+  submissionId    String
+  versionNumber   Int       // 1, 2, 3, etc.
+  
+  // Submission details for this version
+  title           String
+  description     String?   @db.Text
+  submissionUrl   String?   // GitHub/GitLab/Bitbucket URL
+  demoUrl         String?   // Live demo URL
+  reportUrl       String?   // PDF/DOCX report URL
+  videoUrl        String?   // Video presentation URL
+  fileUrls        Json?     // Array of uploaded file URLs
+  screenshots     Json?     // Array of screenshot URLs
+  additionalLinks Json?     // Any additional URLs
+  notes           String?   @db.Text
+  
+  // Version metadata
+  isLatest        Boolean   @default(false)
+  submittedAt     DateTime  @default(now())
+  
+  createdAt       DateTime  @default(now())
+
+  submission      ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@unique([submissionId, versionNumber])
+  @@index([submissionId])
+  @@map("submission_versions")
+}
+
+// ============================================
+// 52. PROJECT REVIEW
+// ============================================
+model ProjectReview {
+  id              String    @id @default(uuid())
+  submissionId    String
+  versionId       String?   // Which version is being reviewed
+  
+  // Reviewer info
+  reviewerId      String    // Admin or Instructor userId
+  
+  // Review decision
+  decision        String    // APPROVED, REJECTED, REVISION_REQUIRED, UNDER_REVIEW
+  
+  // Overall feedback
+  overallFeedback String?   @db.Text
+  
+  // Review metadata
+  reviewedAt      DateTime  @default(now())
+  isLatest        Boolean   @default(true)
+  
+  // Time tracking
+  timeSpentMinutes Int?     // Time spent on review
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  submission      ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  feedback        ProjectFeedback[]
+  scores          ProjectScore[]
+  reviewer        User      @relation("Reviewer", fields: [reviewerId], references: [id])
+
+  @@index([submissionId])
+  @@index([reviewerId])
+  @@map("project_reviews")
+}
+
+// ============================================
+// 53. PROJECT FEEDBACK
+// ============================================
+model ProjectFeedback {
+  id              String    @id @default(uuid())
+  reviewId       String
+  category        String    // TECHNICAL, CODE_QUALITY, DOCUMENTATION, INNOVATION, PRESENTATION, GENERAL
+  
+  // Feedback content
+  title           String?
+  content         String    @db.Text
+  recommendation  String?   @db.Text // RECOMMENDED, NEEDS_IMPROVEMENT, CRITICAL
+  
+  // Line/item reference (optional)
+  referenceType   String?   // FILE, LINE, SCREENSHOT, SECTION
+  referenceId     String?
+  referenceDetail String?
+  
+  createdAt       DateTime  @default(now())
+
+  review          ProjectReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@index([reviewId])
+  @@index([category])
+  @@map("project_feedback")
+}
+
+// ============================================
+// 54. PROJECT SCORE
+// ============================================
+model ProjectScore {
+  id              String    @id @default(uuid())
+  reviewId        String
+  rubricId        String
+  rubric          ProjectRubric @relation(fields: [rubricId], references: [id])
+  
+  // Score details
+  criteriaName    String    // Name from rubric criteria
+  pointsAwarded   Decimal   @default(0)
+  maxPoints       Decimal
+  
+  // Feedback for this criteria
+  feedback        String?   @db.Text
+  
+  createdAt       DateTime  @default(now())
+
+  review          ProjectReview @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+
+  @@unique([reviewId, rubricId, criteriaName])
+  @@index([reviewId])
+  @@map("project_scores")
+}
+
+// ============================================
+// 55. REVIEWER ASSIGNMENT
+// ============================================
+model ReviewerAssignment {
+  id              String    @id @default(uuid())
+  submissionId    String
+  submission      ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  
+  // Assigned reviewer
+  reviewerId      String
+  reviewer        User      @relation(fields: [reviewerId], references: [id])
+  
+  // Assignment details
+  assignedAt      DateTime  @default(now())
+  assignedBy      String?   // userId of admin who made assignment
+  dueDate         DateTime?
+  
+  // Status
+  status          String    @default("PENDING") // PENDING, IN_PROGRESS, COMPLETED
+  
+  // Completion
+  completedAt     DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([submissionId, reviewerId])
+  @@index([reviewerId])
+  @@index([status])
+  @@map("reviewer_assignments")
+}
+
+// ============================================
+// 56. PROJECT COMMENT THREAD
+// ============================================
+model ProjectComment {
+  id              String    @id @default(uuid())
+  submissionId    String
+  submission      ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  
+  // Author
+  authorId        String
+  author          User      @relation(fields: [authorId], references: [id])
+  
+  // Content
+  content         String    @db.Text
+  isInternal      Boolean   @default(false) // Internal comments only visible to staff
+  
+  // Reference (optional)
+  referenceType   String?   // FILE, SCREENSHOT, LINE
+  referenceId     String?
+  
+  // Threading
+  parentId        String?
+  parent          ProjectComment? @relation("CommentThread", fields: [parentId], references: [id])
+  replies         ProjectComment[] @relation("CommentThread")
+  
+  // Status
+  isResolved      Boolean   @default(false)
+  resolvedBy      String?
+  resolvedAt      DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([submissionId])
+  @@index([authorId])
+  @@index([parentId])
+  @@map("project_comments")
+}
+
+// Add relations to User model
+// Note: These should be added to the User model above
+
+// Add relations to ProjectSubmission model
+// Note: These should be added to the ProjectSubmission model above

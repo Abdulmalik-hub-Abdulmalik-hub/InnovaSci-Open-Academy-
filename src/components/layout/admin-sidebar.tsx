@@ -11,7 +11,7 @@ import {
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
   Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap,
   Layers, BookOpen, LayoutGrid, BadgeCheck, Shield,
-  FileBadge, Scroll, Bookmark
+  FileBadge, Scroll, Bookmark, FolderGit2
 } from "lucide-react"
 
 // =============================================================================
@@ -38,6 +38,16 @@ const menuItems = [
       { title: "Courses", href: "/admin/mccs/courses" },
       { title: "Difficulty Capstones", href: "/admin/courses/capstones/difficulty" },
       { title: "Professional Capstones", href: "/admin/courses/capstones/professional" },
+    ],
+  },
+  {
+    title: "Student Projects",
+    href: "/admin/projects",
+    icon: FolderGit2,
+    submenu: [
+      { title: "All Projects", href: "/admin/projects" },
+      { title: "Review Queue", href: "/admin/projects?status=SUBMITTED" },
+      { title: "Rubrics", href: "/admin/projects/rubrics" },
     ],
   },
   {
