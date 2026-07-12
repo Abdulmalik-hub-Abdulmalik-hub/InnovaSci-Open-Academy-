@@ -3,6 +3,19 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
+// Map lowercase status to uppercase for consistency
+function normalizeStatus(status: string | undefined): string {
+  if (!status) return "DRAFT"
+  const statusMap: Record<string, string> = {
+    'not_started': 'DRAFT',
+    'in_progress': 'IN_PROGRESS',
+    'submitted': 'SUBMITTED',
+    'graded': 'GRADED',
+    'draft': 'DRAFT',
+  }
+  return statusMap[status.toLowerCase()] || status.toUpperCase()
+}
+
 // GET /api/student/projects/[id] - Get single project submission
 export async function GET(
   request: NextRequest,
@@ -33,6 +46,25 @@ export async function GET(
           include: {
             profile: true
           }
+        },
+        reviews: {
+          where: { isLatest: true },
+          include: {
+            reviewer: {
+              select: { id: true, email: true, profile: { select: { fullName: true } } }
+            }
+          }
+        },
+        versions: {
+          where: { isLatest: true },
+          orderBy: { versionNumber: 'desc' }
+        },
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+          take: 10
+        },
+        _count: {
+          select: { versions: true, reviews: true }
         }
       }
     })
@@ -99,13 +131,27 @@ export async function PATCH(
       }, { status: 403 })
     }
     
+    // Check if locked
+    if (existing.isLocked && body.status !== 'REVISION_REQUIRED') {
+      return NextResponse.json({ 
+        success: false, 
+        error: "Project is locked. Wait for revision request." 
+      }, { status: 403 })
+    }
+    
     const {
       title,
       description,
       submissionUrl,
       fileUrls,
       screenshots,
-      status
+      status,
+      demoUrl,
+      reportUrl,
+      videoUrl,
+      additionalLinks,
+      notes,
+      action
     } = body
     
     const updateData: Record<string, unknown> = {}
@@ -114,10 +160,61 @@ export async function PATCH(
     if (submissionUrl !== undefined) updateData.submissionUrl = submissionUrl
     if (fileUrls !== undefined) updateData.fileUrls = fileUrls
     if (screenshots !== undefined) updateData.screenshots = screenshots
+    
+    // Handle status with normalization
     if (status !== undefined) {
-      updateData.status = status
-      if (status === "submitted" && existing.status !== "submitted") {
+      const normalizedStatus = normalizeStatus(status)
+      updateData.status = normalizedStatus
+      
+      // If submitting, create a new version
+      if ((status === "submitted" || normalizedStatus === "SUBMITTED") && 
+          !["SUBMITTED", "submitted"].includes(existing.status)) {
         updateData.submittedAt = new Date()
+        updateData.isLocked = true
+        
+        // Get latest version
+        const latestVersion = await prisma.submissionVersion.findFirst({
+          where: { submissionId: id },
+          orderBy: { versionNumber: 'desc' }
+        })
+        const nextVersion = (latestVersion?.versionNumber || 0) + 1
+        
+        // Mark all versions as not latest
+        await prisma.submissionVersion.updateMany({
+          where: { submissionId: id },
+          data: { isLatest: false }
+        })
+        
+        // Create new version
+        await prisma.submissionVersion.create({
+          data: {
+            submissionId: id,
+            versionNumber: nextVersion,
+            title: title || existing.title,
+            description: description || existing.description,
+            submissionUrl: submissionUrl || existing.submissionUrl,
+            demoUrl,
+            reportUrl,
+            videoUrl,
+            fileUrls: fileUrls || existing.fileUrls,
+            screenshots: screenshots || existing.screenshots,
+            additionalLinks,
+            notes,
+            isLatest: true,
+            submittedAt: new Date(),
+          }
+        })
+        
+        // Create status history
+        await prisma.projectStatusHistory.create({
+          data: {
+            submissionId: id,
+            previousStatus: existing.status,
+            newStatus: normalizedStatus,
+            changedBy: session.user.id,
+            reason: `Student submission - Version ${nextVersion}`
+          }
+        })
       }
     }
     
@@ -177,8 +274,10 @@ export async function DELETE(
       }, { status: 403 })
     }
     
-    await prisma.projectSubmission.delete({
-      where: { id }
+    // Soft delete
+    await prisma.projectSubmission.update({
+      where: { id },
+      data: { isDeleted: true }
     })
     
     return NextResponse.json({ 

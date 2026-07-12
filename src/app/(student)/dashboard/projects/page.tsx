@@ -36,6 +36,7 @@ import {
   Eye,
   Send,
   X,
+  AlertCircle,
 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -77,22 +78,57 @@ interface AvailableProject {
 }
 
 const statusConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
-  not_started: { 
+  NOT_STARTED: { 
     label: "Not Started", 
     color: "bg-gray-100 text-gray-700 border-gray-300",
     icon: <Clock className="h-3 w-3" />
   },
-  in_progress: { 
+  DRAFT: { 
+    label: "Draft", 
+    color: "bg-gray-100 text-gray-700 border-gray-300",
+    icon: <Clock className="h-3 w-3" />
+  },
+  IN_PROGRESS: { 
     label: "In Progress", 
     color: "bg-blue-100 text-blue-700 border-blue-300",
     icon: <Loader2 className="h-3 w-3 animate-spin" />
   },
-  submitted: { 
+  SUBMITTED: { 
     label: "Submitted", 
     color: "bg-yellow-100 text-yellow-700 border-yellow-300",
     icon: <Send className="h-3 w-3" />
   },
-  graded: { 
+  UNDER_REVIEW: { 
+    label: "Under Review", 
+    color: "bg-purple-100 text-purple-700 border-purple-300",
+    icon: <Clock className="h-3 w-3 animate-spin" />
+  },
+  REVISION_REQUIRED: { 
+    label: "Revision Required", 
+    color: "bg-orange-100 text-orange-700 border-orange-300",
+    icon: <AlertCircle className="h-3 w-3" />
+  },
+  RESUBMITTED: { 
+    label: "Resubmitted", 
+    color: "bg-indigo-100 text-indigo-700 border-indigo-300",
+    icon: <Send className="h-3 w-3" />
+  },
+  APPROVED: { 
+    label: "Approved", 
+    color: "bg-green-100 text-green-700 border-green-300",
+    icon: <CheckCircle2 className="h-3 w-3" />
+  },
+  REJECTED: { 
+    label: "Rejected", 
+    color: "bg-red-100 text-red-700 border-red-300",
+    icon: <X className="h-3 w-3" />
+  },
+  COMPLETED: { 
+    label: "Completed", 
+    color: "bg-emerald-100 text-emerald-700 border-emerald-300",
+    icon: <CheckCircle2 className="h-3 w-3" />
+  },
+  GRADED: { 
     label: "Graded", 
     color: "bg-green-100 text-green-700 border-green-300",
     icon: <CheckCircle2 className="h-3 w-3" />
@@ -239,24 +275,29 @@ export default function StudentProjectsPage() {
     setSubmitting(true)
     
     try {
-      const response = await fetch(`/api/student/projects/${(selectedProject as ProjectSubmission).id}`, {
-        method: "PATCH",
+      const response = await fetch("/api/student/projects", {
+        method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          id: (selectedProject as ProjectSubmission).id,
           submissionUrl,
           description: submissionNote,
           status: "submitted",
+          action: "submit",
         }),
       })
       
       const data = await response.json()
       
       if (data.success) {
-        toast.success("Project submitted successfully!")
+        toast.success(data.message || "Project submitted successfully!")
         setSubmitDialogOpen(false)
         setSubmissionUrl("")
         setSubmissionNote("")
         fetchProjects()
+        setActiveTab("submitted")
+      } else {
+        toast.error(data.error || "Failed to submit project")
       }
     } catch (error) {
       console.error("Error submitting project:", error)
@@ -278,8 +319,8 @@ export default function StudentProjectsPage() {
     setDetailsDialogOpen(true)
   }
   
-  const activeProjects = projects.filter(p => p.status !== "graded")
-  const completedProjects = projects.filter(p => p.status === "graded")
+  const activeProjects = projects.filter(p => !["graded", "GRADED", "approved", "APPROVED", "completed", "COMPLETED"].includes(p.status?.toLowerCase() || ""))
+  const completedProjects = projects.filter(p => ["graded", "GRADED", "approved", "APPROVED", "completed", "COMPLETED"].includes(p.status?.toLowerCase() || ""))
   
   if (loading) {
     return (
@@ -330,7 +371,7 @@ export default function StudentProjectsPage() {
               <div>
                 <p className="text-sm text-muted-foreground">Submitted</p>
                 <p className="text-2xl font-bold">
-                  {projects.filter(p => p.status === "submitted").length}
+                  {projects.filter(p => ["SUBMITTED", "submitted"].includes(p.status || "")).length}
                 </p>
               </div>
               <Send className="h-8 w-8 text-blue-500 opacity-50" />
@@ -459,7 +500,7 @@ export default function StudentProjectsPage() {
                         <Eye className="h-3 w-3 mr-1" />
                         Details
                       </Button>
-                      {project.status !== "submitted" && (
+                      {!["SUBMITTED", "submitted", "UNDER_REVIEW", "REVISION_REQUIRED", "RESUBMITTED", "APPROVED", "REJECTED"].includes(project.status) && (
                         <Button 
                           size="sm" 
                           className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600"
@@ -843,7 +884,7 @@ export default function StudentProjectsPage() {
               </div>
               
               <DialogFooter>
-                {(selectedProject as ProjectSubmission).status !== "submitted" && (
+                {!["SUBMITTED", "submitted", "UNDER_REVIEW", "REVISION_REQUIRED", "RESUBMITTED", "APPROVED", "REJECTED"].includes((selectedProject as ProjectSubmission).status || "") && (
                   <Button 
                     variant="outline"
                     onClick={() => {

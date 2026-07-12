@@ -3,6 +3,19 @@ import { prisma } from "@/lib/prisma"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 
+// Map lowercase status to uppercase for consistency
+function normalizeStatus(status: string | undefined): string {
+  if (!status) return "DRAFT"
+  const statusMap: Record<string, string> = {
+    'not_started': 'DRAFT',
+    'in_progress': 'IN_PROGRESS',
+    'submitted': 'SUBMITTED',
+    'graded': 'GRADED',
+    'draft': 'DRAFT',
+  }
+  return statusMap[status.toLowerCase()] || status.toUpperCase()
+}
+
 // GET /api/student/projects - Get all project submissions for current user
 export async function GET(request: NextRequest) {
   try {
@@ -20,10 +33,13 @@ export async function GET(request: NextRequest) {
     const type = searchParams.get("type") // 'mini_project', 'capstone'
     
     // Build where clause
-    const whereClause: Record<string, unknown> = { userId }
+    const whereClause: Record<string, unknown> = { 
+      userId,
+      isDeleted: false,
+    }
     
     if (status) {
-      whereClause.status = status
+      whereClause.status = normalizeStatus(status)
     }
     
     if (type === "mini_project") {
@@ -51,14 +67,50 @@ export async function GET(request: NextRequest) {
             description: true,
             deliverables: true,
           }
+        },
+        reviews: {
+          where: { isLatest: true },
+          include: {
+            reviewer: {
+              select: { id: true, email: true, profile: { select: { fullName: true } } }
+            }
+          }
+        },
+        _count: {
+          select: { versions: true, reviews: true }
         }
       },
       orderBy: { createdAt: "desc" }
     })
     
+    // Format projects for client
+    const formattedProjects = projects.map(p => ({
+      id: p.id,
+      title: p.title,
+      description: p.description,
+      status: p.status,
+      isLocked: p.isLocked,
+      projectType: p.projectType,
+      grade: p.grade,
+      gradeType: p.gradeType,
+      feedback: p.feedback,
+      submittedAt: p.submittedAt,
+      gradedAt: p.gradedAt,
+      createdAt: p.createdAt,
+      updatedAt: p.updatedAt,
+      course: p.course,
+      miniProject: p.miniProject,
+      capstoneId: p.capstoneId,
+      submissionUrl: p.submissionUrl,
+      fileUrls: p.fileUrls,
+      latestReview: p.reviews[0] || null,
+      versionCount: p._count.versions,
+      reviewCount: p._count.reviews,
+    }))
+    
     return NextResponse.json({ 
       success: true, 
-      data: projects 
+      data: formattedProjects 
     })
   } catch (error) {
     console.error("Error fetching projects:", error)
@@ -92,22 +144,91 @@ export async function POST(request: NextRequest) {
       fileUrls,
       screenshots,
       status,
-      courseId
+      courseId,
+      demoUrl,
+      reportUrl,
+      videoUrl,
+      additionalLinks,
+      notes,
+      action // 'save_draft' | 'submit'
     } = body
     
     // If ID provided, update existing submission
     if (id) {
+      // Check if submission is locked
+      const existing = await prisma.projectSubmission.findUnique({
+        where: { id }
+      })
+      
+      if (existing?.isLocked && status !== 'REVISION_REQUIRED') {
+        return NextResponse.json({ 
+          success: false, 
+          error: "Submission is locked. Wait for revision request." 
+        }, { status: 403 })
+      }
+      
+      const normalizedStatus = normalizeStatus(status)
+      
+      // If submitting, lock the submission
+      const updateData: any = {
+        title,
+        description,
+        submissionUrl,
+        fileUrls,
+        screenshots,
+        status: normalizedStatus,
+      }
+      
+      if (action === 'submit') {
+        updateData.submittedAt = new Date()
+        updateData.isLocked = true
+        
+        // Create new version
+        const latestVersion = await prisma.submissionVersion.findFirst({
+          where: { submissionId: id },
+          orderBy: { versionNumber: 'desc' }
+        })
+        const nextVersion = (latestVersion?.versionNumber || 0) + 1
+        
+        await prisma.submissionVersion.updateMany({
+          where: { submissionId: id },
+          data: { isLatest: false }
+        })
+        
+        await prisma.submissionVersion.create({
+          data: {
+            submissionId: id,
+            versionNumber: nextVersion,
+            title: title || existing?.title,
+            description: description || existing?.description,
+            submissionUrl,
+            demoUrl,
+            reportUrl,
+            videoUrl,
+            fileUrls,
+            screenshots,
+            additionalLinks,
+            notes,
+            isLatest: true,
+            submittedAt: new Date(),
+          }
+        })
+        
+        // Create status history
+        await prisma.projectStatusHistory.create({
+          data: {
+            submissionId: id,
+            previousStatus: existing?.status,
+            newStatus: normalizedStatus,
+            changedBy: userId,
+            reason: `Student submission - Version ${nextVersion}`
+          }
+        })
+      }
+      
       const submission = await prisma.projectSubmission.update({
         where: { id },
-        data: {
-          title,
-          description,
-          submissionUrl,
-          fileUrls,
-          screenshots,
-          status,
-          ...(status === "submitted" ? { submittedAt: new Date() } : {}),
-        },
+        data: updateData,
         include: {
           course: { select: { id: true, title: true, slug: true } },
           miniProject: { select: { id: true, title: true } }
@@ -117,7 +238,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ 
         success: true, 
         data: submission,
-        message: "Project updated successfully" 
+        message: action === 'submit' ? "Project submitted successfully!" : "Project saved successfully" 
       })
     }
     
@@ -134,12 +255,25 @@ export async function POST(request: NextRequest) {
         submissionUrl,
         fileUrls,
         screenshots,
-        status: status || "not_started",
+        status: normalizeStatus(status) || 'DRAFT',
+        projectType: miniProjectId ? 'MINI_PROJECT' : capstoneId ? 'DIFFICULTY_CAPSTONE' : 'PRACTICAL_EXERCISE',
+        isLocked: false,
         isFromMCCS: true,
       },
       include: {
         course: { select: { id: true, title: true, slug: true } },
         miniProject: { select: { id: true, title: true } }
+      }
+    })
+    
+    // Create status history
+    await prisma.projectStatusHistory.create({
+      data: {
+        submissionId: submission.id,
+        previousStatus: null,
+        newStatus: submission.status,
+        changedBy: userId,
+        reason: 'Project created'
       }
     })
     

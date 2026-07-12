@@ -65,7 +65,13 @@ export async function GET(request: NextRequest) {
       isDeleted: false,
     }
 
-    if (status) where.status = status
+    // Support both uppercase and lowercase status values
+    if (status) {
+      // Normalize status to uppercase for database query
+      const normalizedStatus = status.toUpperCase()
+      where.status = normalizedStatus
+    }
+    
     if (projectType) where.projectType = projectType
     if (courseId) where.courseId = courseId
     if (userId) where.userId = userId
@@ -167,7 +173,9 @@ export async function GET(request: NextRequest) {
     })
 
     const statsMap = stats.reduce((acc, item) => {
+      // Store both uppercase and lowercase versions for compatibility
       acc[item.status] = item._count
+      acc[item.status.toLowerCase()] = item._count
       return acc
     }, {} as Record<string, number>)
 
@@ -182,12 +190,12 @@ export async function GET(request: NextRequest) {
       return acc
     }, {} as Record<string, number>)
 
-    // Format submissions
+    // Format submissions - normalize status to uppercase for consistency
     const formatted = submissions.map(sub => ({
       id: sub.id,
       title: sub.title,
       description: sub.description,
-      status: sub.status,
+      status: sub.status.toUpperCase(), // Normalize to uppercase
       isLocked: sub.isLocked,
       projectType: sub.projectType,
       grade: sub.grade,
@@ -225,11 +233,13 @@ export async function GET(request: NextRequest) {
           byStatus: statsMap,
           byProjectType: projectTypeMap,
           total: total,
-          submittedToday: statsMap['SUBMITTED'] || 0,
-          pendingReview: (statsMap['SUBMITTED'] || 0) + (statsMap['UNDER_REVIEW'] || 0) + (statsMap['RESUBMITTED'] || 0),
-          approved: statsMap['APPROVED'] || 0,
-          rejected: statsMap['REJECTED'] || 0,
-          revisionRequired: statsMap['REVISION_REQUIRED'] || 0,
+          submittedToday: statsMap['SUBMITTED'] || statsMap['submitted'] || 0,
+          pendingReview: (statsMap['SUBMITTED'] || statsMap['submitted'] || 0) + 
+                        (statsMap['UNDER_REVIEW'] || statsMap['under_review'] || 0) + 
+                        (statsMap['RESUBMITTED'] || statsMap['resubmitted'] || 0),
+          approved: statsMap['APPROVED'] || statsMap['approved'] || 0,
+          rejected: statsMap['REJECTED'] || statsMap['rejected'] || 0,
+          revisionRequired: statsMap['REVISION_REQUIRED'] || statsMap['revision_required'] || 0,
         }
       }
     })
