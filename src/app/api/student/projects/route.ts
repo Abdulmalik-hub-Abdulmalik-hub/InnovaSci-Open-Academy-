@@ -76,12 +76,30 @@ export async function GET(request: NextRequest) {
             }
           }
         },
-        _count: {
-          select: { versions: true, reviews: true }
-        }
+        versions: {
+          where: { isLatest: true },
+          select: { id: true, versionNumber: true, submittedAt: true }
+        },
       },
       orderBy: { createdAt: "desc" }
     })
+    
+    // Get counts separately to avoid potential issues
+    const projectIds = projects.map(p => p.id)
+    const counts = projectIds.length > 0 ? await prisma.projectSubmission.findMany({
+      where: { id: { in: projectIds } },
+      select: { 
+        id: true,
+        _count: {
+          select: { versions: true, reviews: true }
+        }
+      }
+    }) : []
+    
+    const countMap = counts.reduce((acc, c) => {
+      acc[c.id] = c._count
+      return acc
+    }, {} as Record<string, { versions: number; reviews: number }>)
     
     // Format projects for client
     const formattedProjects = projects.map(p => ({
@@ -104,8 +122,8 @@ export async function GET(request: NextRequest) {
       submissionUrl: p.submissionUrl,
       fileUrls: p.fileUrls,
       latestReview: p.reviews[0] || null,
-      versionCount: p._count.versions,
-      reviewCount: p._count.reviews,
+      versionCount: countMap[p.id]?.versions || 0,
+      reviewCount: countMap[p.id]?.reviews || 0,
     }))
     
     return NextResponse.json({ 
