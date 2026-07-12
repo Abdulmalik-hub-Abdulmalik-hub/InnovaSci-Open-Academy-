@@ -321,7 +321,7 @@ export async function GET(request: NextRequest) {
           completedAt: new Date(),
           paystackId: transaction.id?.toString(),
           paystackChannel: transaction.channel,
-          gatewayResponse: transaction,
+          gatewayResponse: JSON.parse(JSON.stringify(transaction)),
           metadata: {
             ...metadata,
             verifiedAt: new Date().toISOString(),
@@ -353,7 +353,7 @@ export async function GET(request: NextRequest) {
           completedAt: new Date(),
           paystackId: transaction.id?.toString(),
           paystackChannel: transaction.channel,
-          gatewayResponse: transaction,
+          gatewayResponse: JSON.parse(JSON.stringify(transaction)),
           metadata: {
             ...metadata,
             verifiedAt: new Date().toISOString(),
@@ -380,7 +380,7 @@ export async function GET(request: NextRequest) {
         completedAt: new Date(),
         paystackId: transaction.id?.toString(),
         paystackChannel: transaction.channel,
-        gatewayResponse: transaction,
+        gatewayResponse: JSON.parse(JSON.stringify(transaction)),
         metadata: {
           ...metadata,
           verifiedAt: new Date().toISOString(),
