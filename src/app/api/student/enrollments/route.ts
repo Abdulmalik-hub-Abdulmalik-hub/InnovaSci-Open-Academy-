@@ -94,8 +94,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Enrollments API error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { success: false, error: "Failed to fetch enrollments" },
+      { success: false, error: `Failed to fetch enrollments: ${errorMessage}` },
       { status: 500 }
     )
   }
