@@ -79,8 +79,12 @@ export async function GET(request: NextRequest) {
     // Domain/Category filter via course relation
     if (domainId || categoryId) {
       where.course = {}
-      if (categoryId) where.course.categoryId = categoryId
-      if (domainId) where.course = { category: { domainId } }
+      if (categoryId) {
+        where.course.categoryId = categoryId
+      }
+      if (domainId) {
+        where.course.category = { domainId }
+      }
     }
 
     // Min/Max score filter
