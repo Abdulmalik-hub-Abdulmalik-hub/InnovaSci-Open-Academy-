@@ -300,13 +300,13 @@ export async function GET(request: NextRequest) {
 
     // Extract metadata
     const metadata = transaction.metadata || {}
-    const scope = metadata.scope || (reference.startsWith('ACAD-') ? 'academy' : reference.startsWith('DOM-') ? 'domain' : 'category')
-    const planId = metadata.plan_id || null
-    const targetId = metadata.target_id || null
-    const couponCode = metadata.coupon_code || null
-    const finalAmount = metadata.final_amount || fromKobo(transaction.amount)
-    const originalAmount = metadata.original_amount || finalAmount
-    const discountApplied = metadata.discount_applied || 0
+    const scope = (metadata.scope as string | undefined) || (reference.startsWith('ACAD-') ? 'academy' : reference.startsWith('DOM-') ? 'domain' : 'category')
+    const planId = (typeof metadata.plan_id === 'string' ? metadata.plan_id : null) as string | null
+    const targetId = (typeof metadata.target_id === 'string' ? metadata.target_id : null) as string | null
+    const couponCode = (typeof metadata.coupon_code === 'string' ? metadata.coupon_code : null) as string | null
+    const finalAmount = (typeof metadata.final_amount === 'number' ? metadata.final_amount : fromKobo(transaction.amount)) as number
+    const originalAmount = (typeof metadata.original_amount === 'number' ? metadata.original_amount : finalAmount) as number
+    const discountApplied = (typeof metadata.discount_applied === 'number' ? metadata.discount_applied : 0) as number
 
     // Get actual userId (from metadata or query param)
     const actualUserId = metadata.user_id || userId || transaction.customer.email
@@ -516,7 +516,7 @@ export async function GET(request: NextRequest) {
           scope,
         }],
         subtotal: originalAmount,
-        discountAmount,
+        discountAmount: discountApplied,
         taxAmount: 0,
         totalAmount: finalAmount,
         currency: transaction.currency,

@@ -76,8 +76,8 @@ export async function GET(request: NextRequest) {
     })
 
     // Get domain and category details
-    const domainIds = [...new Set(plans.flatMap(p => p.allowedDomainIds))]
-    const categoryIds = [...new Set(plans.flatMap(p => p.allowedCategoryIds))]
+    const domainIds = Array.from(new Set(plans.flatMap(p => p.allowedDomainIds)))
+    const categoryIds = Array.from(new Set(plans.flatMap(p => p.allowedCategoryIds)))
 
     const [domains, categories] = await Promise.all([
       prisma.domain.findMany({

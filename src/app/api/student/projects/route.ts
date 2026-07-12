@@ -53,7 +53,7 @@ export async function GET(request: NextRequest) {
           }
         }
       },
-      orderBy: { updatedAt: "desc" }
+      orderBy: { createdAt: "desc" }
     })
     
     return NextResponse.json({ 

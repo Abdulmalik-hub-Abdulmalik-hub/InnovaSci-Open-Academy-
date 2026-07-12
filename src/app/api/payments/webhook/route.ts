@@ -89,7 +89,7 @@ async function handleChargeSuccess(data: any) {
     const reference = data.reference
     
     // Find the payment record
-    const payment = await prisma.payment.findUnique({
+    const payment = await prisma.payment.findFirst({
       where: { paystackRef: reference }
     })
 
@@ -125,7 +125,7 @@ async function handleChargeFailed(data: any) {
   try {
     const reference = data.reference
     
-    const payment = await prisma.payment.findUnique({
+    const payment = await prisma.payment.findFirst({
       where: { paystackRef: reference }
     })
 
@@ -164,26 +164,34 @@ async function handleSubscriptionCreate(data: any) {
       return
     }
 
-    // Create or update subscription record
-    await prisma.subscription.upsert({
-      where: { 
-        paystackSubscriptionCode: subscription.subscription_code 
-      },
-      update: {
-        status: 'active',
-        planName: plan?.name || 'PRO',
-        isPro: true,
-      },
-      create: {
-        userId: user.id,
-        planName: plan?.name || 'PRO',
-        status: 'active',
-        isPro: true,
-        paystackSubscriptionCode: subscription.subscription_code,
-        stripeSubscriptionId: null,
-        autoRenew: true,
-      }
+    // Find existing subscription by paystackSubscriptionCode
+    const existingSubscription = await prisma.subscription.findFirst({
+      where: { paystackSubscriptionCode: subscription.subscription_code }
     })
+
+    // Create or update subscription record
+    if (existingSubscription) {
+      await prisma.subscription.update({
+        where: { id: existingSubscription.id },
+        data: {
+          status: 'active',
+          planName: plan?.name || 'PRO',
+          isPro: true,
+        }
+      })
+    } else {
+      await prisma.subscription.create({
+        data: {
+          userId: user.id,
+          planName: plan?.name || 'PRO',
+          status: 'active',
+          isPro: true,
+          paystackSubscriptionCode: subscription.subscription_code,
+          stripeSubscriptionId: null,
+          autoRenew: true,
+        }
+      })
+    }
 
     console.log('Subscription created:', subscription.subscription_code)
   } catch (error) {
@@ -216,7 +224,7 @@ async function handleRefundCreated(data: any) {
     const reference = data.refund_ref || data.reference
     
     // Find the original payment
-    const payment = await prisma.payment.findUnique({
+    const payment = await prisma.payment.findFirst({
       where: { paystackRef: reference }
     })
 
