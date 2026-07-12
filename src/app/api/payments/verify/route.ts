@@ -314,7 +314,7 @@ export async function GET(request: NextRequest) {
     if (!actualUserId || actualUserId === 'pending') {
       // Payment verified but user not authenticated - return pending status
       // Update payment record with verification info
-      await prisma.payment.update({
+      await prisma.payment.updateMany({
         where: { paystackRef: reference },
         data: {
           status: 'completed',
@@ -346,7 +346,7 @@ export async function GET(request: NextRequest) {
     if (!user) {
       // Create a pending user record - they can complete registration later
       // For now, we'll mark the payment as pending user association
-      await prisma.payment.update({
+      await prisma.payment.updateMany({
         where: { paystackRef: reference },
         data: {
           status: 'completed',
@@ -372,7 +372,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Update payment record
-    await prisma.payment.update({
+    await prisma.payment.updateMany({
       where: { paystackRef: reference },
       data: {
         userId: user.id,
