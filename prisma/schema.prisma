@@ -350,7 +350,6 @@ model Enrollment {
   enrolledAt      DateTime  @default(now())
   completedAt     DateTime?
 
-  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
   course Course @relation(fields: [courseId], references: [id], onDelete: Cascade)
 
   @@unique([userId, courseId])
@@ -925,7 +924,6 @@ model CategoryPurchase {
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
-  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
   category Category @relation(fields: [categoryId], references: [id])
   
@@ -972,7 +970,6 @@ model DomainPurchase {
   
   updatedAt       DateTime  @updatedAt
 
-  user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   plan  Plan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
   domain Domain  @relation(fields: [domainId], references: [id])
   
@@ -1263,7 +1260,6 @@ model LearningPathProgress {
   completedAt     DateTime?
   progressPercent Int       @default(0)
 
-  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   learningPath LearningPath @relation(fields: [learningPathId], references: [id], onDelete: Cascade)
 
   @@unique([userId, learningPathId])
@@ -1943,7 +1939,6 @@ model ProjectSubmission {
   isFromMCCS      Boolean  @default(false) // Was this imported from MCCS
   
   createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
 
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   course          Course?  @relation(fields: [courseId], references: [id], onDelete: SetNull)
@@ -1996,7 +1991,6 @@ model PortfolioEntry {
   
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-
   user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
