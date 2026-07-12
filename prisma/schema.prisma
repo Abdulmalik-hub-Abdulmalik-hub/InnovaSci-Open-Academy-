@@ -56,7 +56,6 @@ model User {
   categoryPurchases  CategoryPurchase[]
   domainPurchases    DomainPurchase[]
   academyPurchases   AcademyPurchase[]
-  payments           Payment[]
   invoices           Invoice[]
   accessLicenses     AccessLicense[]
 
@@ -736,26 +735,56 @@ model CertificateEligibility {
 }
 
 // ============================================
-// 12. PAYMENTS - Transaction records
+// 12. PAYMENTS - Transaction records (Enhanced)
 // ============================================
 
 model Payment {
-  id                String   @id @default(uuid())
-  userId            String
-  amount            Decimal
-  currency          String   @default("NGN")
-  status            String   @default("PENDING") // PENDING, COMPLETED, FAILED, REFUNDED
-  paymentMethod     String?
-  transactionId     String?
-  paystackReference String?
-  channel           String?
-  authorizationCode String?
-  metadata          Json?
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
+  id                  String    @id @default(uuid())
+  userId              String
+  type                String    @default("one_time") // one_time, subscription, category_purchase, domain_purchase, academy_purchase
+  status              String    @default("PENDING") // PENDING, COMPLETED, FAILED, REFUNDED
+  
+  // Amount details
+  amount              Decimal
+  currency            String    @default("NGN")
+  amountInKobo         Int?      // For NGN payments
+  amountInCents        Int?      // For USD payments
+  
+  // Paystack
+  paystackReference   String?
+  paystackRef         String?   // Alias for paystackReference
+  paystackId          String?
+  channel             String?
+  paystackChannel     String?
+  authorizationCode   String?
+  paystackFees        Decimal?
+  
+  // Gateway response
+  gatewayResponse     Json?
+  
+  // References for new purchase types
+  categoryPurchaseId  String?
+  domainPurchaseId    String?
+  academyPurchaseId   String?
+  
+  // Metadata
+  metadata            Json?
+  
+  // Timestamps
+  initiatedAt         DateTime  @default(now())
+  completedAt         DateTime?
+  failedAt            DateTime?
+  refundedAt          DateTime?
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([userId])
+  @@index([paystackRef])
+  @@index([status])
+  @@index([type])
   @@map("payments")
 }
 
@@ -992,59 +1021,6 @@ model AcademyPurchase {
   @@index([status])
   @@map("academy_purchases")
 }
-
-// ============================================
-// 14f. PAYMENT - Transaction records
-// ============================================
-model Payment {
-  id                  String    @id @default(uuid())
-  userId              String
-  type                String    // category_purchase, domain_purchase, academy_purchase, subscription
-  status              String    @default("pending") // pending, completed, failed, refunded, cancelled
-  
-  // Amount details
-  amount              Decimal   @default(0)
-  currency            String    @default("USD")
-  amountInKobo         Int?      // For NGN payments
-  amountInCents        Int?      // For USD payments
-  
-  // Paystack
-  paystackRef         String?
-  paystackId          String?
-  paystackChannel     String?
-  paystackFees        Decimal?
-  
-  // Gateway response
-  gatewayResponse     Json?
-  
-  // References
-  categoryPurchaseId  String?
-  domainPurchaseId     String?
-  academyPurchaseId    String?
-  
-  // Metadata
-  metadata            Json?
-  
-  // Timestamps
-  initiatedAt         DateTime  @default(now())
-  completedAt         DateTime?
-  failedAt            DateTime?
-  refundedAt          DateTime?
-  
-  createdAt           DateTime  @default(now())
-  updatedAt           DateTime  @updatedAt
-
-  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
-  
-  @@index([userId])
-  @@index([paystackRef])
-  @@index([status])
-  @@index([type])
-  @@map("payments")
-}
-
-// ============================================
-// 14g. INVOICE - Billing documents
 // ============================================
 model Invoice {
   id              String    @id @default(uuid())
