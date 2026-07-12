@@ -282,7 +282,7 @@ export async function GET(request: NextRequest) {
     const transaction = response.data
 
     // Check if payment already processed
-    const existingPayment = await prisma.payment.findUnique({
+    const existingPayment = await prisma.payment.findFirst({
       where: { paystackRef: reference },
       include: {
         // Include any existing purchase records
