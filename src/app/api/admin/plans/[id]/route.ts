@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+export const dynamic = 'force-dynamic';
 
 // Admin authentication helper
 async function checkAdminAuth(request: NextRequest): Promise<{ authorized: boolean; userId?: string; error?: string }> {
@@ -50,11 +51,12 @@ export async function GET(
     const plan = await prisma.plan.findUnique({
       where: { id },
       include: {
-        subscriptions: {
+        _count: {
           select: {
-            id: true,
-            status: true,
-            userId: true,
+            categoryPurchases: true,
+            domainPurchases: true,
+            academyPurchases: true,
+            subscriptions: true,
           }
         }
       }
@@ -67,34 +69,12 @@ export async function GET(
       )
     }
 
-    const activeSubscriptions = plan.subscriptions.filter(s => s.status === "active").length
-
     return NextResponse.json({
       success: true,
       data: {
-        id: plan.id,
-        name: plan.name,
-        description: plan.description,
-        planType: plan.planType,
-        billingCycle: plan.billingCycle,
-        price: Number(plan.price),
-        currency: plan.currency,
-        stripePriceId: plan.stripePriceId,
-        paystackPlanId: plan.paystackPlanId,
-        features: plan.features as string[],
-        isActive: plan.isActive,
-        isFeatured: plan.isFeatured,
-        discountPercentage: plan.discountPercentage,
-        promoCode: plan.promoCode,
-        maxCourses: plan.maxCourses,
-        maxCertificates: plan.maxCertificates,
-        allowedCourseIds: plan.allowedCourseIds,
-        trialDays: plan.trialDays,
-        sortOrder: plan.sortOrder,
-        createdAt: plan.createdAt.toISOString(),
-        updatedAt: plan.updatedAt.toISOString(),
-        subscriptionCount: plan.subscriptions.length,
-        activeSubscriptions,
+        ...plan,
+        purchaseScope: plan.purchaseScope || 'CATEGORY',
+        subscriptionCount: plan._count.categoryPurchases + plan._count.domainPurchases + plan._count.academyPurchases + plan._count.subscriptions,
       }
     })
   } catch (error) {
@@ -124,20 +104,33 @@ export async function PUT(
       description,
       planType,
       billingCycle,
+      purchaseScope,
+      allowedDomainIds,
+      allowedCategoryIds,
       price,
       currency,
+      pricing,
       features,
       isActive,
       isFeatured,
+      isPopular,
+      isRecommended,
       discountPercentage,
       promoCode,
       maxCourses,
       maxCertificates,
-      allowedCourseIds,
       trialDays,
       sortOrder,
+      icon,
+      bannerUrl,
+      themeColor,
+      status,
+      visibility,
+      seoTitle,
+      seoDescription,
     } = body
 
+    // Check if plan exists
     const existingPlan = await prisma.plan.findUnique({
       where: { id }
     })
@@ -149,25 +142,37 @@ export async function PUT(
       )
     }
 
-    const updatedPlan = await prisma.plan.update({
+    const plan = await prisma.plan.update({
       where: { id },
       data: {
-        name: name !== undefined ? name.trim() : existingPlan.name,
-        description: description !== undefined ? description?.trim() || null : existingPlan.description,
-        planType: planType !== undefined ? planType : existingPlan.planType,
-        billingCycle: billingCycle !== undefined ? billingCycle : existingPlan.billingCycle,
+        name: name?.trim() || existingPlan.name,
+        description: description?.trim() || existingPlan.description,
+        planType: planType || existingPlan.planType,
+        billingCycle: billingCycle || existingPlan.billingCycle,
+        purchaseScope: purchaseScope || existingPlan.purchaseScope,
+        allowedDomainIds: allowedDomainIds ?? existingPlan.allowedDomainIds,
+        allowedCategoryIds: allowedCategoryIds ?? existingPlan.allowedCategoryIds,
         price: price !== undefined ? price : existingPlan.price,
-        currency: currency !== undefined ? currency : existingPlan.currency,
-        features: features !== undefined ? features : existingPlan.features,
-        isActive: isActive !== undefined ? isActive : existingPlan.isActive,
-        isFeatured: isFeatured !== undefined ? isFeatured : existingPlan.isFeatured,
-        discountPercentage: discountPercentage !== undefined ? discountPercentage : existingPlan.discountPercentage,
-        promoCode: promoCode !== undefined ? promoCode?.trim() || null : existingPlan.promoCode,
-        maxCourses: maxCourses !== undefined ? maxCourses : existingPlan.maxCourses,
-        maxCertificates: maxCertificates !== undefined ? maxCertificates : existingPlan.maxCertificates,
-        allowedCourseIds: allowedCourseIds !== undefined ? allowedCourseIds : existingPlan.allowedCourseIds,
-        trialDays: trialDays !== undefined ? trialDays : existingPlan.trialDays,
-        sortOrder: sortOrder !== undefined ? sortOrder : existingPlan.sortOrder,
+        currency: currency || existingPlan.currency,
+        pricing: pricing !== undefined ? pricing : existingPlan.pricing,
+        features: features ?? existingPlan.features,
+        isActive: isActive ?? existingPlan.isActive,
+        isFeatured: isFeatured ?? existingPlan.isFeatured,
+        isPopular: isPopular ?? existingPlan.isPopular,
+        isRecommended: isRecommended ?? existingPlan.isRecommended,
+        discountPercentage: discountPercentage ?? existingPlan.discountPercentage,
+        promoCode: promoCode?.trim() || existingPlan.promoCode,
+        maxCourses: maxCourses ?? existingPlan.maxCourses,
+        maxCertificates: maxCertificates ?? existingPlan.maxCertificates,
+        trialDays: trialDays ?? existingPlan.trialDays,
+        sortOrder: sortOrder ?? existingPlan.sortOrder,
+        icon: icon !== undefined ? icon : existingPlan.icon,
+        bannerUrl: bannerUrl !== undefined ? bannerUrl : existingPlan.bannerUrl,
+        themeColor: themeColor !== undefined ? themeColor : existingPlan.themeColor,
+        status: status || existingPlan.status,
+        visibility: visibility || existingPlan.visibility,
+        seoTitle: seoTitle?.trim() || existingPlan.seoTitle,
+        seoDescription: seoDescription?.trim() || existingPlan.seoDescription,
       }
     })
 
@@ -179,9 +184,10 @@ export async function PUT(
           module: "PLANS",
           userId: auth.userId,
           details: {
-            planId: id,
-            name: updatedPlan.name,
-            changes: body,
+            planId: plan.id,
+            name: plan.name,
+            purchaseScope: plan.purchaseScope,
+            price: plan.price,
           },
         },
       })
@@ -192,22 +198,29 @@ export async function PUT(
     return NextResponse.json({
       success: true,
       data: {
-        id: updatedPlan.id,
-        name: updatedPlan.name,
-        description: updatedPlan.description,
-        planType: updatedPlan.planType,
-        billingCycle: updatedPlan.billingCycle,
-        price: Number(updatedPlan.price),
-        currency: updatedPlan.currency,
-        features: updatedPlan.features as string[],
-        isActive: updatedPlan.isActive,
-        isFeatured: updatedPlan.isFeatured,
-        discountPercentage: updatedPlan.discountPercentage,
-        maxCourses: updatedPlan.maxCourses,
-        maxCertificates: updatedPlan.maxCertificates,
-        trialDays: updatedPlan.trialDays,
-        sortOrder: updatedPlan.sortOrder,
-        updatedAt: updatedPlan.updatedAt.toISOString(),
+        id: plan.id,
+        name: plan.name,
+        description: plan.description,
+        planType: plan.planType,
+        billingCycle: plan.billingCycle,
+        purchaseScope: plan.purchaseScope,
+        allowedDomainIds: plan.allowedDomainIds,
+        allowedCategoryIds: plan.allowedCategoryIds,
+        price: Number(plan.price),
+        currency: plan.currency,
+        pricing: plan.pricing,
+        features: plan.features as string[],
+        isActive: plan.isActive,
+        isFeatured: plan.isFeatured,
+        isPopular: plan.isPopular,
+        isRecommended: plan.isRecommended,
+        status: plan.status,
+        visibility: plan.visibility,
+        discountPercentage: plan.discountPercentage,
+        sortOrder: plan.sortOrder,
+        icon: plan.icon,
+        themeColor: plan.themeColor,
+        updatedAt: plan.updatedAt.toISOString(),
       },
       message: "Plan updated successfully"
     })
@@ -220,7 +233,7 @@ export async function PUT(
   }
 }
 
-// DELETE /api/admin/plans/[id] - Delete (deactivate) plan
+// DELETE /api/admin/plans/[id] - Delete plan
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -233,40 +246,52 @@ export async function DELETE(
   try {
     const { id } = await params
 
-    const plan = await prisma.plan.findUnique({
+    // Check if plan exists
+    const existingPlan = await prisma.plan.findUnique({
       where: { id },
       include: {
-        subscriptions: {
-          where: { status: "active" },
-          select: { id: true }
+        _count: {
+          select: {
+            categoryPurchases: true,
+            domainPurchases: true,
+            academyPurchases: true,
+          }
         }
       }
     })
 
-    if (!plan) {
+    if (!existingPlan) {
       return NextResponse.json(
         { success: false, error: "Plan not found" },
         { status: 404 }
       )
     }
 
-    // Check for active subscriptions
-    if (plan.subscriptions.length > 0) {
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: `Cannot delete plan with ${plan.subscriptions.length} active subscriptions. Deactivate the plan instead.` 
-        },
-        { status: 400 }
-      )
+    // Check if plan has purchases
+    const totalPurchases = existingPlan._count.categoryPurchases + 
+                           existingPlan._count.domainPurchases + 
+                           existingPlan._count.academyPurchases
+
+    if (totalPurchases > 0) {
+      // Instead of deleting, archive the plan
+      await prisma.plan.update({
+        where: { id },
+        data: {
+          status: 'ARCHIVED',
+          isActive: false,
+        }
+      })
+
+      return NextResponse.json({
+        success: true,
+        message: `Plan has ${totalPurchases} existing purchases. Plan has been archived instead of deleted.`,
+        archived: true,
+      })
     }
 
-    // Soft delete by deactivating
-    const updatedPlan = await prisma.plan.update({
-      where: { id },
-      data: {
-        isActive: false,
-      }
+    // Delete the plan
+    await prisma.plan.delete({
+      where: { id }
     })
 
     // Log to audit log
@@ -278,7 +303,8 @@ export async function DELETE(
           userId: auth.userId,
           details: {
             planId: id,
-            name: plan.name,
+            name: existingPlan.name,
+            purchaseScope: existingPlan.purchaseScope,
           },
         },
       })
@@ -288,7 +314,7 @@ export async function DELETE(
 
     return NextResponse.json({
       success: true,
-      message: "Plan deactivated successfully"
+      message: "Plan deleted successfully"
     })
   } catch (error) {
     console.error("Delete plan error:", error)

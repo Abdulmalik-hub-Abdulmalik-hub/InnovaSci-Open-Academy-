@@ -3,133 +3,80 @@
  * 
  * POST /api/payments/webhook
  * 
- * This endpoint receives webhook events from Paystack.
- * Configure this URL in your Paystack dashboard under Settings > Webhooks.
- * 
- * Events handled:
- * - charge.success - Payment successful, fulfill the order
- * - charge.failed - Payment failed, handle accordingly
+ * Handles Paystack webhook events for:
+ * - charge.success
+ * - charge.failed
+ * - subscription.create
+ * - subscription.disable
+ * - refund.created
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { fromKobo } from '@/lib/paystack'
+import { prisma } from "@/lib/prisma"
+import crypto from 'crypto'
 
-// Type definitions for webhook data
-// Force dynamic rendering - API routes that use request properties must be dynamic
-export const dynamic = 'force-dynamic';
-interface WebhookMetadata {
-  user_id: string
-  type: string
-  course_id?: string
-  reference_id?: string
-  plan_id?: string
-  [key: string]: unknown
+// Verify Paystack webhook signature
+function verifySignature(payload: string, signature: string): boolean {
+  const secret = process.env.PAYSTACK_SECRET_KEY || ''
+  const hash = crypto
+    .createHmac('sha512', secret)
+    .update(payload)
+    .digest('hex')
+  return hash === signature
 }
-
-interface WebhookData {
-  id: number
-  domain: string
-  amount: number
-  currency: string
-  reference: string
-  status: string
-  paid_at: string | null
-  created_at: string
-  channel: string
-  customer: {
-    email: string
-    customer_code: string
-  }
-  metadata: WebhookMetadata
-  authorization: {
-    authorization_code: string
-    bank: string
-    channel: string
-    card_type: string
-    reusable: boolean
-  }
-}
-
-interface WebhookEvent {
-  event: string
-  data: WebhookData
-}
-
-// Store processed events to prevent duplicate processing
-const processedEvents = new Set<string>()
 
 export async function POST(request: NextRequest) {
   try {
-    const rawBody = await request.text()
+    const payload = await request.text()
     const signature = request.headers.get('x-paystack-signature')
 
-    // Verify webhook signature
     if (!signature) {
-      console.error('Missing Paystack signature')
       return NextResponse.json(
         { error: 'Missing signature' },
         { status: 401 }
       )
     }
 
-    // In production, verify the HMAC signature:
-    // const crypto = require('crypto')
-    // const hash = crypto.createHmac('sha512', process.env.PAYSTACK_WEBHOOK_SECRET!)
-    //   .update(rawBody)
-    //   .digest('hex')
-    // if (hash !== signature) {
-    //   return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
-    // }
-
-    let event: WebhookEvent
-    try {
-      event = JSON.parse(rawBody)
-    } catch {
+    // Verify webhook signature
+    if (!verifySignature(payload, signature)) {
       return NextResponse.json(
-        { error: 'Invalid JSON payload' },
-        { status: 400 }
+        { error: 'Invalid signature' },
+        { status: 401 }
       )
     }
 
-    // Check for duplicate event
-    const eventId = `${event.event}-${event.data.id}`
-    if (processedEvents.has(eventId)) {
-      console.log(`Duplicate event ignored: ${eventId}`)
-      return NextResponse.json({ received: true, duplicate: true })
-    }
+    const event = JSON.parse(payload)
 
-    console.log(`Processing Paystack webhook event: ${event.event}`)
+    console.log('Paystack webhook event:', event.event)
 
-    // Handle different event types
     switch (event.event) {
       case 'charge.success':
-        await handleSuccessfulCharge(event.data)
+        await handleChargeSuccess(event.data)
         break
 
       case 'charge.failed':
-        await handleFailedCharge(event.data)
+        await handleChargeFailed(event.data)
         break
 
-      case 'transfer.success':
-        await handleSuccessfulTransfer(event.data)
+      case 'subscription.create':
+        await handleSubscriptionCreate(event.data)
+        break
+
+      case 'subscription.disable':
+        await handleSubscriptionDisable(event.data)
+        break
+
+      case 'refund.created':
+        await handleRefundCreated(event.data)
         break
 
       default:
-        console.log(`Unhandled event type: ${event.event}`)
-    }
-
-    // Mark event as processed
-    processedEvents.add(eventId)
-
-    // Clean up old events (keep last 10000)
-    if (processedEvents.size > 10000) {
-      const toDelete = Array.from(processedEvents).slice(0, 1000)
-      toDelete.forEach(id => processedEvents.delete(id))
+        console.log('Unhandled webhook event:', event.event)
     }
 
     return NextResponse.json({ received: true })
   } catch (error) {
-    console.error('Webhook processing error:', error)
+    console.error('Webhook error:', error)
     return NextResponse.json(
       { error: 'Webhook processing failed' },
       { status: 500 }
@@ -137,143 +84,199 @@ export async function POST(request: NextRequest) {
   }
 }
 
-// Type for valid payment types
-type PaymentType = 'course_enrollment' | 'certificate' | 'subscription' | 'one_time'
+async function handleChargeSuccess(data: any) {
+  try {
+    const reference = data.reference
+    
+    // Find the payment record
+    const payment = await prisma.payment.findUnique({
+      where: { paystackRef: reference }
+    })
 
-/**
- * Handle successful payment
- */
-async function handleSuccessfulCharge(data: WebhookData) {
-  const { amount, reference, customer, metadata, authorization } = data
-  
-  console.log(`Payment successful: ${reference} - ${fromKobo(amount)} ${data.currency}`)
-  console.log(`Customer: ${customer.email}`)
-  console.log(`Payment type: ${metadata.type}`)
-  console.log(`Authorization: ${authorization.authorization_code}`)
+    if (!payment) {
+      console.log('Payment not found for reference:', reference)
+      return
+    }
 
-  // Process based on payment type
-  const paymentType = metadata.type as PaymentType
-  
-  switch (paymentType) {
-    case 'course_enrollment':
-      await fulfillCourseEnrollment({
-        reference,
-        userId: metadata.user_id,
-        courseId: metadata.course_id || '',
-        amount: fromKobo(amount),
-        customerEmail: customer.email,
-        authorizationCode: authorization.authorization_code,
-      })
-      break
+    if (payment.status === 'completed') {
+      console.log('Payment already processed:', reference)
+      return
+    }
 
-    case 'certificate':
-      await fulfillCertificatePurchase({
-        reference,
-        userId: metadata.user_id,
-        certificateId: metadata.reference_id || '',
-        amount: fromKobo(amount),
-        customerEmail: customer.email,
-      })
-      break
+    // Update payment status
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'completed',
+        completedAt: new Date(),
+        paystackId: data.id?.toString(),
+        paystackChannel: data.channel,
+        gatewayResponse: data,
+      }
+    })
 
-    case 'subscription':
-      await fulfillSubscription({
-        reference,
-        userId: metadata.user_id,
-        planId: metadata.plan_id || '',
-        amount: fromKobo(amount),
-        customerEmail: customer.email,
-        authorizationCode: authorization.authorization_code,
-      })
-      break
-
-    case 'one_time':
-      await fulfillOneTimePayment({
-        reference,
-        userId: metadata.user_id,
-        amount: fromKobo(amount),
-        customerEmail: customer.email,
-      })
-      break
-
-    default:
-      console.log(`Unknown payment type: ${metadata.type}`)
+    console.log('Payment marked as completed:', reference)
+  } catch (error) {
+    console.error('Error handling charge.success:', error)
   }
 }
 
-/**
- * Handle failed payment
- */
-async function handleFailedCharge(data: WebhookData) {
-  const { reference, metadata, customer } = data
-  
-  console.log(`Payment failed: ${reference}`)
-  console.log(`Customer: ${customer.email}`)
-  console.log(`Payment type: ${metadata.type}`)
+async function handleChargeFailed(data: any) {
+  try {
+    const reference = data.reference
+    
+    const payment = await prisma.payment.findUnique({
+      where: { paystackRef: reference }
+    })
 
-  // Log the failed payment for support/review
+    if (!payment) {
+      console.log('Payment not found for reference:', reference)
+      return
+    }
+
+    // Update payment status
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'failed',
+        failedAt: new Date(),
+        gatewayResponse: data,
+      }
+    })
+
+    console.log('Payment marked as failed:', reference)
+  } catch (error) {
+    console.error('Error handling charge.failed:', error)
+  }
 }
 
-/**
- * Handle successful transfer (for refunds)
- */
-async function handleSuccessfulTransfer(data: WebhookData) {
-  console.log(`Transfer successful: ${data.reference}`)
+async function handleSubscriptionCreate(data: any) {
+  try {
+    const { customer, subscription, plan } = data
+    
+    // Find user by email
+    const user = await prisma.user.findUnique({
+      where: { email: customer.email }
+    })
+
+    if (!user) {
+      console.log('User not found for subscription:', customer.email)
+      return
+    }
+
+    // Create or update subscription record
+    await prisma.subscription.upsert({
+      where: { 
+        paystackSubscriptionCode: subscription.subscription_code 
+      },
+      update: {
+        status: 'active',
+        planName: plan?.name || 'PRO',
+        isPro: true,
+      },
+      create: {
+        userId: user.id,
+        planName: plan?.name || 'PRO',
+        status: 'active',
+        isPro: true,
+        paystackSubscriptionCode: subscription.subscription_code,
+        stripeSubscriptionId: null,
+        autoRenew: true,
+      }
+    })
+
+    console.log('Subscription created:', subscription.subscription_code)
+  } catch (error) {
+    console.error('Error handling subscription.create:', error)
+  }
 }
 
-/**
- * Fulfill course enrollment
- */
-async function fulfillCourseEnrollment(params: {
-  reference: string
-  userId: string
-  courseId: string
-  amount: number
-  customerEmail: string
-  authorizationCode: string
-}) {
-  console.log(`Fulfilling course enrollment:`, params)
-  // TODO: Implement database operations
+async function handleSubscriptionDisable(data: any) {
+  try {
+    const { subscription } = data
+    
+    await prisma.subscription.updateMany({
+      where: { 
+        paystackSubscriptionCode: subscription.subscription_code 
+      },
+      data: {
+        status: 'cancelled',
+        autoRenew: false,
+      }
+    })
+
+    console.log('Subscription disabled:', subscription.subscription_code)
+  } catch (error) {
+    console.error('Error handling subscription.disable:', error)
+  }
 }
 
-/**
- * Fulfill certificate purchase
- */
-async function fulfillCertificatePurchase(params: {
-  reference: string
-  userId: string
-  certificateId: string
-  amount: number
-  customerEmail: string
-}) {
-  console.log(`Fulfilling certificate purchase:`, params)
-  // TODO: Implement database operations
-}
+async function handleRefundCreated(data: any) {
+  try {
+    const reference = data.refund_ref || data.reference
+    
+    // Find the original payment
+    const payment = await prisma.payment.findUnique({
+      where: { paystackRef: reference }
+    })
 
-/**
- * Fulfill subscription
- */
-async function fulfillSubscription(params: {
-  reference: string
-  userId: string
-  planId: string
-  amount: number
-  customerEmail: string
-  authorizationCode: string
-}) {
-  console.log(`Fulfilling subscription:`, params)
-  // TODO: Implement database operations
-}
+    if (!payment) {
+      console.log('Payment not found for refund:', reference)
+      return
+    }
 
-/**
- * Fulfill one-time payment
- */
-async function fulfillOneTimePayment(params: {
-  reference: string
-  userId: string
-  amount: number
-  customerEmail: string
-}) {
-  console.log(`Fulfilling one-time payment:`, params)
-  // TODO: Implement database operations
+    // Update payment status
+    await prisma.payment.update({
+      where: { id: payment.id },
+      data: {
+        status: 'refunded',
+        refundedAt: new Date(),
+      }
+    })
+
+    // Handle purchase refunds based on type
+    if (payment.type === 'academy_purchase' && payment.academyPurchaseId) {
+      await prisma.academyPurchase.update({
+        where: { id: payment.academyPurchaseId },
+        data: {
+          status: 'refunded',
+          refundedAt: new Date(),
+        }
+      })
+
+      // Revoke access license
+      await prisma.accessLicense.updateMany({
+        where: { 
+          userId: payment.userId,
+          licenseType: 'academy',
+          sourceType: 'purchase',
+        },
+        data: {
+          status: 'revoked',
+          revokedAt: new Date(),
+          revokedReason: 'Refund processed',
+        }
+      })
+    } else if (payment.type === 'domain_purchase' && payment.domainPurchaseId) {
+      await prisma.domainPurchase.update({
+        where: { id: payment.domainPurchaseId },
+        data: {
+          status: 'refunded',
+          refundedAt: new Date(),
+        }
+      })
+    } else if (payment.type === 'category_purchase' && payment.categoryPurchaseId) {
+      await prisma.categoryPurchase.update({
+        where: { id: payment.categoryPurchaseId },
+        data: {
+          status: 'refunded',
+          refundedAt: new Date(),
+        }
+      })
+    }
+
+    console.log('Refund processed for:', reference)
+  } catch (error) {
+    console.error('Error handling refund.created:', error)
+  }
 }

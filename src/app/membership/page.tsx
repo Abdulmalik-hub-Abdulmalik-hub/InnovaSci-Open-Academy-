@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -11,8 +12,26 @@ import { cn } from "@/lib/utils"
 import { 
   Check, X, CreditCard, Award, Download, 
   Infinity, Clock, Zap, Shield, BookOpen, MessageCircle, Headphones,
-  Star, Sparkles, ChevronRight
+  Star, Sparkles, ChevronRight, Crown, Grid3X3, Layers,
+  Lock, ShoppingCart, Percent, Tag, Gift
 } from "lucide-react"
+
+interface Domain {
+  id: string
+  name: string
+  slug: string
+  color: string | null
+  icon: string | null
+  shortDescription: string | null
+}
+
+interface Category {
+  id: string
+  name: string
+  slug: string
+  domainId: string | null
+  icon: string | null
+}
 
 interface Plan {
   id: string
@@ -20,43 +39,92 @@ interface Plan {
   description: string | null
   planType: string
   billingCycle: string
+  purchaseScope: 'ACADEMY' | 'DOMAIN' | 'CATEGORY'
+  allowedDomainIds: string[]
+  allowedCategoryIds: string[]
   price: number
   currency: string
   pricing: any
   features: string[]
   isActive: boolean
   isFeatured: boolean
+  isPopular: boolean
+  isRecommended: boolean
+  status: string
+  visibility: string
   discountPercentage: number | null
-  maxCourses: number | null
-  maxCertificates: number | null
-  allowedCourseIds: string[]
-  trialDays: number | null
+  icon: string | null
+  themeColor: string | null
   sortOrder: number
 }
 
-type BillingCycle = "monthly" | "annual"
-
 const features = [
   { icon: BookOpen, title: "Expert-Led Courses", description: "Learn from world-class instructors with hands-on projects" },
-  { icon: Award, title: "Verified Certificates", description: "Earn certificates recognized by top employers" },
+  { icon: Award, title: "Professional Certificates", description: "Earn recognized certificates for your career" },
   { icon: Download, title: "Downloadable Resources", description: "Access project files, slides, and code samples" },
   { icon: MessageCircle, title: "Community Forum", description: "Connect with thousands of learners worldwide" },
   { icon: Clock, title: "Lifetime Access", description: "Learn at your own pace with unlimited course access" },
   { icon: Shield, title: "30-Day Guarantee", description: "Not satisfied? Get a full refund within 30 days" },
 ]
 
+const scopeInfo = {
+  ACADEMY: {
+    icon: Crown,
+    color: "from-yellow-500 to-amber-500",
+    bgColor: "bg-yellow-500/10",
+    borderColor: "border-yellow-500/30",
+    badge: "bg-yellow-500/20 text-yellow-400",
+  },
+  DOMAIN: {
+    icon: Grid3X3,
+    color: "from-purple-500 to-blue-500",
+    bgColor: "bg-purple-500/10",
+    borderColor: "border-purple-500/30",
+    badge: "bg-purple-500/20 text-purple-400",
+  },
+  CATEGORY: {
+    icon: Layers,
+    color: "from-emerald-500 to-teal-500",
+    bgColor: "bg-emerald-500/10",
+    borderColor: "border-emerald-500/30",
+    badge: "bg-emerald-500/20 text-emerald-400",
+  },
+}
+
+// Format price helper
+function formatPrice(price: number, currency: string = "USD"): string {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency,
+  }).format(price)
+}
+
 export default function MembershipPage() {
   const [plans, setPlans] = useState<Plan[]>([])
+  const [domains, setDomains] = useState<Domain[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [billingCycle, setBillingCycle] = useState<BillingCycle>("annual")
+  const [billingCycle, setBillingCycle] = useState<"monthly" | "quarterly" | "yearly" | "lifetime">("lifetime")
+  const [selectedDomain, setSelectedDomain] = useState<string | null>(null)
+  const [couponCode, setCouponCode] = useState("")
+  const [couponApplied, setCouponApplied] = useState(false)
+  const [showDomainPlans, setShowDomainPlans] = useState(false)
+  const [showCategoryPlans, setShowCategoryPlans] = useState(false)
+  const [purchaseModal, setPurchaseModal] = useState<{plan: Plan, type: string} | null>(null)
   
+  const router = useRouter()
+
   const fetchPlans = useCallback(async () => {
     try {
       const response = await fetch("/api/public/plans")
       const result = await response.json()
       
       if (result.success && result.data?.plans) {
-        setPlans(result.data.plans)
+        // Only show published and public plans
+        const visiblePlans = result.data.plans.filter(
+          (p: Plan) => p.status === 'PUBLISHED' && p.visibility === 'PUBLIC'
+        )
+        setPlans(visiblePlans)
       } else {
         setPlans([])
       }
@@ -67,129 +135,106 @@ export default function MembershipPage() {
       setLoading(false)
     }
   }, [])
-  
+
+  const fetchFilters = useCallback(async () => {
+    try {
+      const [domainsRes, categoriesRes] = await Promise.all([
+        fetch("/api/public/domains"),
+        fetch("/api/admin/categories?includeInactive=true")
+      ])
+      
+      const domainsData = await domainsRes.json()
+      if (domainsData.success && domainsData.data?.domains) {
+        setDomains(domainsData.data.domains)
+      }
+      
+      const categoriesData = await categoriesRes.json()
+      if (categoriesData.success && categoriesData.data?.categories) {
+        setCategories(categoriesData.data.categories)
+      }
+    } catch (err) {
+      console.error("Failed to fetch filters:", err)
+    }
+  }, [])
+
   useEffect(() => {
     fetchPlans()
-  }, [fetchPlans])
-  
-  // If no plans in database, show demo mode with default plans
-  const displayPlans = plans.length > 0 ? plans : [
-    {
-      id: "free",
-      name: "Free",
-      description: "Get started with basic learning",
-      price: 0,
-      features: [
-        "Access to free courses",
-        "Community forum access",
-        "Basic progress tracking",
-        "Email support"
-      ],
-      isFeatured: false,
-      sortOrder: 0
-    },
-    {
-      id: "pro",
-      name: "Pro",
-      description: "Everything you need to master scientific computing",
-      price: 29,
-      features: [
-        "Access to all courses",
-        "Community forum access",
-        "Advanced progress tracking",
-        "Priority email support",
-        "Certificate of completion",
-        "Downloadable resources",
-        "Priority support"
-      ],
-      isFeatured: true,
-      sortOrder: 1
-    },
-    {
-      id: "team",
-      name: "Team",
-      description: "For teams and organizations",
-      price: 79,
-      features: [
-        "Everything in Pro",
-        "Team management dashboard",
-        "Collaborative learning",
-        "24/7 phone support",
-        "Custom certificates",
-        "Offline downloads",
-        "Dedicated account manager",
-        "Custom learning paths"
-      ],
-      isFeatured: false,
-      sortOrder: 2
-    }
-  ]
-  
-  const sortedPlans = [...displayPlans].sort((a, b) => a.sortOrder - b.sortOrder)
-  
-  // Get price from plan
-  const getPlanPrice = (plan: any) => {
-    // Use pricing data if available
+    fetchFilters()
+  }, [fetchPlans, fetchFilters])
+
+  // Group plans by scope
+  const groupedPlans = {
+    ACADEMY: plans.filter(p => p.purchaseScope === 'ACADEMY'),
+    DOMAIN: plans.filter(p => p.purchaseScope === 'DOMAIN'),
+    CATEGORY: plans.filter(p => p.purchaseScope === 'CATEGORY'),
+  }
+
+  // Get price based on billing cycle
+  const getPlanPrice = (plan: Plan): number => {
     if (plan.pricing && typeof plan.pricing === 'object') {
       const currency = "USD"
       if (plan.pricing[currency]) {
-        const amount = plan.pricing[currency].amount
-        return billingCycle === "annual" ? Math.round(amount * 0.8) : amount // 20% discount for annual
+        const amount = plan.pricing[currency][billingCycle] || plan.pricing[currency].lifetime || plan.price
+        return amount
       }
     }
     // Fallback to simple price
-    const basePrice = plan.price || 0
-    return billingCycle === "annual" ? Math.round(basePrice * 0.8) : basePrice
+    if (billingCycle === "lifetime") {
+      return plan.price
+    }
+    // For other cycles, apply a discount
+    const discount = billingCycle === "yearly" ? 0.8 : billingCycle === "quarterly" ? 0.85 : 1
+    return plan.price * discount
   }
-  
-  // Determine which features to show based on plan
-  const getFeatures = (plan: any) => {
-    if (plan.features && Array.isArray(plan.features) && plan.features.length > 0) {
-      return plan.features.map((f: string) => ({ name: f, included: true }))
+
+  // Handle purchase
+  const handlePurchase = async (plan: Plan, scope: string, targetId?: string) => {
+    const userId = localStorage.getItem('userId') // In real app, use auth
+    const email = localStorage.getItem('userEmail') || 'demo@example.com' // In real app, use auth
+
+    try {
+      const response = await fetch("/api/payments/initialize", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          scope,
+          planId: plan.id,
+          targetId: targetId || null,
+          amount: getPlanPrice(plan),
+          currency: plan.currency || "USD",
+          email,
+          userId,
+          couponCode: couponApplied ? couponCode : undefined,
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success && result.authorizationUrl) {
+        // Redirect to Paystack
+        window.location.href = result.authorizationUrl
+      } else {
+        alert(result.error || "Failed to initialize payment")
+      }
+    } catch (err) {
+      console.error("Purchase error:", err)
+      alert("Failed to process purchase")
     }
+  }
+
+  // Apply coupon
+  const handleApplyCoupon = async () => {
+    if (!couponCode.trim()) return
     
-    // Default features based on plan type
-    if (plan.name === "Free" || plan.id === "free") {
-      return [
-        { name: "Access to free courses", included: true },
-        { name: "Community forum access", included: true },
-        { name: "Basic progress tracking", included: true },
-        { name: "Email support", included: true },
-        { name: "Certificate of completion", included: false },
-        { name: "Downloadable resources", included: false },
-        { name: "Priority support", included: false },
-        { name: "All-access to premium content", included: false },
-      ]
-    } else if (plan.name === "Pro" || plan.id === "pro") {
-      return [
-        { name: "Access to all courses", included: true },
-        { name: "Community forum access", included: true },
-        { name: "Advanced progress tracking", included: true },
-        { name: "Priority email support", included: true },
-        { name: "Certificate of completion", included: true },
-        { name: "Downloadable resources", included: true },
-        { name: "Priority support", included: true },
-        { name: "All-access to premium content", included: false },
-      ]
-    } else {
-      return [
-        { name: "Everything in Pro", included: true },
-        { name: "Team management dashboard", included: true },
-        { name: "Collaborative learning", included: true },
-        { name: "24/7 phone support", included: true },
-        { name: "Custom certificates", included: true },
-        { name: "Offline downloads", included: true },
-        { name: "Dedicated account manager", included: true },
-        { name: "Custom learning paths", included: true },
-      ]
-    }
+    // In real app, validate coupon with backend
+    setCouponApplied(true)
   }
 
   return (
     <div className="min-h-screen bg-background">
       {/* Hero Section */}
       <section className="relative py-20 lg:py-32 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-[#7C3AED]/5 via-transparent to-[#2563EB]/5" />
+        <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 via-transparent to-blue-500/5" />
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 relative">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -197,179 +242,548 @@ export default function MembershipPage() {
             transition={{ duration: 0.5 }}
             className="text-center max-w-3xl mx-auto"
           >
-            <Badge variant="outline" className="mb-4 px-4 py-1 text-sm border-[#7C3AED]/30 text-[#7C3AED]">
+            <Badge variant="outline" className="mb-4 px-4 py-1 text-sm border-purple-500/30 text-purple-400">
               <Zap className="h-3.5 w-3.5 mr-1" />
-              Special Offer: Save up to 20% with annual billing
+              One-Time Purchase • Lifetime Access
             </Badge>
             <h1 className="text-4xl lg:text-5xl font-bold tracking-tight mb-6">
               Choose Your Learning Path
             </h1>
             <p className="text-lg text-muted-foreground mb-8">
               Unlock your potential with world-class scientific education. 
-              Get unlimited access to courses, certificates, and more.
+              Get unlimited access to courses, certificates, and more with a single purchase.
             </p>
 
-            {/* Billing Toggle */}
-            <div className="inline-flex items-center gap-4 p-1.5 rounded-xl bg-muted">
-              <button
-                onClick={() => setBillingCycle("monthly")}
-                className={cn(
-                  "px-6 py-2.5 rounded-lg text-sm font-medium transition-all",
-                  billingCycle === "monthly"
-                    ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Monthly
-              </button>
-              <button
-                onClick={() => setBillingCycle("annual")}
-                className={cn(
-                  "px-6 py-2.5 rounded-lg text-sm font-medium transition-all flex items-center gap-2",
-                  billingCycle === "annual"
-                    ? "bg-background shadow-sm text-foreground"
-                    : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                Annual
-                <Badge className="bg-green-500/10 text-green-600 text-[10px] px-1.5 py-0.5">Best Value</Badge>
-              </button>
+            {/* Coupon Input */}
+            <div className="flex items-center justify-center gap-2 mb-8">
+              <div className="flex items-center gap-2 px-4 py-2 bg-white/5 rounded-lg border border-white/10">
+                <Tag className="h-4 w-4 text-white/60" />
+                <input
+                  type="text"
+                  placeholder="Enter coupon code"
+                  value={couponCode}
+                  onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                  className="bg-transparent text-white placeholder:text-white/40 outline-none w-40"
+                />
+                <Button 
+                  size="sm" 
+                  variant="ghost"
+                  onClick={handleApplyCoupon}
+                  className="text-white/60 hover:text-white"
+                >
+                  Apply
+                </Button>
+              </div>
+              {couponApplied && (
+                <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                  <Check className="h-3 w-3 mr-1" />
+                  Coupon Applied!
+                </Badge>
+              )}
             </div>
           </motion.div>
         </div>
       </section>
 
-      {/* Pricing Cards */}
-      <section className="py-12 -mt-8">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          {loading ? (
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {[1, 2, 3].map((i) => (
-                <Card key={i} className="h-full">
-                  <CardHeader className="text-center pb-4">
-                    <Skeleton className="h-8 w-24 mx-auto mb-2" />
-                    <Skeleton className="h-4 w-full" />
-                  </CardHeader>
-                  <CardContent className="text-center">
-                    <Skeleton className="h-12 w-32 mx-auto mb-6" />
-                    <div className="space-y-3 mb-8">
-                      {[1, 2, 3, 4].map((j) => (
-                        <Skeleton key={j} className="h-5 w-full" />
-                      ))}
-                    </div>
-                    <Skeleton className="h-10 w-full" />
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-              {sortedPlans.map((plan, index) => {
-                const features = getFeatures(plan)
-                const price = plan.price === 0 ? 0 : getPlanPrice(plan)
-                const isPopular = plan.isFeatured || plan.name === "Pro" || plan.id === "pro"
-                const trialDays = (plan as any).trialDays
-                
-                return (
-                  <motion.div
-                    key={plan.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: index * 0.1 }}
-                  >
-                    <Card className={cn(
-                      "relative h-full transition-all duration-300",
-                      isPopular && "border-[#7C3AED] shadow-lg shadow-[#7C3AED]/10 scale-[1.02]"
-                    )}>
-                      {isPopular && (
-                        <div className="absolute -top-4 left-1/2 -translate-x-1/2">
-                          <Badge className="bg-gradient-to-r from-[#7C3AED] to-[#2563EB] text-white px-4 py-1">
-                            Most Popular
-                          </Badge>
-                        </div>
-                      )}
-                      
-                      <CardHeader className="text-center pb-4">
-                        <CardTitle className="text-2xl font-bold">{plan.name}</CardTitle>
-                        <CardDescription>{plan.description}</CardDescription>
-                      </CardHeader>
-                      
-                      <CardContent className="text-center">
-                        <div className="mb-6">
-                          <div className="flex items-baseline justify-center gap-1">
-                            <span className="text-4xl font-bold tracking-tight">
-                              ${price}
-                            </span>
-                            <span className="text-muted-foreground">
-                              /{billingCycle === "monthly" ? "mo" : "mo"}
-                            </span>
-                          </div>
-                          {billingCycle === "annual" && plan.price > 0 && (
-                            <p className="text-sm text-green-600 font-medium mt-1">
-                              Save ${plan.price - price}/month
-                            </p>
-                          )}
-                          {billingCycle === "annual" && plan.price > 0 && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Billed ${price * 12}/year
-                            </p>
-                          )}
-                          {trialDays && trialDays > 0 && (
-                            <p className="text-xs text-purple-600 mt-1">
-                              {trialDays} day free trial
-                            </p>
-                          )}
-                        </div>
-
-                        <ul className="space-y-3 text-left mb-8">
-                          {features.map((feature: any, idx: number) => (
-                            <li key={idx} className="flex items-start gap-3">
-                              <div className={cn(
-                                "flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center mt-0.5",
-                                feature.included ? "bg-green-500/10" : "bg-muted"
-                              )}>
-                                {feature.included ? (
-                                  <Check className="h-3 w-3 text-green-600" />
-                                ) : (
-                                  <X className="h-3 w-3 text-muted-foreground/50" />
-                                )}
-                              </div>
-                              <span className={cn(
-                                "text-sm",
-                                feature.included ? "text-foreground" : "text-muted-foreground"
-                              )}>
-                                {feature.name}
-                              </span>
-                            </li>
-                          ))}
-                        </ul>
-
-                        <Link href={plan.price === 0 ? "/auth/signup" : `/membership/${plan.id}`}>
-                          <Button 
-                            className={cn(
-                              "w-full",
-                              isPopular 
-                                ? "bg-gradient-to-r from-[#7C3AED] to-[#2563EB] hover:opacity-90" 
-                                : ""
-                            )}
-                            variant={isPopular ? "default" : "outline"}
-                          >
-                            {plan.price === 0 ? "Start Learning" : "Get Started"}
-                            <ChevronRight className="h-4 w-4 ml-2" />
-                          </Button>
-                        </Link>
-                      </CardContent>
-                    </Card>
-                  </motion.div>
-                )
-              })}
-            </div>
-          )}
+      {/* Plan Selection Tabs */}
+      <section className="py-8 border-b border-white/10">
+        <div className="container mx-auto px-4">
+          <div className="flex flex-wrap items-center justify-center gap-4">
+            <Button
+              variant="outline"
+              className={cn(
+                "gap-2 border-white/20",
+                !showDomainPlans && !showCategoryPlans 
+                  ? "bg-white/10 text-white" 
+                  : "text-white/60"
+              )}
+              onClick={() => {
+                setShowDomainPlans(false)
+                setShowCategoryPlans(false)
+              }}
+            >
+              <Crown className="h-4 w-4 text-yellow-400" />
+              Academy Access
+            </Button>
+            <Button
+              variant="outline"
+              className={cn(
+                "gap-2 border-white/20",
+                showDomainPlans 
+                  ? "bg-purple-500/20 text-white border-purple-500/30" 
+                  : "text-white/60"
+              )}
+              onClick={() => {
+                setShowDomainPlans(true)
+                setShowCategoryPlans(false)
+              }}
+            >
+              <Grid3X3 className="h-4 w-4 text-purple-400" />
+              Domain Access
+            </Button>
+            <Button
+              variant="outline"
+              className={cn(
+                "gap-2 border-white/20",
+                showCategoryPlans 
+                  ? "bg-emerald-500/20 text-white border-emerald-500/30" 
+                  : "text-white/60"
+              )}
+              onClick={() => {
+                setShowDomainPlans(false)
+                setShowCategoryPlans(true)
+              }}
+            >
+              <Layers className="h-4 w-4 text-emerald-400" />
+              Category Access
+            </Button>
+          </div>
         </div>
       </section>
 
+      {/* Domain Selection (when viewing Domain plans) */}
+      {showDomainPlans && domains.length > 0 && (
+        <section className="py-8 bg-white/5">
+          <div className="container mx-auto px-4">
+            <h3 className="text-lg font-semibold text-white mb-4 text-center">
+              Select a Domain
+            </h3>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {domains.map(domain => (
+                <Button
+                  key={domain.id}
+                  variant="outline"
+                  className={cn(
+                    "gap-2 border-white/20",
+                    selectedDomain === domain.id 
+                      ? "bg-purple-500/20 text-white border-purple-500/30" 
+                      : "text-white/60"
+                  )}
+                  onClick={() => setSelectedDomain(domain.id)}
+                >
+                  {domain.icon && <span className="text-lg">{domain.icon}</span>}
+                  {domain.name}
+                </Button>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
+      {/* Academy Plans */}
+      {!showDomainPlans && !showCategoryPlans && (
+        <section className="py-16">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tight mb-4">
+                <Crown className="inline h-8 w-8 text-yellow-400 mr-2" />
+                Academy Access
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Full platform access - everything we offer, forever
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-96 rounded-2xl bg-white/5" />
+                ))}
+              </div>
+            ) : groupedPlans.ACADEMY.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                {groupedPlans.ACADEMY.map((plan) => {
+                  const Icon = Crown
+                  const info = scopeInfo.ACADEMY
+                  const price = getPlanPrice(plan)
+                  
+                  return (
+                    <motion.div
+                      key={plan.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Card className={cn(
+                        "h-full overflow-hidden transition-all hover:scale-[1.02]",
+                        plan.isFeatured ? `bg-gradient-to-br ${info.bgColor} border-2 ${info.borderColor}` : "bg-white/5 border-white/10",
+                        plan.isPopular && "ring-2 ring-orange-500/50"
+                      )}>
+                        {plan.isPopular && (
+                          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-center py-1 text-sm font-medium">
+                            <Zap className="inline h-4 w-4 mr-1" />
+                            Most Popular
+                          </div>
+                        )}
+                        <CardHeader className="pb-4">
+                          <div className="flex items-center gap-3">
+                            {plan.icon ? (
+                              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-2xl">
+                                {plan.icon}
+                              </div>
+                            ) : (
+                              <div className={cn("w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center")}>
+                                <Icon className={cn("h-6 w-6 text-yellow-400")} />
+                              </div>
+                            )}
+                            <div>
+                              <CardTitle className="text-xl">{plan.name}</CardTitle>
+                              <Badge className={info.badge + " mt-1"}>
+                                <Crown className="h-3 w-3 mr-1" />
+                                Full Academy Access
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-bold">
+                              {formatPrice(price, plan.currency)}
+                            </span>
+                            <span className="text-white/50 text-sm">
+                              {billingCycle !== "lifetime" ? `/${billingCycle}` : "lifetime"}
+                            </span>
+                          </div>
+                          
+                          {plan.discountPercentage && plan.discountPercentage > 0 && (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              <Percent className="h-3 w-3 mr-1" />
+                              {plan.discountPercentage}% OFF
+                            </Badge>
+                          )}
+
+                          {plan.description && (
+                            <p className="text-white/60 text-sm">
+                              {plan.description}
+                            </p>
+                          )}
+
+                          <ul className="space-y-2 pt-4">
+                            {[
+                              "All domains included",
+                              "All categories included",
+                              "All courses & lessons",
+                              "All certificates",
+                              "Professional capstones",
+                              "Lifetime access",
+                              "Future courses included"
+                            ].map((feature, idx) => (
+                              <li key={idx} className="flex items-center gap-2 text-sm">
+                                <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+                                <span className="text-white/70">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+
+                          <Button 
+                            className={cn(
+                              "w-full mt-6",
+                              plan.isFeatured 
+                                ? "bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-600 hover:to-amber-600" 
+                                : ""
+                            )}
+                            size="lg"
+                            onClick={() => handlePurchase(plan, 'academy')}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Get Academy Access
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            ) : (
+              <Card className="bg-white/5 border-white/10 max-w-2xl mx-auto">
+                <CardContent className="py-12 text-center">
+                  <Crown className="h-16 w-16 text-white/20 mx-auto mb-4" />
+                  <p className="text-white/50">
+                    Academy access plans coming soon. Browse our domain and category options below.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Domain Plans */}
+      {showDomainPlans && (
+        <section className="py-16">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tight mb-4">
+                <Grid3X3 className="inline h-8 w-8 text-purple-400 mr-2" />
+                Domain Access
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Complete access to all categories within a specific domain
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                {[1, 2, 3].map(i => (
+                  <Skeleton key={i} className="h-96 rounded-2xl bg-white/5" />
+                ))}
+              </div>
+            ) : groupedPlans.DOMAIN.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                {groupedPlans.DOMAIN
+                  .filter(plan => !selectedDomain || plan.allowedDomainIds.includes(selectedDomain))
+                  .map((plan) => {
+                    const Icon = Grid3X3
+                    const info = scopeInfo.DOMAIN
+                    const price = getPlanPrice(plan)
+                    const domainNames = plan.allowedDomainIds
+                      .map(id => domains.find(d => d.id === id)?.name)
+                      .filter(Boolean)
+                      .join(", ") || "Selected Domains"
+                    
+                    return (
+                      <motion.div
+                        key={plan.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.5 }}
+                      >
+                        <Card className={cn(
+                          "h-full overflow-hidden transition-all hover:scale-[1.02]",
+                          plan.isFeatured ? `bg-gradient-to-br ${info.bgColor} border-2 ${info.borderColor}` : "bg-white/5 border-white/10",
+                          plan.isPopular && "ring-2 ring-orange-500/50"
+                        )}>
+                          {plan.isPopular && (
+                            <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-center py-1 text-sm font-medium">
+                              <Zap className="inline h-4 w-4 mr-1" />
+                              Most Popular
+                            </div>
+                          )}
+                          <CardHeader className="pb-4">
+                            <div className="flex items-center gap-3">
+                              {plan.icon ? (
+                                <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-2xl">
+                                  {plan.icon}
+                                </div>
+                              ) : (
+                                <div className={cn("w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center")}>
+                                  <Icon className={cn("h-6 w-6 text-purple-400")} />
+                                </div>
+                              )}
+                              <div>
+                                <CardTitle className="text-xl">{plan.name}</CardTitle>
+                                <Badge className={info.badge + " mt-1"}>
+                                  <Grid3X3 className="h-3 w-3 mr-1" />
+                                  {domainNames}
+                                </Badge>
+                              </div>
+                            </div>
+                          </CardHeader>
+                          <CardContent className="space-y-4">
+                            <div className="flex items-baseline gap-1">
+                              <span className="text-4xl font-bold">
+                                {formatPrice(price, plan.currency)}
+                              </span>
+                              <span className="text-white/50 text-sm">
+                                {billingCycle !== "lifetime" ? `/${billingCycle}` : "lifetime"}
+                              </span>
+                            </div>
+                            
+                            {plan.discountPercentage && plan.discountPercentage > 0 && (
+                              <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                                <Percent className="h-3 w-3 mr-1" />
+                                {plan.discountPercentage}% OFF
+                              </Badge>
+                            )}
+
+                            {plan.description && (
+                              <p className="text-white/60 text-sm">
+                                {plan.description}
+                              </p>
+                            )}
+
+                            <ul className="space-y-2 pt-4">
+                              {[
+                                "All categories in domain",
+                                "All courses & lessons",
+                                "Professional certificates",
+                                "Domain master certificate",
+                                "Lifetime access",
+                                "Future courses included"
+                              ].map((feature, idx) => (
+                                <li key={idx} className="flex items-center gap-2 text-sm">
+                                  <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+                                  <span className="text-white/70">{feature}</span>
+                                </li>
+                              ))}
+                            </ul>
+
+                            <Button 
+                              className="w-full mt-6 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600"
+                              size="lg"
+                              onClick={() => handlePurchase(plan, 'domain', plan.allowedDomainIds[0])}
+                            >
+                              <ShoppingCart className="h-4 w-4 mr-2" />
+                              Get Domain Access
+                            </Button>
+                          </CardContent>
+                        </Card>
+                      </motion.div>
+                    )
+                  })}
+              </div>
+            ) : (
+              <Card className="bg-white/5 border-white/10 max-w-2xl mx-auto">
+                <CardContent className="py-12 text-center">
+                  <Grid3X3 className="h-16 w-16 text-white/20 mx-auto mb-4" />
+                  <p className="text-white/50">
+                    Domain access plans coming soon.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
+      )}
+
+      {/* Category Plans */}
+      {showCategoryPlans && (
+        <section className="py-16">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold tracking-tight mb-4">
+                <Layers className="inline h-8 w-8 text-emerald-400 mr-2" />
+                Category Access
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Complete access to all courses within a specific category
+              </p>
+            </div>
+
+            {loading ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
+                {[1, 2, 3, 4, 5, 6].map(i => (
+                  <Skeleton key={i} className="h-80 rounded-2xl bg-white/5" />
+                ))}
+              </div>
+            ) : groupedPlans.CATEGORY.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-6xl mx-auto">
+                {groupedPlans.CATEGORY.map((plan) => {
+                  const Icon = Layers
+                  const info = scopeInfo.CATEGORY
+                  const price = getPlanPrice(plan)
+                  const categoryNames = plan.allowedCategoryIds
+                    .map(id => categories.find(c => c.id === id)?.name)
+                    .filter(Boolean)
+                    .join(", ") || "Selected Categories"
+                  
+                  return (
+                    <motion.div
+                      key={plan.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.5 }}
+                    >
+                      <Card className={cn(
+                        "h-full overflow-hidden transition-all hover:scale-[1.02]",
+                        plan.isFeatured ? `bg-gradient-to-br ${info.bgColor} border-2 ${info.borderColor}` : "bg-white/5 border-white/10",
+                        plan.isPopular && "ring-2 ring-orange-500/50"
+                      )}>
+                        {plan.isPopular && (
+                          <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white text-center py-1 text-sm font-medium">
+                            <Zap className="inline h-4 w-4 mr-1" />
+                            Most Popular
+                          </div>
+                        )}
+                        <CardHeader className="pb-4">
+                          <div className="flex items-center gap-3">
+                            {plan.icon ? (
+                              <div className="w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center text-2xl">
+                                {plan.icon}
+                              </div>
+                            ) : (
+                              <div className={cn("w-12 h-12 rounded-xl bg-white/10 flex items-center justify-center")}>
+                                <Icon className={cn("h-6 w-6 text-emerald-400")} />
+                              </div>
+                            )}
+                            <div>
+                              <CardTitle className="text-xl">{plan.name}</CardTitle>
+                              <Badge className={info.badge + " mt-1"}>
+                                <Layers className="h-3 w-3 mr-1" />
+                                {categoryNames}
+                              </Badge>
+                            </div>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div className="flex items-baseline gap-1">
+                            <span className="text-4xl font-bold">
+                              {formatPrice(price, plan.currency)}
+                            </span>
+                            <span className="text-white/50 text-sm">
+                              {billingCycle !== "lifetime" ? `/${billingCycle}` : "lifetime"}
+                            </span>
+                          </div>
+                          
+                          {plan.discountPercentage && plan.discountPercentage > 0 && (
+                            <Badge className="bg-green-500/20 text-green-400 border-green-500/30">
+                              <Percent className="h-3 w-3 mr-1" />
+                              {plan.discountPercentage}% OFF
+                            </Badge>
+                          )}
+
+                          {plan.description && (
+                            <p className="text-white/60 text-sm">
+                              {plan.description}
+                            </p>
+                          )}
+
+                          <ul className="space-y-2 pt-4">
+                            {[
+                              "All courses in category",
+                              "All difficulty levels",
+                              "Mini projects",
+                              "Professional capstone",
+                              "Category certificate",
+                              "Lifetime access"
+                            ].map((feature, idx) => (
+                              <li key={idx} className="flex items-center gap-2 text-sm">
+                                <Check className="h-4 w-4 text-green-400 flex-shrink-0" />
+                                <span className="text-white/70">{feature}</span>
+                              </li>
+                            ))}
+                          </ul>
+
+                          <Button 
+                            className="w-full mt-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+                            size="lg"
+                            onClick={() => handlePurchase(plan, 'category', plan.allowedCategoryIds[0])}
+                          >
+                            <ShoppingCart className="h-4 w-4 mr-2" />
+                            Get Category Access
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  )
+                })}
+              </div>
+            ) : (
+              <Card className="bg-white/5 border-white/10 max-w-2xl mx-auto">
+                <CardContent className="py-12 text-center">
+                  <Layers className="h-16 w-16 text-white/20 mx-auto mb-4" />
+                  <p className="text-white/50">
+                    Category access plans coming soon.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        </section>
+      )}
+
       {/* Features Grid */}
-      <section className="py-20 bg-muted/30">
+      <section className="py-20 bg-white/5">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -400,8 +814,8 @@ export default function MembershipPage() {
                 >
                   <Card className="h-full hover:shadow-md transition-shadow">
                     <CardContent className="pt-6">
-                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#7C3AED]/10 to-[#2563EB]/10 flex items-center justify-center mb-4">
-                        <Icon className="h-6 w-6 text-[#7C3AED]" />
+                      <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500/10 to-blue-500/10 flex items-center justify-center mb-4">
+                        <Icon className="h-6 w-6 text-purple-400" />
                       </div>
                       <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
                       <p className="text-sm text-muted-foreground">{feature.description}</p>
@@ -435,20 +849,24 @@ export default function MembershipPage() {
           <div className="max-w-3xl mx-auto space-y-6">
             {[
               {
-                q: "Can I cancel my subscription anytime?",
-                a: "Yes, you can cancel your subscription at any time. You&apos;ll continue to have access until the end of your billing period."
+                q: "What's included in a Category purchase?",
+                a: "When you purchase a Category, you get lifetime access to ALL courses within that category - including all difficulty levels (Beginner, Intermediate, Advanced), practical exercises, mini projects, and the Professional Capstone. You'll also be eligible for the Category Professional Certificate."
               },
               {
-                q: "What payment methods do you accept?",
-                a: "We accept all major credit cards, PayPal, and bank transfers for annual plans."
+                q: "What's included in a Domain purchase?",
+                a: "A Domain purchase gives you access to ALL Categories within that domain, along with every course, lesson, project, and capstone. You'll be eligible for both Category Certificates and the Domain Master Certificate."
               },
               {
-                q: "Is there a free trial?",
-                a: "Yes! All paid plans come with a 30-day money-back guarantee. If you&apos;re not satisfied, get a full refund."
+                q: "What happens to my access if I buy a Domain that contains a Category I already purchased?",
+                a: "Great news! Your existing Category purchase is protected. When you purchase a Domain that includes categories you already own, we'll automatically apply a credit for the unused value of your Category purchase toward the Domain price."
               },
               {
-                q: "Can I switch between plans?",
-                a: "Absolutely. You can upgrade or downgrade your plan at any time. Changes take effect on your next billing cycle."
+                q: "Can I upgrade from Category to Domain access?",
+                a: "Absolutely! You can upgrade at any time. The system will automatically calculate the value of your existing Category purchase and apply it as a discount to the Domain upgrade."
+              },
+              {
+                q: "Do I get access to future courses?",
+                a: "Yes! All purchases include lifetime access to future courses added to the purchased Category or Domain. You'll never pay again for new content in your scope."
               },
             ].map((faq, index) => (
               <Card key={index}>
@@ -463,7 +881,7 @@ export default function MembershipPage() {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-[#7C3AED] to-[#2563EB]">
+      <section className="py-20 bg-gradient-to-r from-purple-500 to-blue-500">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -480,7 +898,7 @@ export default function MembershipPage() {
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link href="/auth/signup">
-                <Button size="lg" className="bg-white text-[#7C3AED] hover:bg-white/90 font-semibold">
+                <Button size="lg" className="bg-white text-purple-600 hover:bg-white/90 font-semibold">
                   Get Started Free
                 </Button>
               </Link>

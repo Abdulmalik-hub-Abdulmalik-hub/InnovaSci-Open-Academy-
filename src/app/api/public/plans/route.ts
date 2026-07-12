@@ -1,75 +1,115 @@
-import { NextResponse } from "next/server"
+/**
+ * Public Plans API
+ * 
+ * GET /api/public/plans
+ * 
+ * Returns all published plans with their purchase scope information
+ * Used by the Membership page and Course pages
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from "@/lib/prisma"
 
-// GET /api/public/plans - List active pricing plans for membership page
-export async function GET() {
-  const endpoint = "/api/public/plans"
-  const method = "GET"
-  
+export const dynamic = "force-dynamic"
+
+export async function GET(request: NextRequest) {
   try {
-    // Check database connection first
-    if (!process.env.DATABASE_URL) {
-      console.error(`[${endpoint}] DATABASE_URL not configured`)
-      return NextResponse.json(
-        { 
-          success: false, 
-          error: "Database configuration missing",
-          code: "DATABASE_NOT_READY"
-        },
-        { status: 503 }
-      )
+    const { searchParams } = new URL(request.url)
+    const scope = searchParams.get('scope') // ACADEMY, DOMAIN, CATEGORY
+    const categoryId = searchParams.get('categoryId')
+    const domainId = searchParams.get('domainId')
+
+    const where: any = {
+      status: 'PUBLISHED',
+      visibility: 'PUBLIC',
+      isActive: true,
     }
 
-    let plans: any[] = []
-    
-    try {
-      plans = await prisma.plan.findMany({
-        where: { 
-          isActive: true
-        },
-        orderBy: { sortOrder: "asc" }
-      })
-    } catch (dbError) {
-      console.error(`[${endpoint}] Database query failed:`, dbError)
-      return NextResponse.json({
-        success: true,
-        data: { plans: [] },
-        warning: "Could not fetch plans from database"
-      })
+    // Filter by scope
+    if (scope) {
+      where.purchaseScope = scope
     }
+
+    // Filter plans by category/domain if specified
+    if (categoryId) {
+      where.allowedCategoryIds = { has: categoryId }
+    }
+    if (domainId) {
+      where.allowedDomainIds = { has: domainId }
+    }
+
+    const plans = await prisma.plan.findMany({
+      where,
+      orderBy: [
+        { sortOrder: 'asc' },
+        { createdAt: 'desc' }
+      ],
+      select: {
+        id: true,
+        name: true,
+        description: true,
+        planType: true,
+        billingCycle: true,
+        purchaseScope: true,
+        allowedDomainIds: true,
+        allowedCategoryIds: true,
+        price: true,
+        currency: true,
+        pricing: true,
+        features: true,
+        isActive: true,
+        isFeatured: true,
+        isPopular: true,
+        isRecommended: true,
+        status: true,
+        visibility: true,
+        discountPercentage: true,
+        icon: true,
+        bannerUrl: true,
+        themeColor: true,
+        seoTitle: true,
+        seoDescription: true,
+        sortOrder: true,
+        createdAt: true,
+        updatedAt: true,
+      }
+    })
+
+    // Get domain and category details
+    const domainIds = [...new Set(plans.flatMap(p => p.allowedDomainIds))]
+    const categoryIds = [...new Set(plans.flatMap(p => p.allowedCategoryIds))]
+
+    const [domains, categories] = await Promise.all([
+      prisma.domain.findMany({
+        where: { id: { in: domainIds } },
+        select: { id: true, name: true, slug: true, icon: true, color: true }
+      }),
+      prisma.category.findMany({
+        where: { id: { in: categoryIds } },
+        select: { id: true, name: true, slug: true, icon: true, domainId: true }
+      }),
+    ])
+
+    const formattedPlans = plans.map(plan => ({
+      ...plan,
+      purchaseScope: plan.purchaseScope || 'CATEGORY',
+      domains: plan.allowedDomainIds.map(id => domains.find(d => d.id === id)).filter(Boolean),
+      categories: plan.allowedCategoryIds.map(id => categories.find(c => c.id === id)).filter(Boolean),
+    }))
 
     return NextResponse.json({
       success: true,
       data: {
-        plans: plans.map((p: any) => ({
-          id: p.id,
-          name: p.name,
-          description: p.description,
-          planType: p.planType,
-          billingCycle: p.billingCycle,
-          price: Number(p.price),
-          currency: p.currency,
-          pricing: p.pricing,
-          features: p.features as string[],
-          isActive: p.isActive,
-          isFeatured: p.isFeatured,
-          discountPercentage: p.discountPercentage,
-          maxCourses: p.maxCourses,
-          maxCertificates: p.maxCertificates,
-          allowedCourseIds: p.allowedCourseIds,
-          trialDays: p.trialDays,
-          sortOrder: p.sortOrder,
-          createdAt: p.createdAt.toISOString(),
-        }))
+        plans: formattedPlans,
+        domains,
+        categories,
       }
     })
   } catch (error) {
-    console.error(`[${endpoint}] [${method}] Unexpected error:`, error)
-    return NextResponse.json({
-      success: false,
-      error: "Failed to fetch plans",
-      code: "INTERNAL_ERROR",
-      data: []
-    }, { status: 500 })
+    console.error('Get public plans error:', error)
+    return NextResponse.json(
+      { success: false, error: 'Failed to fetch plans' },
+      { status: 500 }
+    )
   }
 }

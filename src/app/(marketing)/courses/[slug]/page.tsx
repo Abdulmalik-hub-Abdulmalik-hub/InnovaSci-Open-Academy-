@@ -30,7 +30,10 @@ import {
   Code,
   BarChart3,
   ChevronRight,
-  Home
+  Home,
+  Crown,
+  Grid3X3,
+  Layers
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -870,7 +873,7 @@ export default function CourseDetailsPage() {
         </div>
       </section>
 
-      {/* Enrollment Modal */}
+      {/* Enrollment Modal - Updated for Category/Domain Purchase */}
       <AnimatePresence>
         {showEnrollmentModal && (
           <motion.div
@@ -884,44 +887,80 @@ export default function CourseDetailsPage() {
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-background rounded-2xl shadow-2xl max-w-md w-full p-6"
+              className="bg-background rounded-2xl shadow-2xl max-w-lg w-full p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="text-center mb-6">
                 <div className="w-16 h-16 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center mx-auto mb-4">
                   <Lock className="w-8 h-8 text-purple-600 dark:text-purple-400" />
                 </div>
-                <h3 className="text-xl font-bold mb-2">Enroll to Access All Lessons</h3>
+                <h3 className="text-xl font-bold mb-2">Unlock This Course</h3>
                 <p className="text-muted-foreground">
-                  {lockedLessonId && (
-                    <span>
-                      This lesson is part of the full course. 
-                    </span>
+                  This course belongs to the <strong>{courseData.categoryName || courseData.category}</strong> Category.
+                  {courseData.domain && (
+                    <> This Category belongs to the <strong>{courseData.domain.name}</strong> Domain.</>
                   )}
-                  Enroll now to unlock all {courseData.totalLessons} lessons and get lifetime access.
                 </p>
               </div>
 
               <div className="space-y-4">
-                <div className="p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-muted-foreground">Course Price</span>
-                    <span className="font-bold text-2xl">
-                      {courseData.isFree ? "Free" : `$${courseData.price}`}
-                    </span>
+                {/* Category Purchase Option */}
+                <Link href={`/membership?category=${courseData.categoryId}`}>
+                  <div className="p-4 bg-emerald-500/10 border border-emerald-500/20 rounded-lg hover:bg-emerald-500/20 transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Layers className="w-5 h-5 text-emerald-500" />
+                        <span className="font-semibold text-emerald-600 dark:text-emerald-400">Purchase Category</span>
+                      </div>
+                      <span className="font-bold text-xl text-emerald-600 dark:text-emerald-400">
+                        {/* Price would be fetched from API */}
+                        View Plans
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Get access to all courses in this Category, including all difficulty levels, lessons, and capstones.
+                    </div>
                   </div>
-                  <div className="text-sm text-muted-foreground">
-                    Includes all modules, quizzes, and certificate
-                  </div>
-                </div>
+                </Link>
 
-                <Button 
-                  className="w-full bg-purple-600 hover:bg-purple-700 gap-2"
-                  size="lg"
-                  onClick={handleEnroll}
-                >
-                  {courseData.isFree ? "Enroll for Free" : `Enroll Now for $${courseData.price}`}
-                </Button>
+                {/* Domain Purchase Option */}
+                {courseData.domain && (
+                  <Link href={`/membership?domain=${courseData.domain.id}`}>
+                    <div className="p-4 bg-purple-500/10 border border-purple-500/20 rounded-lg hover:bg-purple-500/20 transition-colors cursor-pointer">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Grid3X3 className="w-5 h-5 text-purple-500" />
+                          <span className="font-semibold text-purple-600 dark:text-purple-400">Purchase Domain</span>
+                        </div>
+                        <span className="font-bold text-xl text-purple-600 dark:text-purple-400">
+                          {/* Price would be fetched from API */}
+                          View Plans
+                        </span>
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        Get access to all Categories in this Domain, including every course, lesson, and certificate.
+                      </div>
+                    </div>
+                  </Link>
+                )}
+
+                {/* Academy Option */}
+                <Link href="/membership">
+                  <div className="p-4 bg-yellow-500/10 border border-yellow-500/20 rounded-lg hover:bg-yellow-500/20 transition-colors cursor-pointer">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <Crown className="w-5 h-5 text-yellow-500" />
+                        <span className="font-semibold text-yellow-600 dark:text-yellow-400">Get Academy Access</span>
+                      </div>
+                      <span className="font-bold text-xl text-yellow-600 dark:text-yellow-400">
+                        View Plans
+                      </span>
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      Full platform access - every Domain, Category, and Course, forever.
+                    </div>
+                  </div>
+                </Link>
 
                 <Button 
                   variant="ghost" 
@@ -930,6 +969,33 @@ export default function CourseDetailsPage() {
                 >
                   Continue Previewing
                 </Button>
+              </div>
+
+              {/* Course Info */}
+              <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg">
+                <div className="text-sm text-muted-foreground">
+                  <div className="flex items-center justify-between mb-1">
+                    <span>This course includes:</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 mt-2 text-xs">
+                    <div className="flex items-center gap-1">
+                      <Video className="w-3 h-3" />
+                      {courseData.totalLessons} lessons
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Award className="w-3 h-3" />
+                      Certificate
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-3 h-3" />
+                      Lifetime access
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Download className="w-3 h-3" />
+                      Downloads
+                    </div>
+                  </div>
+                </div>
               </div>
             </motion.div>
           </motion.div>

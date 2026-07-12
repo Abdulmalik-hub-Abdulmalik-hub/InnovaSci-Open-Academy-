@@ -52,6 +52,14 @@ model User {
   certificateProgress    CertificateProgress[]
   certificateEligibility CertificateEligibility[]
 
+  // Purchase Relations
+  categoryPurchases  CategoryPurchase[]
+  domainPurchases    DomainPurchase[]
+  academyPurchases   AcademyPurchase[]
+  payments           Payment[]
+  invoices           Invoice[]
+  accessLicenses     AccessLicense[]
+
   @@map("users")
 }
 
@@ -752,40 +760,7 @@ model Payment {
 }
 
 // ============================================
-// 13. PLANS - Subscription plans (Multi-currency)
-// ============================================
-
-model Plan {
-  id                 String   @id @default(uuid())
-  name               String
-  description        String?  @db.Text
-  planType           String   @default("subscription") // subscription, one_time
-  billingCycle       String   @default("monthly") // monthly, yearly, lifetime
-  price              Decimal  @default(0) // Legacy single price
-  currency           String   @default("USD") // Legacy single currency
-  pricing            Json? // Multi-currency: { "NGN": { "amount": 50000, "paystackPlanId": "xxx" }, "USD": { "amount": 100, "stripePriceId": "xxx" } }
-  stripePriceId      String?  @unique // Legacy
-  paystackPlanId     String?  @unique // Legacy
-  features           Json?    @default("[]")
-  isActive           Boolean  @default(true)
-  isFeatured         Boolean  @default(false)
-  discountPercentage Int?     @default(0) // For limited-time offers
-  promoCode          String?
-  maxCourses         Int?     @default(-1) // -1 for unlimited
-  maxCertificates    Int?     @default(-1)
-  allowedCourseIds   String[] @default([])
-  trialDays          Int?     @default(0)
-  sortOrder          Int      @default(0)
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
-
-  subscriptions Subscription[]
-
-  @@map("plans")
-}
-
-// ============================================
-// 14. SUBSCRIPTIONS - Membership subscriptions
+// 13. SUBSCRIPTIONS - Membership subscriptions (Legacy)
 // ============================================
 
 model Subscription {
@@ -808,6 +783,447 @@ model Subscription {
   plan Plan? @relation(fields: [planId], references: [id], onDelete: SetNull)
 
   @@map("subscriptions")
+}
+
+// ============================================
+// 14b. PRICING PLAN PURCHASE SCOPE
+// ============================================
+enum PurchaseScope {
+  ACADEMY     // Full platform access
+  DOMAIN      // All categories within specific domain(s)
+  CATEGORY    // All courses within specific category(ies)
+}
+
+model Plan {
+  id                 String   @id @default(uuid())
+  name               String
+  description        String?  @db.Text
+  planType           String   @default("subscription") // subscription, one_time
+  billingCycle       String   @default("monthly") // monthly, yearly, lifetime
+  
+  // Purchase Scope - NEW FIELD
+  purchaseScope      PurchaseScope @default(CATEGORY)
+  
+  // For Domain Scope - which domains this plan covers
+  allowedDomainIds   String[] @default([])
+  
+  // For Category Scope - which categories this plan covers
+  allowedCategoryIds String[] @default([])
+  
+  // Legacy fields
+  price              Decimal  @default(0) // Legacy single price
+  currency           String   @default("USD") // Legacy single currency
+  pricing            Json? // Multi-currency: { "NGN": { "amount": 50000, "paystackPlanId": "xxx" }, "USD": { "amount": 100, "stripePriceId": "xxx" } }
+  stripePriceId      String?  @unique // Legacy
+  paystackPlanId     String?  @unique // Legacy
+  features           Json?    @default("[]")
+  isActive           Boolean  @default(true)
+  isFeatured         Boolean  @default(false)
+  discountPercentage Int?     @default(0) // For limited-time offers
+  promoCode          String?
+  maxCourses         Int?     @default(-1) // -1 for unlimited
+  maxCertificates    Int?     @default(-1)
+  trialDays          Int?     @default(0)
+  sortOrder          Int      @default(0)
+  
+  // Visual customization
+  icon               String?
+  bannerUrl          String?
+  themeColor         String?
+  
+  // Status
+  status             String   @default("PUBLISHED") // DRAFT, PUBLISHED, ARCHIVED
+  visibility         String   @default("PUBLIC") // PUBLIC, PRIVATE
+  isPopular          Boolean  @default(false)
+  isRecommended      Boolean  @default(false)
+  
+  // SEO
+  seoTitle           String?
+  seoDescription     String?
+  
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  // Relations
+  subscriptions      Subscription[]
+  categoryPurchases  CategoryPurchase[]
+  domainPurchases    DomainPurchase[]
+  academyPurchases   AcademyPurchase[]
+  discountCampaigns  DiscountCampaign[]
+
+  @@map("plans")
+}
+
+// ============================================
+// 14c. CATEGORY PURCHASE - One-time purchase for category access
+// ============================================
+model CategoryPurchase {
+  id              String    @id @default(uuid())
+  userId          String
+  planId          String?   // Optional - which plan was used
+  categoryId      String
+  categoryName    String    // Denormalized for quick access
+  domainId        String?   // Domain this category belongs to
+  domainName      String?   // Denormalized
+  
+  // Payment details
+  amountPaid      Decimal   @default(0)
+  currency        String    @default("USD")
+  paymentId       String?   // Reference to Payment model
+  
+  // Status
+  status          String    @default("active") // active, refunded, cancelled
+  purchasedAt     DateTime  @default(now())
+  expiresAt       DateTime? // Null for lifetime
+  refundedAt       DateTime?
+  refundReason    String?
+  
+  // Coupons & Discounts
+  couponId        String?
+  couponCode      String?
+  discountAmount  Decimal   @default(0)
+  
+  // Invoice
+  invoiceId       String?
+  
+  // Paystack reference
+  paystackRef     String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
+  category Category @relation(fields: [categoryId], references: [id])
+  
+  @@unique([userId, categoryId])
+  @@index([userId])
+  @@index([categoryId])
+  @@index([status])
+  @@map("category_purchases")
+}
+
+// ============================================
+// 14d. DOMAIN PURCHASE - One-time purchase for domain access (all categories)
+// ============================================
+model DomainPurchase {
+  id              String    @id @default(uuid())
+  userId          String
+  planId          String?   // Optional - which plan was used
+  domainId        String
+  domainName      String    // Denormalized for quick access
+  
+  // Payment details
+  amountPaid      Decimal   @default(0)
+  currency        String    @default("USD")
+  paymentId       String?   // Reference to Payment model
+  
+  // Status
+  status          String    @default("active") // active, refunded, cancelled
+  purchasedAt     DateTime  @default(now())
+  expiresAt       DateTime? // Null for lifetime
+  refundedAt      DateTime?
+  refundReason    String?
+  
+  // Coupons & Discounts
+  couponId        String?
+  couponCode      String?
+  discountAmount  Decimal   @default(0)
+  
+  // Invoice
+  invoiceId       String?
+  
+  // Paystack reference
+  paystackRef    String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user  User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan  Plan?    @relation(fields: [planId], references: [id], onDelete: SetNull)
+  domain Domain  @relation(fields: [domainId], references: [id])
+  
+  @@unique([userId, domainId])
+  @@index([userId])
+  @@index([domainId])
+  @@index([status])
+  @@map("domain_purchases")
+}
+
+// ============================================
+// 14e. ACADEMY PURCHASE - One-time purchase for entire platform access
+// ============================================
+model AcademyPurchase {
+  id              String    @id @default(uuid())
+  userId          String
+  planId          String?   // Optional - which plan was used
+  
+  // Payment details
+  amountPaid      Decimal   @default(0)
+  currency        String    @default("USD")
+  paymentId       String?   // Reference to Payment model
+  
+  // Status
+  status          String    @default("active") // active, refunded, cancelled
+  purchasedAt     DateTime  @default(now())
+  expiresAt       DateTime? // Null for lifetime
+  refundedAt      DateTime?
+  refundReason    String?
+  
+  // Coupons & Discounts
+  couponId        String?
+  couponCode      String?
+  discountAmount  Decimal   @default(0)
+  
+  // Invoice
+  invoiceId       String?
+  
+  // Paystack reference
+  paystackRef    String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  user User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  plan Plan?     @relation(fields: [planId], references: [id], onDelete: SetNull)
+  
+  @@unique([userId])
+  @@index([userId])
+  @@index([status])
+  @@map("academy_purchases")
+}
+
+// ============================================
+// 14f. PAYMENT - Transaction records
+// ============================================
+model Payment {
+  id                  String    @id @default(uuid())
+  userId              String
+  type                String    // category_purchase, domain_purchase, academy_purchase, subscription
+  status              String    @default("pending") // pending, completed, failed, refunded, cancelled
+  
+  // Amount details
+  amount              Decimal   @default(0)
+  currency            String    @default("USD")
+  amountInKobo         Int?      // For NGN payments
+  amountInCents        Int?      // For USD payments
+  
+  // Paystack
+  paystackRef         String?
+  paystackId          String?
+  paystackChannel     String?
+  paystackFees        Decimal?
+  
+  // Gateway response
+  gatewayResponse     Json?
+  
+  // References
+  categoryPurchaseId  String?
+  domainPurchaseId     String?
+  academyPurchaseId    String?
+  
+  // Metadata
+  metadata            Json?
+  
+  // Timestamps
+  initiatedAt         DateTime  @default(now())
+  completedAt         DateTime?
+  failedAt            DateTime?
+  refundedAt          DateTime?
+  
+  createdAt           DateTime  @default(now())
+  updatedAt           DateTime  @updatedAt
+
+  user User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@index([userId])
+  @@index([paystackRef])
+  @@index([status])
+  @@index([type])
+  @@map("payments")
+}
+
+// ============================================
+// 14g. INVOICE - Billing documents
+// ============================================
+model Invoice {
+  id              String    @id @default(uuid())
+  invoiceNumber   String    @unique // INV-2024-00001
+  
+  userId          String
+  userEmail       String
+  
+  // Line items
+  items           Json      // [{ description, quantity, unitPrice, total, planId, scope }]
+  
+  // Totals
+  subtotal        Decimal   @default(0)
+  discountAmount  Decimal   @default(0)
+  taxAmount       Decimal   @default(0)
+  totalAmount     Decimal   @default(0)
+  currency        String    @default("USD")
+  
+  // Status
+  status          String    @default("draft") // draft, issued, paid, cancelled, refunded
+  dueDate         DateTime?
+  paidAt          DateTime?
+  
+  // Payment
+  paymentId       String?
+  
+  // References
+  couponId        String?
+  couponCode      String?
+  
+  // Address
+  billingAddress  Json?
+  
+  // Notes
+  notes           String?
+  terms           String?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([status])
+  @@index([invoiceNumber])
+  @@map("invoices")
+}
+
+// ============================================
+// 14h. COUPON - Discount codes
+// ============================================
+model Coupon {
+  id              String    @id @default(uuid())
+  code            String    @unique
+  
+  // Discount type
+  discountType    String    // percentage, fixed_amount
+  discountValue   Decimal   // Percentage (0-100) or fixed amount
+  
+  // Currency for fixed discounts
+  currency        String    @default("USD")
+  
+  // Limits
+  maxUses         Int?      // Null = unlimited
+  currentUses     Int       @default(0)
+  maxUsesPerUser  Int       @default(1)
+  
+  // Validity
+  startsAt        DateTime  @default(now())
+  expiresAt       DateTime?
+  
+  // Scope - which plans/products this applies to
+  applicableScope String    @default("all") // all, academy, domain, category, specific_plan
+  applicablePlanIds String[] @default([]) // If specific_plan
+  applicableDomainIds String[] @default([])
+  applicableCategoryIds String[] @default([])
+  
+  // Status
+  isActive        Boolean   @default(true)
+  isPublic        Boolean   @default(true) // Public vs admin-only
+  
+  // Requirements
+  minPurchaseAmount Decimal?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  discountCampaigns DiscountCampaign[]
+  
+  @@index([code])
+  @@index([isActive])
+  @@map("coupons")
+}
+
+// ============================================
+// 14i. DISCOUNT CAMPAIGN - Time-limited offers
+// ============================================
+model DiscountCampaign {
+  id              String    @id @default(uuid())
+  name            String
+  description     String?
+  
+  // Discount
+  discountType    String    // percentage, fixed_amount
+  discountValue   Decimal
+  currency        String    @default("USD")
+  
+  // Target
+  targetType      String    // all, specific_plan, domain, category
+  planId          String?
+  domainId        String?
+  categoryId      String?
+  
+  // Validity
+  startsAt        DateTime  @default(now())
+  endsAt          DateTime?
+  
+  // Coupon association (optional - some campaigns need code)
+  couponId        String?
+  couponCode      String?
+  requiresCoupon  Boolean   @default(false)
+  
+  // Display
+  displayBanner   Boolean   @default(true)
+  bannerText      String?
+  bannerColor     String?
+  
+  // Limits
+  maxRedemptions Int?      // Null = unlimited
+  currentRedemptions Int   @default(0)
+  
+  // Status
+  isActive        Boolean   @default(true)
+  
+  // Priority (for stacking with other discounts)
+  priority        Int       @default(0)
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  plan Plan       @relation(fields: [planId], references: [id], onDelete: SetNull)
+  coupon Coupon?  @relation(fields: [couponId], references: [id], onDelete: SetNull)
+  
+  @@index([isActive])
+  @@index([startsAt, endsAt])
+  @@map("discount_campaigns")
+}
+
+// ============================================
+// 14j. ACCESS LICENSE - Granular access control
+// ============================================
+model AccessLicense {
+  id              String    @id @default(uuid())
+  userId          String
+  licenseType     String    // academy, domain, category, course
+  targetId        String    // domainId, categoryId, or courseId depending on type
+  
+  // Status
+  status          String    @default("active") // active, expired, revoked
+  grantedAt       DateTime  @default(now())
+  expiresAt       DateTime?
+  revokedAt       DateTime?
+  revokedReason   String?
+  
+  // Source
+  sourceType      String    // purchase, admin_grant, trial, subscription
+  purchaseId      String?   // Reference to CategoryPurchase, DomainPurchase, or AcademyPurchase
+  grantedByAdminId String?  // If admin granted access
+  
+  // Auto-enrollment tracking
+  coursesEnrolled Int       @default(0)
+  lastEnrolledAt  DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  @@unique([userId, licenseType, targetId])
+  @@index([userId])
+  @@index([licenseType, targetId])
+  @@index([status])
+  @@map("access_licenses")
 }
 
 // ============================================
