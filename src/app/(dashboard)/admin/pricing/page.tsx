@@ -956,7 +956,7 @@ function PlanModal({
                       return (
                         <div
                           key={scope}
-                          onClick={() => setFormData({ ...formData, purchaseScope: scope })}
+                          onClick={() => setFormData({ ...formData, purchaseScope: scope as 'ACADEMY' | 'DOMAIN' | 'CATEGORY' })}
                           className={`cursor-pointer rounded-xl border-2 p-4 transition-all ${
                             formData.purchaseScope === scope 
                               ? scopeColors[scope] + ' border-current' 
