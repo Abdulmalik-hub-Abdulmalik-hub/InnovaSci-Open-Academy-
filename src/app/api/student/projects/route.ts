@@ -51,7 +51,25 @@ export async function GET(request: NextRequest) {
     
     const projects = await prisma.projectSubmission.findMany({
       where: whereClause,
-      include: {
+      select: {
+        id: true,
+        title: true,
+        description: true,
+        status: true,
+        isLocked: true,
+        projectType: true,
+        grade: true,
+        gradeType: true,
+        feedback: true,
+        submittedAt: true,
+        gradedAt: true,
+        createdAt: true,
+        updatedAt: true,
+        courseId: true,
+        miniProjectId: true,
+        capstoneId: true,
+        submissionUrl: true,
+        fileUrls: true,
         course: {
           select: {
             id: true,
@@ -68,38 +86,12 @@ export async function GET(request: NextRequest) {
             deliverables: true,
           }
         },
-        reviews: {
-          where: { isLatest: true },
-          include: {
-            reviewer: {
-              select: { id: true, email: true, profile: { select: { fullName: true } } }
-            }
-          }
-        },
-        versions: {
-          where: { isLatest: true },
-          select: { id: true, versionNumber: true, submittedAt: true }
-        },
-      },
-      orderBy: { createdAt: "desc" }
-    })
-    
-    // Get counts separately to avoid potential issues
-    const projectIds = projects.map(p => p.id)
-    const counts = projectIds.length > 0 ? await prisma.projectSubmission.findMany({
-      where: { id: { in: projectIds } },
-      select: { 
-        id: true,
         _count: {
           select: { versions: true, reviews: true }
         }
-      }
-    }) : []
-    
-    const countMap = counts.reduce((acc, c) => {
-      acc[c.id] = c._count
-      return acc
-    }, {} as Record<string, { versions: number; reviews: number }>)
+      },
+      orderBy: { createdAt: "desc" }
+    })
     
     // Format projects for client
     const formattedProjects = projects.map(p => ({
@@ -121,9 +113,8 @@ export async function GET(request: NextRequest) {
       capstoneId: p.capstoneId,
       submissionUrl: p.submissionUrl,
       fileUrls: p.fileUrls,
-      latestReview: p.reviews[0] || null,
-      versionCount: countMap[p.id]?.versions || 0,
-      reviewCount: countMap[p.id]?.reviews || 0,
+      versionCount: p._count.versions,
+      reviewCount: p._count.reviews,
     }))
     
     return NextResponse.json({ 
