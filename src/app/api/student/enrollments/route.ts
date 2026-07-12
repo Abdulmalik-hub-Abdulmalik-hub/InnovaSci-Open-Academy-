@@ -78,17 +78,19 @@ export async function GET(request: NextRequest) {
     const end = start + limit
     const paginatedEnrollments = enrollmentsWithProgress.slice(start, end)
 
-    // Return data in original format
+    // Return data in format expected by frontend
     return NextResponse.json({
       success: true,
-      data: paginatedEnrollments,
-      pagination: {
-        page,
-        limit,
-        total: filteredEnrollments.length,
-        totalPages: Math.ceil(filteredEnrollments.length / limit)
-      },
-      filters: { categories }
+      data: {
+        enrollments: paginatedEnrollments,
+        pagination: {
+          page,
+          limit,
+          total: filteredEnrollments.length,
+          totalPages: Math.ceil(filteredEnrollments.length / limit)
+        },
+        filters: { categories }
+      }
     })
   } catch (error) {
     console.error("Enrollments API error:", error)
