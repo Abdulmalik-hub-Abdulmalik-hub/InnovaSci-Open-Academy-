@@ -10,7 +10,7 @@ import {
   LayoutDashboard, Users, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
   Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap,
-  Layers, BookOpen, LayoutGrid, BadgeCheck, Shield, ChartLine,
+  Layers, BookOpen, LayoutGrid, BadgeCheck, Shield,
   FileBadge, Scroll, Bookmark
 } from "lucide-react"
 
