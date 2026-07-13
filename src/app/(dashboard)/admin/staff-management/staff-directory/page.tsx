@@ -102,8 +102,12 @@ function StaffRow({
   const StatusIcon = statusColors[staff.status]?.icon || Clock
   const hasActiveSession = staff.hasActiveSession
 
+  const rowClassName = isSelected 
+    ? "border-b border-white/5 hover:bg-white/5 transition-colors bg-purple-500/10"
+    : "border-b border-white/5 hover:bg-white/5 transition-colors"
+
   return (
-    <tr className={`border-b border-white/5 hover:bg-white/5 transition-colors ${isSelected ? 'bg-purple-500/10' : ''}`}>
+    <tr className={rowClassName}>
       <td className="px-4 py-3">
         <Checkbox 
           checked={isSelected}
@@ -193,7 +197,7 @@ function StaffRow({
               <MoreHorizontal className="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuMenu align="end" className="bg-[#1a1a2e] border-white/10">
+          <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/10">
             <DropdownMenuItem asChild>
               <Link href={`/admin/staff-management/staff-directory/${staff.id}`} className="cursor-pointer">
                 <Eye className="h-4 w-4 mr-2" />
