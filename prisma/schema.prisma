@@ -67,6 +67,13 @@ model User {
   // Staff Management Relations
   staffProfile       StaffProfile?
 
+  // Scholarship Relations
+  scholarshipApplications ScholarshipApplication[]
+  scholarshipApplicationReviews ScholarshipApplicationReview[]
+  scholarshipAwards     ScholarshipAward[]
+  financialAids         FinancialAid[]
+  sponsoredSponsors    Sponsor[]
+
   @@map("users")
 }
 
@@ -3016,6 +3023,7 @@ model ScholarshipApplication {
   reviews         ScholarshipApplicationReview[]
   statusHistory   ScholarshipApplicationStatus[]
   notifications   ScholarshipNotification[]
+  award          ScholarshipAward?
 
   @@index([applicationNumber])
   @@index([trackingNumber])
@@ -3165,6 +3173,7 @@ model ScholarshipAward {
 
   // Application
   applicationId   String   @unique
+  application     ScholarshipApplication @relation(fields: [applicationId], references: [id])
 
   // Recipient
   userId          String?
@@ -3215,6 +3224,9 @@ model ScholarshipAward {
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 
+  // Relations
+  notifications   ScholarshipNotification[]
+
   @@index([awardNumber])
   @@index([scholarshipId])
   @@index([userId])
@@ -3233,7 +3245,7 @@ model ScholarshipNotification {
   application     ScholarshipApplication? @relation(fields: [applicationId], references: [id], onDelete: Cascade)
 
   awardId         String?
-  ScholarshipAward ScholarshipAward? @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  scholarshipAward ScholarshipAward? @relation(fields: [awardId], references: [id], onDelete: Cascade)
 
   recipientEmail  String
   recipientName   String?
