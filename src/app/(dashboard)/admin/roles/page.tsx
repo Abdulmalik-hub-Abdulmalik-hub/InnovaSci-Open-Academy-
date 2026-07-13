@@ -59,11 +59,30 @@ export default function AdminRolesPage() {
       if (rolesData.success) setRoles(rolesData.data)
       if (permsData.success) setPermissions(permsData.data)
       
-      if (!rolesData.success && !permsData.success) {
-        setError("Failed to fetch data")
+      // Collect error messages from failed requests
+      const errors: string[] = []
+      
+      if (!rolesRes.ok) {
+        errors.push(`Roles API (${rolesRes.status}): ${rolesData.error || rolesData.message || 'Unknown error'}`)
+      }
+      
+      if (!permsRes.ok) {
+        errors.push(`Permissions API (${permsRes.status}): ${permsData.error || permsData.message || 'Unknown error'}`)
+      }
+      
+      // Also check for errors even when status is 200 but success is false
+      if (rolesData.success === false) {
+        errors.push(`Roles: ${rolesData.error || 'Unknown error'}`)
+      }
+      if (permsData.success === false) {
+        errors.push(`Permissions: ${permsData.error || 'Unknown error'}`)
+      }
+      
+      if (errors.length > 0) {
+        setError(errors.join(' | '))
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data")
+      setError(err instanceof Error ? err.message : "Failed to load data. Please check your connection and try again.")
     } finally {
       setLoading(false)
     }
@@ -73,22 +92,32 @@ export default function AdminRolesPage() {
     setInitializing(true)
     try {
       // Initialize permissions first
-      await fetch("/api/admin/roles/permissions", {
+      const permsRes = await fetch("/api/admin/roles/permissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ init: true })
       })
+      const permsData = await permsRes.json()
+      
+      if (!permsData.success) {
+        throw new Error(`Permissions: ${permsData.error || 'Failed to initialize permissions'}`)
+      }
       
       // Then initialize roles
-      await fetch("/api/admin/roles", {
+      const rolesRes = await fetch("/api/admin/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ init: true })
       })
+      const rolesData = await rolesRes.json()
+      
+      if (!rolesData.success) {
+        throw new Error(`Roles: ${rolesData.error || 'Failed to initialize roles'}`)
+      }
       
       await fetchData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to initialize")
+      setError(err instanceof Error ? err.message : "Failed to initialize. Please check your permissions and try again.")
     } finally {
       setInitializing(false)
     }
