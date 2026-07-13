@@ -269,6 +269,18 @@ export default function StudentProjectsPage() {
       return
     }
     
+    // Check if project is already started
+    const existingProject = projects.find(p => 
+      (project.type === "mini_project" && p.miniProject?.id === project.id) ||
+      (project.type === "capstone" && p.capstoneId === project.id)
+    )
+    
+    if (existingProject) {
+      toast.error("You've already started this project!")
+      setActiveTab("active")
+      return
+    }
+    
     try {
       const response = await fetch("/api/student/projects", {
         method: "POST",
@@ -698,25 +710,15 @@ export default function StudentProjectsPage() {
                     <Button 
                       className={`w-full ${
                         project.isLocked 
-                          ? "bg-gray-400 hover:bg-gray-500" 
-                          : "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                          ? "bg-gray-400 hover:bg-gray-500 cursor-not-allowed" 
+                          : "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 cursor-pointer"
                       }`}
-                      disabled={project.isLocked || !!projects.find(p => 
-                        p.miniProject?.id === project.id || p.capstoneId === project.id
-                      )}
                       onClick={() => handleStartProject(project)}
                     >
                       {project.isLocked ? (
                         <>
                           <Lock className="h-4 w-4 mr-2" />
                           Locked
-                        </>
-                      ) : projects.find(p => 
-                        p.miniProject?.id === project.id || p.capstoneId === project.id
-                      ) ? (
-                        <>
-                          <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Already Started
                         </>
                       ) : (
                         <>
