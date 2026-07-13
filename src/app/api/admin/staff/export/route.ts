@@ -44,7 +44,6 @@ export async function GET(request: NextRequest) {
             role: true,
             status: true,
             createdAt: true,
-            lastLogin: true,
             profile: {
               select: {
                 fullName: true,
@@ -91,7 +90,6 @@ export async function GET(request: NextRequest) {
       city: s.user.profile?.city || s.city || "",
       gender: s.user.profile?.gender || s.gender || "",
       hasActiveSession: s.sessions.length > 0 ? "Yes" : "No",
-      lastLogin: s.user.lastLogin ? new Date(s.user.lastLogin).toISOString() : "Never",
       createdAt: new Date(s.user.createdAt).toISOString(),
     }))
 

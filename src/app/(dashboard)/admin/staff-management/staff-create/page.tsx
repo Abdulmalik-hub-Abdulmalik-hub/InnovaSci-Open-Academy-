@@ -264,25 +264,25 @@ function AcademicAssignmentStep({ data, onChange, domains, categories }: {
   categories: any[]
 }) {
   const handleDomainToggle = (domainId: string) => {
-    const current = data.domainIds || []
+    const current: string[] = data.domainIds || []
     const updated = current.includes(domainId)
-      ? current.filter(id => id !== domainId)
+      ? current.filter((id: string) => id !== domainId)
       : [...current, domainId]
     onChange({ ...data, domainIds: updated })
   }
 
   const handleCategoryToggle = (categoryId: string) => {
-    const current = data.categoryIds || []
+    const current: string[] = data.categoryIds || []
     const updated = current.includes(categoryId)
-      ? current.filter(id => id !== categoryId)
+      ? current.filter((id: string) => id !== categoryId)
       : [...current, categoryId]
     onChange({ ...data, categoryIds: updated })
   }
 
   const handleDifficultyToggle = (level: string) => {
-    const current = data.difficultyLevels || []
+    const current: string[] = data.difficultyLevels || []
     const updated = current.includes(level)
-      ? current.filter(l => l !== level)
+      ? current.filter((l: string) => l !== level)
       : [...current, level]
     onChange({ ...data, difficultyLevels: updated })
   }
@@ -550,7 +550,7 @@ function ReviewStep({ data, domains, categories }: { data: any; domains: any[]; 
               <p className="text-xs text-white/40 mb-1">Difficulty Levels</p>
               <div className="flex flex-wrap gap-1">
                 {(data.difficultyLevels || []).length > 0 ? (
-                  (data.difficultyLevels || []).map(level => (
+                  (data.difficultyLevels as string[]).map((level: string) => (
                     <Badge key={level} className="bg-white/10 text-white">{level}</Badge>
                   ))
                 ) : (

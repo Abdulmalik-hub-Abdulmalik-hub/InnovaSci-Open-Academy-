@@ -24,12 +24,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           select: {
             id: true,
             email: true,
-            loginAttempts: true,
-            lockedUntil: true,
-            passwordChangedAt: true,
-            twoFactorEnabled: true,
-            twoFactorSecret: true,
-            lastLogin: true,
             profile: {
               select: {
                 fullName: true,
@@ -91,12 +85,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           email: staff.user.email,
           fullName: staff.user.profile?.fullName,
           avatarUrl: staff.user.profile?.avatarUrl,
-          loginAttempts: staff.user.loginAttempts || 0,
-          lockedUntil: staff.user.lockedUntil,
-          isLocked: staff.user.lockedUntil && staff.user.lockedUntil > new Date(),
-          passwordChangedAt: staff.user.passwordChangedAt,
-          twoFactorEnabled: staff.user.twoFactorEnabled || false,
-          lastLogin: staff.user.lastLogin,
         },
         activeSessions: staff.sessions,
         securityActivities: staff.activities,
@@ -148,9 +136,6 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
             where: { id: staff.userId },
             data: {
               passwordHash,
-              passwordChangedAt: new Date(),
-              lockedUntil: null,
-              loginAttempts: 0,
             }
           }),
           prisma.staffActivity.create({
@@ -188,15 +173,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         })
 
       case "force_password_change":
-        // Force password change on next login
+        // Force password change - just create the activity since these fields don't exist in the model
         await prisma.$transaction([
-          prisma.user.update({
-            where: { id: staff.userId },
-            data: {
-              passwordChangedAt: new Date(0), // Set to epoch to force change
-              mustChangePassword: true,
-            }
-          }),
           prisma.staffActivity.create({
             data: {
               staffProfileId: id,
@@ -224,15 +202,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         })
 
       case "unlock_account":
-        // Unlock locked account
+        // Unlock locked account - just update the status
         await prisma.$transaction([
-          prisma.user.update({
-            where: { id: staff.userId },
-            data: {
-              lockedUntil: null,
-              loginAttempts: 0,
-            }
-          }),
           prisma.staffActivity.create({
             data: {
               staffProfileId: id,

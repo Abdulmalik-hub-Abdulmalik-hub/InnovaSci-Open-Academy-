@@ -68,11 +68,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         inactive: portal.staffAssignments.filter(a => a.status === "INACTIVE").length,
         expired: portal.staffAssignments.filter(a => a.status === "EXPIRED").length,
       },
-      byDomain: [...new Map(
+      byDomain: Array.from(new Map(
         portal.staffAssignments
           .filter(a => a.domain)
           .map(a => [a.domain!.id, { id: a.domain!.id, name: a.domain!.name, count: 1 }])
-      ).values()].map(d => {
+      ).values()).map(d => {
         const count = portal.staffAssignments.filter(a => a.domain?.id === d.id).length
         return { ...d, count }
       }),

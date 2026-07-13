@@ -9,7 +9,8 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Edit, Save, X,
   Activity, BookOpen, Users, Award, FileText, Bell,
   Eye, EyeOff, RefreshCw, UserX, UserCheck, Download,
-  ChevronRight, Loader2, ExternalLink, Globe, Lock
+  ChevronRight, Loader2, ExternalLink, Globe, Lock,
+  Plus, Minus, Unlock
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -118,7 +119,7 @@ function TimelineItem({ activity, index }: { activity: any; index: number }) {
 
 // Session card component
 function SessionCard({ session, onTerminate }: { session: any; onTerminate: () => void }) {
-  const deviceIcon = session.deviceType === "MOBILE" ? Smartphone 
+  const DeviceIcon = session.deviceType === "MOBILE" ? Smartphone 
     : session.deviceType === "TABLET" ? Tablet 
     : Monitor
 
@@ -128,7 +129,7 @@ function SessionCard({ session, onTerminate }: { session: any; onTerminate: () =
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-lg bg-purple-500/20 flex items-center justify-center">
-              <deviceIcon className="h-5 w-5 text-purple-400" />
+              <DeviceIcon className="h-5 w-5 text-purple-400" />
             </div>
             <div>
               <p className="font-medium text-white">{session.browser || "Unknown Browser"}</p>

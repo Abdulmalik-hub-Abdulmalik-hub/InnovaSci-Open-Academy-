@@ -54,7 +54,6 @@ export async function GET(request: NextRequest) {
             role: true,
             status: true,
             createdAt: true,
-            lastLogin: true,
             profile: {
               select: { fullName: true, avatarUrl: true, phone: true }
             }
@@ -86,7 +85,6 @@ export async function GET(request: NextRequest) {
       department: a.department,
       title: a.title,
       status: a.user.status,
-      lastLogin: a.user.lastLogin,
       createdAt: a.user.createdAt,
       portals: a.assignments.map(ass => ({
         id: ass.portal.id,

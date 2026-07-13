@@ -29,9 +29,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             createdAt: true,
             updatedAt: true,
             emailVerified: true,
-            lastLogin: true,
-            loginAttempts: true,
-            lockedUntil: true,
             profile: {
               select: {
                 fullName: true,
@@ -158,7 +155,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       where: {
         roles: {
           some: {
-            userId: staff.userId
+            users: {
+              some: {
+                id: staff.user.id
+              }
+            }
           }
         }
       },
@@ -176,8 +177,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         ...staff,
         performanceStats,
         permissions,
-        isLocked: staff.user.lockedUntil && staff.user.lockedUntil > new Date(),
-        loginAttempts: staff.user.loginAttempts || 0,
       }
     })
   } catch (error) {

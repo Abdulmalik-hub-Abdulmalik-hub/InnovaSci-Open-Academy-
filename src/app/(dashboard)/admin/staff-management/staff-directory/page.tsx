@@ -31,6 +31,10 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Checkbox } from "@/components/ui/checkbox"
 import toast from "react-hot-toast"
 
+// Type definitions
+type PaginationState = { page: number; limit: number; total: number; totalPages: number }
+type FilterState = Record<string, string | undefined>
+
 // Status badge colors
 const statusColors: Record<string, { bg: string; text: string; icon: any }> = {
   ACTIVE: { bg: "bg-green-500/20", text: "text-green-400", icon: CheckCircle2 },
@@ -370,11 +374,11 @@ export default function StaffDirectoryPage() {
   const [loading, setLoading] = useState(true)
   const [staff, setStaff] = useState<any[]>([])
   const [stats, setStats] = useState<any>(null)
-  const [pagination, setPagination] = useState({ page: 1, limit: 20, total: 0, totalPages: 0 })
+  const [pagination, setPagination] = useState<PaginationState>({ page: 1, limit: 20, total: 0, totalPages: 0 })
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [searchQuery, setSearchQuery] = useState("")
   const [showFilters, setShowFilters] = useState(false)
-  const [filters, setFilters] = useState<any>({})
+  const [filters, setFilters] = useState<FilterState>({})
   const [domains, setDomains] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [actionLoading, setActionLoading] = useState(false)
@@ -453,7 +457,7 @@ export default function StaffDirectoryPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (searchQuery || Object.keys(filters).length > 0) {
-        setPagination(p => ({ ...p, page: 1 }))
+        setPagination((p: PaginationState) => ({ ...p, page: 1 }))
         fetchStaff()
       }
     }, 300)
@@ -461,16 +465,16 @@ export default function StaffDirectoryPage() {
   }, [searchQuery])
 
   // Handle filter change
-  const handleFilterChange = (key: string, value: any) => {
-    setFilters(f => ({ ...f, [key]: value }))
-    setPagination(p => ({ ...p, page: 1 }))
+  const handleFilterChange = (key: string, value: string | undefined) => {
+    setFilters((f: FilterState) => ({ ...f, [key]: value }))
+    setPagination((p: PaginationState) => ({ ...p, page: 1 }))
   }
 
   // Handle clear filters
   const handleClearFilters = () => {
     setFilters({})
     setSearchQuery("")
-    setPagination(p => ({ ...p, page: 1 }))
+    setPagination((p: PaginationState) => ({ ...p, page: 1 }))
   }
 
   // Handle select all
@@ -674,7 +678,7 @@ export default function StaffDirectoryPage() {
           />
           <StatCard
             title="Assignments"
-            value={Object.values(stats.byRole).reduce((a: any, b: any) => a + b, 0)}
+            value={Object.values(stats.byRole as Record<string, number>).reduce((a: number, b: number) => a + b, 0)}
             icon={Activity}
             color="bg-amber-500/20"
           />
@@ -855,7 +859,7 @@ export default function StaffDirectoryPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPagination(p => ({ ...p, page: p.page - 1 }))}
+              onClick={() => setPagination((p: PaginationState) => ({ ...p, page: p.page - 1 }))}
               disabled={pagination.page === 1}
               className="border-white/20 text-white hover:bg-white/10"
             >
@@ -867,7 +871,7 @@ export default function StaffDirectoryPage() {
             <Button
               variant="outline"
               size="sm"
-              onClick={() => setPagination(p => ({ ...p, page: p.page + 1 }))}
+              onClick={() => setPagination((p: PaginationState) => ({ ...p, page: p.page + 1 }))}
               disabled={pagination.page >= pagination.totalPages}
               className="border-white/20 text-white hover:bg-white/10"
             >

@@ -142,7 +142,6 @@ export async function GET(request: NextRequest) {
               status: true,
               createdAt: true,
               updatedAt: true,
-              lastLogin: true,
               profile: {
                 select: {
                   fullName: true,
@@ -191,7 +190,6 @@ export async function GET(request: NextRequest) {
       department: s.department,
       title: s.title,
       status: s.user.status,
-      lastLogin: s.user.lastLogin,
       createdAt: s.user.createdAt,
       updatedAt: s.user.updatedAt,
       isActive: s.isActive,
@@ -199,10 +197,10 @@ export async function GET(request: NextRequest) {
       currentSession: s.sessions[0] || null,
       assignments: s.assignments,
       assignmentCount: s._count.assignments,
-      portals: [...new Set(s.assignments.map(a => a.portal.name))],
-      domains: [...new Set(s.assignments.filter(a => a.domain).map(a => a.domain!.id))],
-      categories: [...new Set(s.assignments.filter(a => a.category).map(a => a.category!.id))],
-      courses: [...new Set(s.assignments.filter(a => a.course).map(a => a.course!.id))],
+      portals: Array.from(new Set(s.assignments.map(a => a.portal.name))),
+      domains: Array.from(new Set(s.assignments.filter(a => a.domain).map(a => a.domain!.id))),
+      categories: Array.from(new Set(s.assignments.filter(a => a.category).map(a => a.category!.id))),
+      courses: Array.from(new Set(s.assignments.filter(a => a.course).map(a => a.course!.id))),
     }))
 
     return NextResponse.json({
