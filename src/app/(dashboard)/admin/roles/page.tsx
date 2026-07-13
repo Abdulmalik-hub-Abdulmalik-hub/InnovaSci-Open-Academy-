@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import {
   Shield, Users, Key, Plus, Settings, Loader2, Check,
-  X, ChevronRight
+  X, ChevronRight, AlertTriangle
 } from "lucide-react"
 import toast from "react-hot-toast"
 
