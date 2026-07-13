@@ -167,7 +167,7 @@ export async function POST(request: NextRequest) {
         emergencyContactPhone: validatedData.emergencyContactPhone,
         emergencyContactRelation: validatedData.emergencyContactRelation,
         // Documents
-        documents: validatedData.documents ? JSON.stringify(validatedData.documents) : null,
+        documents: validatedData.documents ? JSON.stringify(validatedData.documents) : undefined,
         // Status
         status: "SUBMITTED",
         submittedAt: new Date(),

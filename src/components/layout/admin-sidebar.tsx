@@ -195,6 +195,7 @@ export function AdminSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: ()
                       {/* Submenu */}
                       <ul className="ml-6 mt-1 space-y-0.5">
                         {item.submenu?.map((subitem) => {
+                          if (!subitem.href) return null
                           const isSubActive = pathname === subitem.href || pathname.startsWith(subitem.href + "/")
                           return (
                             <li key={subitem.href}>
