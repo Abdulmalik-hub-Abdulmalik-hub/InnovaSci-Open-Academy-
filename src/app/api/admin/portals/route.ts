@@ -8,7 +8,7 @@ import { PERMISSIONS } from "@/lib/permissions"
 const DEFAULT_PORTALS = [
   {
     name: "SUPER_ADMIN",
-    displayName: "Super Administrator",
+    displayName: "Super Administrator Portal",
     description: "Full platform access with all permissions",
     icon: "Shield",
     color: "#7C3AED",
@@ -17,7 +17,7 @@ const DEFAULT_PORTALS = [
   },
   {
     name: "ADMIN",
-    displayName: "Administrator",
+    displayName: "Super Administrator Portal",
     description: "Operational management access",
     icon: "Settings",
     color: "#2563EB",

@@ -58,7 +58,7 @@ const statusColors: Record<string, { bg: string; text: string }> = {
 
 const roleLabels: Record<string, string> = {
   SUPER_ADMIN: "Super Administrator",
-  ADMIN: "Administrator",
+  ADMIN: "Super Administrator",
   ACADEMIC_DIRECTOR: "Academic Director",
   INSTRUCTOR: "Instructor",
   REVIEWER: "Reviewer",

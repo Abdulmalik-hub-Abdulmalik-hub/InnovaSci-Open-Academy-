@@ -21,7 +21,7 @@ import toast from "react-hot-toast"
 
 const PORTALS = [
   { name: "SUPER_ADMIN", displayName: "Super Administrator", icon: Shield, color: "#7C3AED" },
-  { name: "ADMIN", displayName: "Administrator", icon: Building, color: "#2563EB" },
+  { name: "ADMIN", displayName: "Super Administrator", icon: Building, color: "#2563EB" },
   { name: "ACADEMIC_DIRECTOR", displayName: "Academic Director", icon: BookOpen, color: "#059669" },
   { name: "INSTRUCTOR", displayName: "Instructor", icon: BookOpen, color: "#0891B2" },
   { name: "REVIEWER", displayName: "Reviewer", icon: BookOpen, color: "#D97706" },
@@ -36,7 +36,7 @@ const PORTALS = [
 
 const ROLES = [
   { value: "SUPER_ADMIN", label: "Super Administrator" },
-  { value: "ADMIN", label: "Administrator" },
+  { value: "ADMIN", label: "Super Administrator" },
   { value: "ACADEMIC_DIRECTOR", label: "Academic Director" },
   { value: "INSTRUCTOR", label: "Instructor" },
   { value: "REVIEWER", label: "Reviewer" },

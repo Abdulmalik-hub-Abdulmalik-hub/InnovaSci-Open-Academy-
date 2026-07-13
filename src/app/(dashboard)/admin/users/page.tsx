@@ -149,7 +149,7 @@ function UserModal({
                   onChange={(e) => setFormData({ ...formData, role: e.target.value })}
                   className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
                 >
-                  <option value="ADMIN">Admin</option>
+                  <option value="ADMIN">Super Admin</option>
                   <option value="STUDENT">Student</option>
                 </select>
               </div>
@@ -298,7 +298,7 @@ export default function UsersPage() {
               className="px-4 py-2 rounded-lg bg-white/5 border border-white/10 text-white"
             >
               <option value="all">All Roles</option>
-              <option value="ADMIN">Admin</option>
+              <option value="ADMIN">Super Admin</option>
               <option value="STUDENT">Student</option>
             </select>
             <select

@@ -9,13 +9,13 @@ import { PERMISSIONS } from "@/lib/permissions"
 const DEFAULT_ROLES = [
   {
     name: "SUPER_ADMIN",
-    displayName: "Super Administrator",
+    displayName: "Super Admin",
     description: "Full system access with all permissions",
     isSystem: true,
   },
   {
     name: "ADMIN",
-    displayName: "Administrator",
+    displayName: "Super Admin",
     description: "Administrative access without system settings",
     isSystem: true,
   },

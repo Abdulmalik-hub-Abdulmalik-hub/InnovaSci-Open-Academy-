@@ -142,7 +142,7 @@ export default function DashboardLayout({
             >
               <Menu className="h-5 w-5" />
             </Button>
-            <h1 className="text-lg font-semibold text-white">Admin Dashboard</h1>
+            <h1 className="text-lg font-semibold text-white">Super Admin Dashboard</h1>
           </div>
           
           <div className="flex items-center gap-4">
