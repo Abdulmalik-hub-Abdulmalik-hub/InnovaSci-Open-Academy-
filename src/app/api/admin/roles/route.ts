@@ -61,8 +61,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Get roles error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { success: false, error: "Failed to fetch roles" },
+      { success: false, error: `Failed to fetch roles: ${errorMessage}`, details: String(error) },
       { status: 500 }
     )
   }
@@ -144,8 +145,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Create role error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { success: false, error: "Failed to create role" },
+      { success: false, error: `Failed to create role: ${errorMessage}`, details: String(error) },
       { status: 500 }
     )
   }

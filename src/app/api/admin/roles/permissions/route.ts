@@ -111,8 +111,9 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Get permissions error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { success: false, error: "Failed to fetch permissions" },
+      { success: false, error: `Failed to fetch permissions: ${errorMessage}`, details: String(error) },
       { status: 500 }
     )
   }
@@ -154,8 +155,9 @@ export async function POST(request: NextRequest) {
     })
   } catch (error) {
     console.error("Initialize permissions error:", error)
+    const errorMessage = error instanceof Error ? error.message : "Unknown error"
     return NextResponse.json(
-      { success: false, error: "Failed to initialize permissions" },
+      { success: false, error: `Failed to initialize permissions: ${errorMessage}`, details: String(error) },
       { status: 500 }
     )
   }

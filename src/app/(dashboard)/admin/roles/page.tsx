@@ -59,30 +59,33 @@ export default function AdminRolesPage() {
       if (rolesData.success) setRoles(rolesData.data)
       if (permsData.success) setPermissions(permsData.data)
       
-      // Collect error messages from failed requests
+      // Collect detailed error messages from failed requests
       const errors: string[] = []
       
       if (!rolesRes.ok) {
-        errors.push(`Roles API (${rolesRes.status}): ${rolesData.error || rolesData.message || 'Unknown error'}`)
+        const rolesError = rolesData.details || rolesData.error || rolesData.message || 'Unknown error'
+        errors.push(`[Roles API Error] Status: ${rolesRes.status}\nMessage: ${rolesData.error || 'Unknown error'}\nDetails: ${rolesData.details || rolesError}`)
       }
       
       if (!permsRes.ok) {
-        errors.push(`Permissions API (${permsRes.status}): ${permsData.error || permsData.message || 'Unknown error'}`)
+        const permsError = permsData.details || permsData.error || permsData.message || 'Unknown error'
+        errors.push(`[Permissions API Error] Status: ${permsRes.status}\nMessage: ${permsData.error || 'Unknown error'}\nDetails: ${permsData.details || permsError}`)
       }
       
       // Also check for errors even when status is 200 but success is false
       if (rolesData.success === false) {
-        errors.push(`Roles: ${rolesData.error || 'Unknown error'}`)
+        errors.push(`[Roles] ${rolesData.error || 'Unknown error'}\nDetails: ${rolesData.details || 'N/A'}`)
       }
       if (permsData.success === false) {
-        errors.push(`Permissions: ${permsData.error || 'Unknown error'}`)
+        errors.push(`[Permissions] ${permsData.error || 'Unknown error'}\nDetails: ${permsData.details || 'N/A'}`)
       }
       
       if (errors.length > 0) {
-        setError(errors.join(' | '))
+        setError(errors.join('\n\n'))
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load data. Please check your connection and try again.")
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(`[Network Error]\n${errorMessage}\n\nThis may indicate a database connection issue or the tables don't exist. Please check:\n1. Database connection\n2. Migration status (npx prisma migrate status)\n3. Prisma generate (npx prisma generate)`)
     } finally {
       setLoading(false)
     }
@@ -100,7 +103,7 @@ export default function AdminRolesPage() {
       const permsData = await permsRes.json()
       
       if (!permsData.success) {
-        throw new Error(`Permissions: ${permsData.error || 'Failed to initialize permissions'}`)
+        throw new Error(`[Permissions] ${permsData.error || 'Failed to initialize permissions'}\nDetails: ${permsData.details || 'N/A'}`)
       }
       
       // Then initialize roles
@@ -112,12 +115,13 @@ export default function AdminRolesPage() {
       const rolesData = await rolesRes.json()
       
       if (!rolesData.success) {
-        throw new Error(`Roles: ${rolesData.error || 'Failed to initialize roles'}`)
+        throw new Error(`[Roles] ${rolesData.error || 'Failed to initialize roles'}\nDetails: ${rolesData.details || 'N/A'}`)
       }
       
       await fetchData()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to initialize. Please check your permissions and try again.")
+      const errorMessage = err instanceof Error ? err.message : String(err)
+      setError(`[Initialize Error]\n${errorMessage}\n\nPlease ensure you have the necessary permissions and the database is accessible.`)
     } finally {
       setInitializing(false)
     }
@@ -226,14 +230,24 @@ export default function AdminRolesPage() {
       {/* Error State */}
       {error && (
         <Card className="bg-red-500/10 border-red-500/20">
-          <CardContent className="p-4 flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
-              <p className="text-red-400">{error}</p>
+          <CardContent className="p-4">
+            <div className="flex items-start justify-between">
+              <div className="flex items-start gap-2 flex-1">
+                <AlertTriangle className="h-5 w-5 text-red-400 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2 w-full">
+                  <p className="text-red-400 font-medium">Error Loading Data</p>
+                  <p className="text-red-300/80 text-sm font-mono bg-black/20 p-3 rounded-md overflow-auto max-h-48 w-full">
+                    {error}
+                  </p>
+                  <p className="text-red-300/60 text-xs">
+                    Please check the browser console for more details or contact support if the problem persists.
+                  </p>
+                </div>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setError(null)} className="text-red-400 ml-2">
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => setError(null)} className="text-red-400">
-              <X className="h-4 w-4" />
-            </Button>
           </CardContent>
         </Card>
       )}
