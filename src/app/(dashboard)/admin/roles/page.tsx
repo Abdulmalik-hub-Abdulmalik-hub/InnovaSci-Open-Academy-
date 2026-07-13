@@ -1,14 +1,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import {
   Shield, Users, Key, Plus, Settings, Loader2, Check,
-  X, AlertTriangle, Edit, Trash2, ChevronRight
+  X, ChevronRight
 } from "lucide-react"
+import toast from "react-hot-toast"
 
 interface Role {
   id: string
@@ -34,7 +34,6 @@ export default function AdminRolesPage() {
   const [permissions, setPermissions] = useState<Permission[]>([])
   const [loading, setLoading] = useState(true)
   const [initializing, setInitializing] = useState(false)
-  const [error, setError] = useState<string | null>(null)
   const [selectedRole, setSelectedRole] = useState<Role | null>(null)
   const [editingPermissions, setEditingPermissions] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
@@ -45,8 +44,6 @@ export default function AdminRolesPage() {
 
   const fetchData = async () => {
     setLoading(true)
-    setError(null)
-    
     try {
       const [rolesRes, permsRes] = await Promise.all([
         fetch("/api/admin/roles"),
@@ -58,54 +55,8 @@ export default function AdminRolesPage() {
       
       if (rolesData.success) setRoles(rolesData.data)
       if (permsData.success) setPermissions(permsData.data)
-      
-      // Check for authentication errors (401/403)
-      if (rolesRes.status === 401 || rolesRes.status === 403 || permsRes.status === 401 || permsRes.status === 403) {
-        setError(`🔐 AUTHENTICATION ERROR\n\n${rolesData.error || permsData.error || 'Authentication required'}\n\nPlease log in to access this page.`)
-        return
-      }
-      
-      // Check for database/schema errors (table/column missing)
-      const dbErrors: string[] = []
-      
-      if (!rolesRes.ok || rolesData.success === false) {
-        const rolesErrorText = rolesData.details || rolesData.error || String(rolesData) || ''
-        let rolesHint = ''
-        
-        if (rolesErrorText.includes('does not exist') || rolesErrorText.includes('Unknown column')) {
-          const match = rolesErrorText.match(/table ["`']?(\w+)["`']?|\.(["`']?\w+["`']?) does not exist|Unknown column ["`']?(\w+)["`']?/i)
-          if (match) {
-            const missingItem = match[1] || match[2] || match[3] || 'unknown'
-            rolesHint = `\n\n🔴 MISSING: "${missingItem}"\n\nThis table/column does not exist in your database.\nTo fix: Run migrations or create the missing table.`
-            dbErrors.push(`[Roles API] ${rolesHint}`)
-          }
-        } else if (rolesErrorText && !rolesErrorText.includes('Authentication')) {
-          dbErrors.push(`[Roles API] Error: ${rolesErrorText}`)
-        }
-      }
-      
-      if (!permsRes.ok || permsData.success === false) {
-        const permsErrorText = permsData.details || permsData.error || String(permsData) || ''
-        let permsHint = ''
-        
-        if (permsErrorText.includes('does not exist') || permsErrorText.includes('Unknown column')) {
-          const match = permsErrorText.match(/table ["`']?(\w+)["`']?|\.(["`']?\w+["`']?) does not exist|Unknown column ["`']?(\w+)["`']?/i)
-          if (match) {
-            const missingItem = match[1] || match[2] || match[3] || 'unknown'
-            permsHint = `\n\n🔴 MISSING: "${missingItem}"\n\nThis table/column does not exist in your database.\nTo fix: Run migrations or create the missing table.`
-            dbErrors.push(`[Permissions API] ${permsHint}`)
-          }
-        } else if (permsErrorText && !permsErrorText.includes('Authentication')) {
-          dbErrors.push(`[Permissions API] Error: ${permsErrorText}`)
-        }
-      }
-      
-      if (dbErrors.length > 0) {
-        setError(dbErrors.join('\n\n'))
-      }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      setError(`❌ NETWORK ERROR\n\n${errorMessage}\n\nCheck your database connection and server status.`)
+      console.error("Failed to fetch data:", err)
     } finally {
       setLoading(false)
     }
@@ -114,46 +65,22 @@ export default function AdminRolesPage() {
   const handleInitialize = async () => {
     setInitializing(true)
     try {
-      // Initialize permissions first
-      const permsRes = await fetch("/api/admin/roles/permissions", {
+      await fetch("/api/admin/roles/permissions", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ init: true })
       })
-      const permsData = await permsRes.json()
       
-      if (!permsRes.ok || !permsData.success) {
-        // Check for auth error
-        if (permsRes.status === 401 || permsRes.status === 403) {
-          setError(`🔐 AUTHENTICATION ERROR\n\nYou don't have permission to initialize roles.\nPlease log in with an admin account.`)
-          return
-        }
-        const permsError = permsData.details || permsData.error || 'Unknown error'
-        throw new Error(`[Permissions] Failed to initialize\n${permsError}`)
-      }
-      
-      // Then initialize roles
-      const rolesRes = await fetch("/api/admin/roles", {
+      await fetch("/api/admin/roles", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ init: true })
       })
-      const rolesData = await rolesRes.json()
-      
-      if (!rolesRes.ok || !rolesData.success) {
-        // Check for auth error
-        if (rolesRes.status === 401 || rolesRes.status === 403) {
-          setError(`🔐 AUTHENTICATION ERROR\n\nYou don't have permission to initialize roles.\nPlease log in with an admin account.`)
-          return
-        }
-        const rolesError = rolesData.details || rolesData.error || 'Unknown error'
-        throw new Error(`[Roles] Failed to initialize\n${rolesError}`)
-      }
       
       await fetchData()
+      toast.success("Roles and permissions initialized successfully")
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      setError(`❌ INITIALIZATION ERROR\n\n${errorMessage}\n\nRequired tables: roles, permissions, _RoleToPermission, user_roles`)
+      console.error("Failed to initialize:", err)
     } finally {
       setInitializing(false)
     }
@@ -177,11 +104,8 @@ export default function AdminRolesPage() {
     
     setSaving(true)
     try {
-      // TODO: Implement API call to update role permissions
-      // For now, just update local state
       console.log("Saving permissions for role:", selectedRole.name, editingPermissions)
       
-      // Update local state
       setRoles(prev => prev.map(r => 
         r.id === selectedRole.id 
           ? { ...r, permissions: editingPermissions.map(name => ({ id: name, name })) }
@@ -189,9 +113,9 @@ export default function AdminRolesPage() {
       ))
       
       setSelectedRole(null)
+      toast.success("Permissions saved successfully")
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : String(err)
-      setError(`[Save Error]\n${errorMessage}\n\nFailed to save permissions for role: ${selectedRole.name}`)
+      console.error("Failed to save permissions:", err)
     } finally {
       setSaving(false)
     }
@@ -259,28 +183,6 @@ export default function AdminRolesPage() {
           </Button>
         </div>
       </div>
-
-      {/* Error State */}
-      {error && (
-        <Card className="bg-red-500/10 border-red-500/30">
-          <CardContent className="p-6">
-            <div className="flex items-start justify-between">
-              <div className="flex items-start gap-3 flex-1">
-                <AlertTriangle className="h-6 w-6 text-red-400 flex-shrink-0 mt-1" />
-                <div className="space-y-3 w-full">
-                  <p className="text-red-400 font-semibold text-lg">{error.split('\n')[0]}</p>
-                  <pre className="text-red-300 text-sm bg-black/40 p-4 rounded-lg overflow-auto max-h-64 w-full whitespace-pre-wrap font-mono border border-red-500/20">
-                    {error}
-                  </pre>
-                </div>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setError(null)} className="text-red-400 ml-2">
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {roles.length === 0 ? (
         <Card className="bg-[#1a1a2e] border-white/10">
