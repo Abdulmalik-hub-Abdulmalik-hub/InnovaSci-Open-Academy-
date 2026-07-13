@@ -66,7 +66,6 @@ model User {
 
   // Staff Management Relations
   staffProfile       StaffProfile?
-  staffNotifications StaffNotification[]
 
   @@map("users")
 }
@@ -2425,6 +2424,7 @@ model StaffProfile {
   sessions        StaffSession[]
   activities      StaffActivity[]
   supervisorAssignments ProjectSupervisor[]
+  notifications   StaffNotification[]
   
   @@index([userId])
   @@index([department])
