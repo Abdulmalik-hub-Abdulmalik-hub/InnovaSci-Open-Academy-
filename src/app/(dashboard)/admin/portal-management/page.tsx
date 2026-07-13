@@ -114,8 +114,8 @@ function PortalCard({ portal, onAction }: { portal: any; onAction: (action: stri
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/10">
-              <DropdownMenuItem asChild>
-                <Link href={`/admin/portal-management/${portal.id}`} className="cursor-pointer">
+              <DropdownMenuItem className="cursor-pointer">
+                <Link href={`/admin/portal-management/${portal.id}`} className="flex items-center w-full">
                   <Eye className="h-4 w-4 mr-2" />
                   View Details
                 </Link>

@@ -198,8 +198,8 @@ function StaffRow({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/10">
-            <DropdownMenuItem asChild>
-              <Link href={`/admin/staff-management/staff-directory/${staff.id}`} className="cursor-pointer">
+            <DropdownMenuItem className="cursor-pointer">
+              <Link href={`/admin/staff-management/staff-directory/${staff.id}`} className="flex items-center w-full">
                 <Eye className="h-4 w-4 mr-2" />
                 View Profile
               </Link>
