@@ -64,6 +64,10 @@ model User {
   reviewAssignments  ReviewerAssignment[]
   commentsAuthored  ProjectComment[]
 
+  // Staff Management Relations
+  staffProfile       StaffProfile?
+  staffNotifications StaffNotification[]
+
   @@map("users")
 }
 
@@ -2336,8 +2340,362 @@ model ProjectComment {
   @@map("project_comments")
 }
 
-// Add relations to User model
-// Note: These should be added to the User model above
+// =============================================================================
+// ENTERPRISE STAFF MANAGEMENT MODELS
+// =============================================================================
 
-// Add relations to ProjectSubmission model
-// Note: These should be added to the ProjectSubmission model above
+// ============================================
+// STAFF PROFILE - Extended profile for staff members
+// ============================================
+model StaffProfile {
+  id              String   @id @default(uuid())
+  userId          String   @unique
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Professional Information
+  staffId         String?  // Internal staff ID
+  title           String?  // Job title
+  department      String?  // Department
+  employeeType    String?  // FULL_TIME, PART_TIME, CONTRACTOR, CONSULTANT
+  
+  // Contact Information
+  phone           String?
+  phoneAlt        String?
+  address         String?
+  city            String?
+  country         String?
+  
+  // Emergency Contact
+  emergencyName   String?
+  emergencyPhone  String?
+  emergencyEmail  String?
+  emergencyRelation String?
+  
+  // Additional Info
+  dateOfBirth     DateTime?
+  gender          String?
+  nationality     String?
+  
+  // Employment Details
+  hireDate       DateTime?
+  terminationDate DateTime?
+  
+  // Government IDs
+  idType          String?  // PASSPORT, NATIONAL_ID, DRIVERS_LICENSE
+  idNumber        String?
+  idDocumentUrl   String?
+  
+  // Banking (for payroll)
+  bankName        String?
+  bankAccount     String?
+  bankRouting     String?
+  
+  // Profile Photo (override from Profile if needed)
+  staffAvatarUrl  String?
+  
+  // Status
+  isActive        Boolean  @default(true)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  assignments     StaffAssignment[]
+  sessions        StaffSession[]
+  activities      StaffActivity[]
+  supervisorAssignments ProjectSupervisor[]
+  
+  @@index([userId])
+  @@index([department])
+  @@index([isActive])
+  @@map("staff_profiles")
+}
+
+// ============================================
+// PORTAL - Portal types for different staff roles
+// ============================================
+model Portal {
+  id              String   @id @default(uuid())
+  name            String   @unique // SUPER_ADMIN, ADMIN, ACADEMIC_DIRECTOR, INSTRUCTOR, REVIEWER, PROJECT_SUPERVISOR, FINANCE_OFFICER, ADMISSION_OFFICER, STUDENT_AFFAIRS, QUALITY_ASSURANCE, RESEARCH_COORDINATOR, SUPPORT_STAFF
+  displayName     String
+  description     String?  @db.Text
+  icon            String?  // Icon name
+  color           String?  // Hex color
+  
+  // Access Control
+  isActive        Boolean  @default(true)
+  isSystem        Boolean  @default(false) // System portals cannot be deleted
+  
+  // Role Assignment
+  defaultRoleId   String?
+  defaultRole     Role?    @relation(fields: [defaultRoleId], references: [id])
+  
+  // Dashboard Configuration
+  dashboardRoute  String?  // Default route after login
+  
+  // Permissions Configuration
+  allowedPermissions Json? // JSON array of permission names
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  staffAssignments StaffAssignment[]
+  
+  @@index([name])
+  @@index([isActive])
+  @@map("portals")
+}
+
+// ============================================
+// STAFF ASSIGNMENT - Domain/Category/Course assignments for staff
+// ============================================
+model StaffAssignment {
+  id              String   @id @default(uuid())
+  staffProfileId  String
+  staffProfile    StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  
+  // Portal Reference
+  portalId        String
+  portal          Portal   @relation(fields: [portalId], references: [id])
+  
+  // Role Reference
+  roleId          String?
+  role            Role?    @relation(fields: [roleId], references: [id])
+  
+  // Hierarchy Assignment - Academy -> Domain -> Category -> Difficulty -> Course
+  domainId        String?  // Top-level domain
+  categoryId      String?  // Category within domain
+  difficultyLevel String?  // BEGINNER, INTERMEDIATE, ADVANCED
+  courseId        String?  // Specific course
+  
+  // Relations
+  domain          Domain?   @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  course          Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  
+  // Assignment Details
+  isPrimary       Boolean   @default(false) // Primary assignment for this domain/category
+  assignedAt      DateTime  @default(now())
+  assignedBy      String?   // userId of super admin who made assignment
+  expiresAt       DateTime? // Optional expiration
+  
+  // Status
+  status          String    @default("ACTIVE") // ACTIVE, INACTIVE, EXPIRED
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([staffProfileId])
+  @@index([portalId])
+  @@index([domainId])
+  @@index([categoryId])
+  @@index([courseId])
+  @@index([status])
+  @@map("staff_assignments")
+}
+
+// ============================================
+// STAFF SESSION - Active session tracking for security
+// ============================================
+model StaffSession {
+  id              String   @id @default(uuid())
+  staffProfileId  String
+  staffProfile    StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  
+  // Session Details
+  sessionToken    String   @unique
+  ipAddress       String?
+  userAgent       String?
+  browser         String?
+  browserVersion  String?
+  os              String?
+  deviceType      String?  // DESKTOP, MOBILE, TABLET
+  
+  // Location
+  country         String?
+  city            String?
+  latitude        Float?
+  longitude       Float?
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  lastActiveAt    DateTime @default(now())
+  expiresAt       DateTime
+  
+  // Status
+  isActive        Boolean  @default(true)
+  terminatedAt    DateTime?
+  terminatedBy    String?  // userId who terminated the session
+  terminationReason String? // ADMIN_TERMINATED, LOGOUT, EXPIRED, SECURITY
+  
+  // Security
+  failedAttempts  Int      @default(0)
+  lastFailedAt   DateTime?
+  
+  @@index([staffProfileId])
+  @@index([sessionToken])
+  @@index([isActive])
+  @@index([createdAt])
+  @@map("staff_sessions")
+}
+
+// ============================================
+// STAFF ACTIVITY - Complete activity timeline for audit
+// ============================================
+model StaffActivity {
+  id              String   @id @default(uuid())
+  staffProfileId  String
+  staffProfile    StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
+  
+  // Activity Details
+  action          String   // ACCOUNT_CREATED, ROLE_ASSIGNED, PORTAL_ENABLED, PASSWORD_CHANGED, LOGIN, LOGOUT, PROJECT_ASSIGNED, COURSE_ASSIGNED, REVIEW_COMPLETED, CERTIFICATE_APPROVED, SUSPENDED, REACTIVATED
+  category        String   // ACCOUNT, ROLE, PORTAL, SECURITY, ASSIGNMENT, PROJECT, COURSE, REVIEW, CERTIFICATE, SYSTEM
+  description     String   @db.Text
+  
+  // Context
+  targetType      String?  // The type of entity affected
+  targetId        String?  // The ID of the entity affected
+  targetName      String?  // Human-readable name of the entity
+  
+  // Metadata
+  metadata        Json?    // Additional context data
+  
+  // Actor (who performed the action)
+  performedBy     String?  // userId of who performed the action (null if self)
+  performedByName String?  // Name of who performed the action
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  
+  @@index([staffProfileId])
+  @@index([action])
+  @@index([category])
+  @@index([createdAt])
+  @@map("staff_activities")
+}
+
+// ============================================
+// PROJECT SUPERVISOR - Supervisor assignments for projects
+// ============================================
+model ProjectSupervisor {
+  id              String   @id @default(uuid())
+  
+  // Supervisor Reference
+  supervisorId    String
+  supervisorProfile StaffProfile @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  
+  // Assignment Level - can be at domain, category, difficulty, or course level
+  domainId        String?
+  categoryId      String?
+  difficultyLevel String?
+  courseId        String?
+  
+  // Relations
+  domain          Domain?   @relation(fields: [domainId], references: [id], onDelete: SetNull)
+  category        Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  course          Course?   @relation(fields: [courseId], references: [id], onDelete: SetNull)
+  
+  // Assignment Details
+  isPrimary       Boolean   @default(false)
+  maxStudents     Int?      // Maximum students supervised
+  currentStudents Int       @default(0)
+  
+  // Status
+  status          String    @default("ACTIVE") // ACTIVE, INACTIVE, SUSPENDED
+  
+  // Assignment Info
+  assignedAt      DateTime  @default(now())
+  assignedBy      String?   // userId of super admin
+  expiresAt       DateTime?
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  // Relations
+  milestones      SupervisorMilestone[]
+  
+  @@index([supervisorId])
+  @@index([domainId])
+  @@index([categoryId])
+  @@index([courseId])
+  @@index([status])
+  @@map("project_supervisors")
+}
+
+// ============================================
+// SUPERVISOR MILESTONE - Milestone tracking for supervised projects
+// ============================================
+model SupervisorMilestone {
+  id              String    @id @default(uuid())
+  supervisorId    String
+  supervisor      ProjectSupervisor @relation(fields: [supervisorId], references: [id], onDelete: Cascade)
+  
+  // Milestone Details
+  submissionId    String
+  submission       ProjectSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+  
+  // Milestone Info
+  milestoneName   String    // Proposal, Literature Review, Methodology, etc.
+  milestoneOrder  Int       @default(0)
+  
+  // Status
+  status          String    @default("PENDING") // PENDING, IN_PROGRESS, SUBMITTED, APPROVED, REVISION_REQUESTED
+  
+  // Approval
+  isApproved      Boolean   @default(false)
+  approvedAt      DateTime?
+  approvedBy      String?   // supervisorId
+  feedback        String?   @db.Text
+  
+  // Submission
+  submittedAt     DateTime?
+  submissionNotes String?  @db.Text
+  
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@unique([supervisorId, submissionId, milestoneName])
+  @@index([supervisorId])
+  @@index([submissionId])
+  @@index([status])
+  @@map("supervisor_milestones")
+}
+
+// ============================================
+// STAFF NOTIFICATION - Notifications for staff members
+// ============================================
+model StaffNotification {
+  id              String   @id @default(uuid())
+  
+  // Recipient
+  staffProfileId  String
+  
+  // Notification Content
+  title           String
+  message         String   @db.Text
+  type            String   // ACCOUNT, ASSIGNMENT, PROJECT, REVIEW, COURSE, SYSTEM, SECURITY
+  
+  // Action
+  actionUrl       String?
+  actionLabel     String?
+  
+  // Status
+  isRead          Boolean  @default(false)
+  readAt          DateTime?
+  
+  // Priority
+  priority        String   @default("NORMAL") // LOW, NORMAL, HIGH, URGENT
+  
+  // Metadata
+  metadata        Json?    // Additional data
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([staffProfileId])
+  @@index([isRead])
+  @@index([createdAt])
+  @@map("staff_notifications")
+}
+
+// Note: Additional relations to User and ProjectSubmission models are added via field declarations above

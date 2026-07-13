@@ -29,6 +29,17 @@ const menuItems = [
     icon: LayoutDashboard,
   },
   {
+    title: "Staff Management",
+    href: "/admin/staff-management",
+    icon: Users,
+    submenu: [
+      { title: "Staff Directory", href: "/admin/staff-management/staff-directory" },
+      { title: "Create Staff", href: "/admin/staff-management/staff-create" },
+      { title: "Portal Management", href: "/admin/portal-management" },
+      { title: "Role Management", href: "/admin/roles" },
+    ],
+  },
+  {
     title: "Academic Management",
     href: "/admin/domains",
     icon: LayoutGrid,

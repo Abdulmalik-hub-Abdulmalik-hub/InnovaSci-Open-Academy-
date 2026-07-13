@@ -7,6 +7,9 @@ export interface AuthUser {
   email: string
   role: string
   status: string
+  profile?: {
+    fullName?: string | null
+  } | null
 }
 
 // Check if user is authenticated
@@ -26,7 +29,15 @@ export async function getAuthenticatedUser(request: NextRequest): Promise<AuthUs
         
         const user = await prisma.user.findUnique({
           where: { id: userId },
-          select: { id: true, email: true, role: true, status: true }
+          select: { 
+            id: true, 
+            email: true, 
+            role: true, 
+            status: true,
+            profile: {
+              select: { fullName: true }
+            }
+          }
         })
         
         if (user && user.status === "ACTIVE") {

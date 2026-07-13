@@ -6,9 +6,24 @@ export const PERMISSIONS = {
   // Users
   USERS_VIEW: "users:view",
   USERS_CREATE: "users:create",
+  USERS_EDIT: "users:edit",
   USERS_UPDATE: "users:update",
   USERS_DELETE: "users:delete",
   USERS_MANAGE: "users:manage",
+  
+  // Staff Management
+  STAFF_VIEW: "staff:view",
+  STAFF_CREATE: "staff:create",
+  STAFF_EDIT: "staff:edit",
+  STAFF_DELETE: "staff:delete",
+  STAFF_MANAGE: "staff:manage",
+  
+  // Portals
+  PORTALS_VIEW: "portals:view",
+  PORTALS_CREATE: "portals:create",
+  PORTALS_EDIT: "portals:edit",
+  PORTALS_DELETE: "portals:delete",
+  PORTALS_MANAGE: "portals:manage",
   
   // Roles & Permissions
   ROLES_VIEW: "roles:view",
