@@ -165,9 +165,10 @@ export default function AdminProjectsPage() {
         setStatistics(result.data.statistics)
         setTotalPages(result.data.pagination.totalPages)
       } else {
+        console.error('API Error:', result.error, result.details)
         toast({
           title: 'Error',
-          description: result.error || 'Failed to fetch submissions',
+          description: result.details?.message || result.error || 'Failed to fetch submissions',
           variant: 'destructive',
         })
       }
@@ -175,7 +176,7 @@ export default function AdminProjectsPage() {
       console.error('Error fetching submissions:', error)
       toast({
         title: 'Error',
-        description: 'Failed to fetch submissions',
+        description: 'Network error: Failed to fetch submissions',
         variant: 'destructive',
       })
     } finally {

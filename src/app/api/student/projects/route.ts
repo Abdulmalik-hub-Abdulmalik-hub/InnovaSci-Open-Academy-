@@ -121,12 +121,20 @@ export async function GET(request: NextRequest) {
       success: true, 
       data: formattedProjects 
     })
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching projects:", error)
     const errorMessage = error instanceof Error ? error.message : "Unknown error"
+    const prismaErrorCode = error?.code || error?.meta?.code || ""
+    const prismaErrorMsg = error?.meta?.message || error?.message || ""
+    
     return NextResponse.json({ 
       success: false, 
-      error: `Failed to fetch projects: ${errorMessage}` 
+      error: `Failed to fetch projects: ${errorMessage}`,
+      details: {
+        message: prismaErrorMsg || errorMessage,
+        code: prismaErrorCode,
+        stack: error?.stack?.substring(0, 500)
+      }
     }, { status: 500 })
   }
 }
