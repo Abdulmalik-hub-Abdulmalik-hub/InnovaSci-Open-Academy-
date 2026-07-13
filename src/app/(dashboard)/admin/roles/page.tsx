@@ -59,65 +59,53 @@ export default function AdminRolesPage() {
       if (rolesData.success) setRoles(rolesData.data)
       if (permsData.success) setPermissions(permsData.data)
       
-      // Collect detailed error messages from failed requests
-      const errors: string[] = []
+      // Check for authentication errors (401/403)
+      if (rolesRes.status === 401 || rolesRes.status === 403 || permsRes.status === 401 || permsRes.status === 403) {
+        setError(`🔐 AUTHENTICATION ERROR\n\n${rolesData.error || permsData.error || 'Authentication required'}\n\nPlease log in to access this page.`)
+        return
+      }
+      
+      // Check for database/schema errors (table/column missing)
+      const dbErrors: string[] = []
       
       if (!rolesRes.ok || rolesData.success === false) {
-        // Extract table/column info from error
         const rolesErrorText = rolesData.details || rolesData.error || String(rolesData) || ''
         let rolesHint = ''
         
-        // Parse Prisma/PostgreSQL errors for table/column info
-        if (rolesErrorText.includes('does not exist')) {
-          const match = rolesErrorText.match(/table ["`']?(\w+)["`']?|\.(["`']?\w+["`']?) does not exist/i)
+        if (rolesErrorText.includes('does not exist') || rolesErrorText.includes('Unknown column')) {
+          const match = rolesErrorText.match(/table ["`']?(\w+)["`']?|\.(["`']?\w+["`']?) does not exist|Unknown column ["`']?(\w+)["`']?/i)
           if (match) {
-            rolesHint = `\n⚠️ MISSING TABLE/COLUMN: ${match[1] || match[2]}\n   → Please run: npx prisma migrate dev\n   → Or check if the table exists in your database`
+            const missingItem = match[1] || match[2] || match[3] || 'unknown'
+            rolesHint = `\n\n🔴 MISSING: "${missingItem}"\n\nThis table/column does not exist in your database.\nTo fix: Run migrations or create the missing table.`
+            dbErrors.push(`[Roles API] ${rolesHint}`)
           }
+        } else if (rolesErrorText && !rolesErrorText.includes('Authentication')) {
+          dbErrors.push(`[Roles API] Error: ${rolesErrorText}`)
         }
-        if (rolesErrorText.includes('Unknown column')) {
-          const match = rolesErrorText.match(/Unknown column ["`']?(\w+)["`']?/i)
-          if (match) {
-            rolesHint = `\n⚠️ MISSING COLUMN: ${match[1]}\n   → Please run: npx prisma migrate dev`
-          }
-        }
-        
-        errors.push(`[Roles API Error] Status: ${rolesRes.status}\nError: ${rolesData.error || 'Failed to fetch roles'}\nDetails: ${rolesErrorText}${rolesHint}`)
       }
       
       if (!permsRes.ok || permsData.success === false) {
-        // Extract table/column info from error
         const permsErrorText = permsData.details || permsData.error || String(permsData) || ''
         let permsHint = ''
         
-        // Parse Prisma/PostgreSQL errors for table/column info
-        if (permsErrorText.includes('does not exist')) {
-          const match = permsErrorText.match(/table ["`']?(\w+)["`']?|\.(["`']?\w+["`']?) does not exist/i)
+        if (permsErrorText.includes('does not exist') || permsErrorText.includes('Unknown column')) {
+          const match = permsErrorText.match(/table ["`']?(\w+)["`']?|\.(["`']?\w+["`']?) does not exist|Unknown column ["`']?(\w+)["`']?/i)
           if (match) {
-            permsHint = `\n⚠️ MISSING TABLE/COLUMN: ${match[1] || match[2]}\n   → Please run: npx prisma migrate dev\n   → Or check if the table exists in your database`
+            const missingItem = match[1] || match[2] || match[3] || 'unknown'
+            permsHint = `\n\n🔴 MISSING: "${missingItem}"\n\nThis table/column does not exist in your database.\nTo fix: Run migrations or create the missing table.`
+            dbErrors.push(`[Permissions API] ${permsHint}`)
           }
+        } else if (permsErrorText && !permsErrorText.includes('Authentication')) {
+          dbErrors.push(`[Permissions API] Error: ${permsErrorText}`)
         }
-        if (permsErrorText.includes('Unknown column')) {
-          const match = permsErrorText.match(/Unknown column ["`']?(\w+)["`']?/i)
-          if (match) {
-            permsHint = `\n⚠️ MISSING COLUMN: ${match[1]}\n   → Please run: npx prisma migrate dev`
-          }
-        }
-        
-        errors.push(`[Permissions API Error] Status: ${permsRes.status}\nError: ${permsData.error || 'Failed to fetch permissions'}\nDetails: ${permsErrorText}${permsHint}`)
       }
       
-      if (errors.length > 0) {
-        setError(errors.join('\n\n'))
+      if (dbErrors.length > 0) {
+        setError(dbErrors.join('\n\n'))
       }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
-      let hint = '\n\n🔍 TROUBLESHOOTING STEPS:\n'
-      hint += '1. Check database connection in .env file\n'
-      hint += '2. Run: npx prisma migrate status\n'
-      hint += '3. Run: npx prisma generate\n'
-      hint += '4. Run: npx prisma db push\n'
-      hint += '5. Verify all required tables exist in database'
-      setError(`[Network Error] ${errorMessage}${hint}`)
+      setError(`❌ NETWORK ERROR\n\n${errorMessage}\n\nCheck your database connection and server status.`)
     } finally {
       setLoading(false)
     }
@@ -135,8 +123,13 @@ export default function AdminRolesPage() {
       const permsData = await permsRes.json()
       
       if (!permsRes.ok || !permsData.success) {
+        // Check for auth error
+        if (permsRes.status === 401 || permsRes.status === 403) {
+          setError(`🔐 AUTHENTICATION ERROR\n\nYou don't have permission to initialize roles.\nPlease log in with an admin account.`)
+          return
+        }
         const permsError = permsData.details || permsData.error || 'Unknown error'
-        throw new Error(`[Permissions] Failed to initialize permissions\nError: ${permsError}\n\nIf the error mentions missing tables, run: npx prisma migrate dev`)
+        throw new Error(`[Permissions] Failed to initialize\n${permsError}`)
       }
       
       // Then initialize roles
@@ -148,14 +141,19 @@ export default function AdminRolesPage() {
       const rolesData = await rolesRes.json()
       
       if (!rolesRes.ok || !rolesData.success) {
+        // Check for auth error
+        if (rolesRes.status === 401 || rolesRes.status === 403) {
+          setError(`🔐 AUTHENTICATION ERROR\n\nYou don't have permission to initialize roles.\nPlease log in with an admin account.`)
+          return
+        }
         const rolesError = rolesData.details || rolesData.error || 'Unknown error'
-        throw new Error(`[Roles] Failed to initialize roles\nError: ${rolesError}\n\nIf the error mentions missing tables, run: npx prisma migrate dev`)
+        throw new Error(`[Roles] Failed to initialize\n${rolesError}`)
       }
       
       await fetchData()
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : String(err)
-      setError(`[Initialize Error]\n${errorMessage}\n\n🔧 Required Tables:\n• roles - Stores user roles\n• permissions - Stores permission definitions\n• _RoleToPermission - Many-to-many join table\n• user_roles - User-role assignments\n\nRun migrations: npx prisma migrate dev`)
+      setError(`❌ INITIALIZATION ERROR\n\n${errorMessage}\n\nRequired tables: roles, permissions, _RoleToPermission, user_roles`)
     } finally {
       setInitializing(false)
     }
@@ -270,19 +268,10 @@ export default function AdminRolesPage() {
               <div className="flex items-start gap-3 flex-1">
                 <AlertTriangle className="h-6 w-6 text-red-400 flex-shrink-0 mt-1" />
                 <div className="space-y-3 w-full">
-                  <p className="text-red-400 font-semibold text-lg">⚠️ Failed to Fetch Data</p>
+                  <p className="text-red-400 font-semibold text-lg">{error.split('\n')[0]}</p>
                   <pre className="text-red-300 text-sm bg-black/40 p-4 rounded-lg overflow-auto max-h-64 w-full whitespace-pre-wrap font-mono border border-red-500/20">
                     {error}
                   </pre>
-                  <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-3">
-                    <p className="text-red-300 text-xs font-medium mb-2">💡 Quick Fix:</p>
-                    <ol className="text-red-300/80 text-xs space-y-1 list-decimal list-inside">
-                      <li>Run <code className="bg-black/30 px-1 rounded">npx prisma migrate status</code> to check migration status</li>
-                      <li>Run <code className="bg-black/30 px-1 rounded">npx prisma generate</code> to regenerate Prisma client</li>
-                      <li>Run <code className="bg-black/30 px-1 rounded">npx prisma db push</code> to sync schema with database</li>
-                      <li>Verify <code className="bg-black/30 px-1 rounded">roles</code> and <code className="bg-black/30 px-1 rounded">permissions</code> tables exist</li>
-                    </ol>
-                  </div>
                 </div>
               </div>
               <Button variant="ghost" size="sm" onClick={() => setError(null)} className="text-red-400 ml-2">
