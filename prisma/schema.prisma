@@ -129,6 +129,10 @@ model Domain {
   categories Category[]
   domainCertificates DomainCertificate[]
   domainPurchases DomainPurchase[]
+  
+  // Staff Management Relations
+  staffAssignments StaffAssignment[]
+  projectSupervisors ProjectSupervisor[]
 
   @@index([slug])
   @@index([status])
@@ -169,6 +173,10 @@ model Category {
   courses  Course[]
   categoryCertificate CategoryCertificate?
   categoryPurchases CategoryPurchase[]
+  
+  // Staff Management Relations
+  staffAssignments StaffAssignment[]
+  projectSupervisors ProjectSupervisor[]
 
   @@unique([domainId, slug])
   @@unique([domainId, name])
@@ -245,6 +253,10 @@ model Course {
   versions             CourseVersion[]
   miniProjects         MiniProject[]
   projectSubmissions   ProjectSubmission[]
+  
+  // Staff Management Relations
+  staffAssignments StaffAssignment[]
+  projectSupervisors ProjectSupervisor[]
 
   @@map("courses")
 }
@@ -1561,6 +1573,12 @@ model Role {
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   UserRole    UserRole[]
+  
+  // Portal default roles
+  defaultPortals Portal[]
+  
+  // Staff assignment roles
+  staffAssignments StaffAssignment[]
 
   @@map("roles")
 }
@@ -2043,6 +2061,9 @@ model ProjectSubmission {
   statusHistory   ProjectStatusHistory[]
   comments        ProjectComment[]
   assignments     ReviewerAssignment[]
+  
+  // Staff Management Relations
+  supervisorMilestones SupervisorMilestone[]
 
   @@index([userId])
   @@index([courseId])
@@ -2670,6 +2691,7 @@ model StaffNotification {
   
   // Recipient
   staffProfileId  String
+  staffProfile   StaffProfile @relation(fields: [staffProfileId], references: [id], onDelete: Cascade)
   
   // Notification Content
   title           String
