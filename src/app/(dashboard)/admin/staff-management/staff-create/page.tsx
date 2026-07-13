@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation"
 import {
   ArrowLeft, ArrowRight, Check, User, Shield, BookOpen, Key, Loader2,
   Plus, X, Upload, Mail, Phone, Building, Briefcase, ChevronDown,
-  Users, DollarSign, UserPlus, Heart, BadgeCheck, UserCheck
+  Users, DollarSign, UserPlus, Heart, BadgeCheck, UserCheck,
+  Microscope, Headphones
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
