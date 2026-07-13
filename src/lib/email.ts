@@ -434,3 +434,133 @@ export async function sendTicketStatusNotification(data: TicketEmailData): Promi
     html: wrapInEmailTemplate(content, "Status Update"),
   })
 }
+
+// ============================================
+// SCHOLARSHIP EMAIL NOTIFICATIONS
+// ============================================
+
+interface ScholarshipApplicationEmailData {
+  recipientEmail: string
+  recipientName?: string
+  applicationNumber: string
+  trackingNumber: string
+  scholarshipName: string
+  scholarshipSlug: string
+}
+
+export async function sendScholarshipApplicationConfirmation(data: ScholarshipApplicationEmailData): Promise<SendEmailResult> {
+  const { recipientEmail, recipientName, applicationNumber, trackingNumber, scholarshipName, scholarshipSlug } = data
+  
+  const content = `
+    <h2>Scholarship Application Received</h2>
+    <p>Hello ${recipientName || "Applicant"},</p>
+    <p>Thank you for applying for the <strong>${scholarshipName}</strong> scholarship! We have received your application.</p>
+    <div style="background: #f9fafb; padding: 20px; margin: 20px 0; border-radius: 4px;">
+      <p style="margin: 0 0 10px; color: #1f2937;"><strong>Application Number:</strong> ${applicationNumber}</p>
+      <p style="margin: 0 0 10px; color: #1f2937;"><strong>Tracking Number:</strong> ${trackingNumber}</p>
+      <p style="margin: 0; color: #6b7280;">Save your tracking number to check your application status.</p>
+    </div>
+    <p>You can track your application status using your tracking number:</p>
+    <a href="${APP_URL}/scholarships/track" class="button">Track Your Application</a>
+    <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+      Our scholarship committee will review all applications and notify you of the outcome via email.
+    </p>
+  `
+  
+  return sendEmail({
+    to: recipientEmail,
+    subject: `Scholarship Application Received - ${scholarshipName}`,
+    html: wrapInEmailTemplate(content, "Application Received"),
+  })
+}
+
+export async function sendScholarshipStatusUpdate(data: {
+  recipientEmail: string
+  recipientName?: string
+  applicationNumber: string
+  scholarshipName: string
+  status: string
+  notes?: string
+}): Promise<SendEmailResult> {
+  const { recipientEmail, recipientName, applicationNumber, scholarshipName, status, notes } = data
+  
+  const statusMessages: Record<string, string> = {
+    UNDER_REVIEW: "Your application is now being reviewed by our scholarship committee.",
+    INTERVIEW: "Congratulations! You have been selected for an interview.",
+    ADDITIONAL_INFO: "We need additional information from you to complete your application.",
+    APPROVED: "Congratulations! Your application has been approved!",
+    REJECTED: "Thank you for your interest. Unfortunately, your application was not selected this time.",
+  }
+  
+  const statusColors: Record<string, string> = {
+    UNDER_REVIEW: "#f59e0b",
+    INTERVIEW: "#8b5cf6",
+    ADDITIONAL_INFO: "#f97316",
+    APPROVED: "#10b981",
+    REJECTED: "#ef4444",
+  }
+  
+  const content = `
+    <h2>Scholarship Application Status Update</h2>
+    <p>Hello ${recipientName || "Applicant"},</p>
+    <div style="background: ${statusColors[status] || "#667eea"}20; padding: 20px; margin: 20px 0; border-radius: 4px; border-left: 4px solid ${statusColors[status] || "#667eea"}; text-align: center;">
+      <p style="margin: 0; font-size: 20px; color: ${statusColors[status] || "#667eea"}; font-weight: bold; text-transform: capitalize;">${status.replace("_", " ")}</p>
+    </div>
+    <p><strong>Scholarship:</strong> ${scholarshipName}</p>
+    <p><strong>Application Number:</strong> ${applicationNumber}</p>
+    <p style="margin-top: 20px;">${statusMessages[status] || "Your application status has been updated."}</p>
+    ${notes ? `<p style="margin-top: 10px; padding: 15px; background: #f9fafb; border-radius: 4px;"><strong>Notes:</strong> ${notes}</p>` : ""}
+    <a href="${APP_URL}/scholarships/track" class="button">Track Your Application</a>
+  `
+  
+  return sendEmail({
+    to: recipientEmail,
+    subject: `Application ${status.replace("_", " ")} - ${scholarshipName}`,
+    html: wrapInEmailTemplate(content, "Status Update"),
+  })
+}
+
+export async function sendScholarshipAwardNotification(data: {
+  recipientEmail: string
+  recipientName?: string
+  awardNumber: string
+  scholarshipName: string
+  amount: number
+  currency: string
+  startDate: string
+  acceptanceDeadline: string
+}): Promise<SendEmailResult> {
+  const { recipientEmail, recipientName, awardNumber, scholarshipName, amount, currency, startDate, acceptanceDeadline } = data
+  
+  const formattedAmount = new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 0,
+  }).format(amount)
+  
+  const content = `
+    <h2>🎉 Congratulations! You've Been Awarded!</h2>
+    <p>Dear ${recipientName || "Scholar"},</p>
+    <p>We are thrilled to inform you that you have been awarded the <strong>${scholarshipName}</strong> scholarship!</p>
+    <div style="background: linear-gradient(135deg, #10b981 0%, #059669 100%); padding: 30px; margin: 20px 0; border-radius: 8px; text-align: center; color: white;">
+      <p style="margin: 0; font-size: 14px;">Award Amount</p>
+      <p style="margin: 10px 0 0; font-size: 32px; font-weight: bold;">${formattedAmount}</p>
+    </div>
+    <div style="background: #f9fafb; padding: 20px; margin: 20px 0; border-radius: 4px;">
+      <p style="margin: 0 0 10px;"><strong>Award Number:</strong> ${awardNumber}</p>
+      <p style="margin: 0 0 10px;"><strong>Start Date:</strong> ${new Date(startDate).toLocaleDateString()}</p>
+      <p style="margin: 0;"><strong>Acceptance Deadline:</strong> ${new Date(acceptanceDeadline).toLocaleDateString()}</p>
+    </div>
+    <p><strong>Important:</strong> Please accept your award by the deadline to secure your scholarship.</p>
+    <a href="${APP_URL}/scholarships/awards/accept/${awardNumber}" class="button">Accept Your Award</a>
+    <p style="margin-top: 20px; font-size: 14px; color: #6b7280;">
+      If you have any questions, please don't hesitate to contact our scholarship office.
+    </p>
+  `
+  
+  return sendEmail({
+    to: recipientEmail,
+    subject: `🎉 You've Been Awarded - ${scholarshipName}`,
+    html: wrapInEmailTemplate(content, "Congratulations!"),
+  })
+}

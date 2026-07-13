@@ -49,6 +49,8 @@ const menuItems = [
       { title: "Courses", href: "/admin/mccs/courses" },
       { title: "Difficulty Capstones", href: "/admin/courses/capstones/difficulty" },
       { title: "Professional Capstones", href: "/admin/courses/capstones/professional" },
+      { title: "---" }, // Separator
+      { title: "Scholarships & Financial Aid", href: "/admin/scholarships" },
     ],
   },
   {
