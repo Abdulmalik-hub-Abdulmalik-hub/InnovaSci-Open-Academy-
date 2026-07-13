@@ -142,6 +142,7 @@ export default function AdminProjectsPage() {
     grade: '',
   })
   const [submitting, setSubmitting] = useState(false)
+  const [errorDetails, setErrorDetails] = useState<{ message: string; code: string; stack?: string } | null>(null)
 
   useEffect(() => {
     fetchSubmissions()
@@ -149,6 +150,7 @@ export default function AdminProjectsPage() {
 
   const fetchSubmissions = async () => {
     setLoading(true)
+    setErrorDetails(null)
     try {
       const params = new URLSearchParams()
       if (statusFilter) params.set('status', statusFilter)
@@ -164,19 +166,32 @@ export default function AdminProjectsPage() {
         setSubmissions(result.data.submissions)
         setStatistics(result.data.statistics)
         setTotalPages(result.data.pagination.totalPages)
+        setErrorDetails(null)
       } else {
         console.error('API Error:', result.error, result.details)
+        const errorInfo = {
+          message: result.details?.message || result.error || 'Failed to fetch submissions',
+          code: result.details?.code || '',
+          stack: result.details?.stack
+        }
+        setErrorDetails(errorInfo)
         toast({
           title: 'Error',
-          description: result.details?.message || result.error || 'Failed to fetch submissions',
+          description: errorInfo.message,
           variant: 'destructive',
+          duration: 10000,
         })
       }
     } catch (error) {
       console.error('Error fetching submissions:', error)
+      const errorInfo = {
+        message: 'Network error: Failed to fetch submissions',
+        code: '',
+      }
+      setErrorDetails(errorInfo)
       toast({
         title: 'Error',
-        description: 'Network error: Failed to fetch submissions',
+        description: errorInfo.message,
         variant: 'destructive',
       })
     } finally {
@@ -277,6 +292,41 @@ export default function AdminProjectsPage() {
           </Button>
         </Link>
       </div>
+
+      {/* Error Display */}
+      {errorDetails && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="h-5 w-5 text-red-500 mt-0.5 flex-shrink-0" />
+            <div className="flex-1">
+              <h3 className="font-semibold text-red-700 mb-2">Database Error</h3>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <span className="font-medium text-red-600">Error Message:</span>
+                  <p className="text-red-800 font-mono bg-red-100 p-2 rounded mt-1">{errorDetails.message}</p>
+                </div>
+                {errorDetails.code && (
+                  <div>
+                    <span className="font-medium text-red-600">Error Code:</span>
+                    <p className="text-red-800 font-mono bg-red-100 p-2 rounded mt-1">{errorDetails.code}</p>
+                  </div>
+                )}
+                {errorDetails.stack && (
+                  <details className="mt-2">
+                    <summary className="font-medium text-red-600 cursor-pointer">Stack Trace (click to expand)</summary>
+                    <pre className="text-xs text-red-700 bg-red-100 p-2 rounded mt-2 overflow-x-auto whitespace-pre-wrap">
+                      {errorDetails.stack}
+                    </pre>
+                  </details>
+                )}
+              </div>
+              <p className="text-xs text-red-500 mt-3">
+                This error indicates a problem with the database schema. Check if all required tables and columns exist.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Statistics Cards */}
       {statistics && (
