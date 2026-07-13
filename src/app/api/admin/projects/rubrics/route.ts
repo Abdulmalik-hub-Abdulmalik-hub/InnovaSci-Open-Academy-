@@ -148,3 +148,113 @@ export async function POST(request: NextRequest) {
     }, { status: 500 })
   }
 }
+
+// PUT /api/admin/projects/rubrics - Update rubric
+export async function PUT(request: NextRequest) {
+  try {
+    const auth = await checkAdminAuth(request)
+    if (!auth.authorized) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: 401 })
+    }
+
+    const body = await request.json()
+    const { id, name, description, type, courseId, difficultyLevel, criteria, isDefault, isActive } = body
+
+    if (!id) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Rubric ID is required' 
+      }, { status: 400 })
+    }
+
+    if (!name || name.trim().length < 2) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Rubric name must be at least 2 characters' 
+      }, { status: 400 })
+    }
+
+    if (!criteria || !Array.isArray(criteria) || criteria.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'At least one criteria is required' 
+      }, { status: 400 })
+    }
+
+    const totalWeight = criteria.reduce((sum: number, c: any) => sum + (c.weight || 0), 0)
+    if (Math.abs(totalWeight - 100) > 0.01) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Criteria weights must sum to 100%' 
+      }, { status: 400 })
+    }
+
+    if (isDefault) {
+      await prisma.projectRubric.updateMany({
+        where: { type, isDefault: true, id: { not: id } },
+        data: { isDefault: false }
+      })
+    }
+
+    const rubric = await prisma.projectRubric.update({
+      where: { id },
+      data: {
+        name: name.trim(),
+        description: description?.trim() || null,
+        type,
+        courseId: courseId || null,
+        difficultyLevel: difficultyLevel || null,
+        criteria,
+        isDefault,
+        isActive: isActive !== undefined ? isActive : true,
+      }
+    })
+
+    return NextResponse.json({
+      success: true,
+      data: { rubric },
+      message: 'Rubric updated successfully'
+    })
+  } catch (error) {
+    console.error('Error updating rubric:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to update rubric' 
+    }, { status: 500 })
+  }
+}
+
+// DELETE /api/admin/projects/rubrics - Delete rubric
+export async function DELETE(request: NextRequest) {
+  try {
+    const auth = await checkAdminAuth(request)
+    if (!auth.authorized) {
+      return NextResponse.json({ success: false, error: auth.error }, { status: 401 })
+    }
+
+    const { searchParams } = new URL(request.url)
+    const id = searchParams.get('id')
+
+    if (!id) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Rubric ID is required' 
+      }, { status: 400 })
+    }
+
+    await prisma.projectRubric.delete({
+      where: { id }
+    })
+
+    return NextResponse.json({
+      success: true,
+      message: 'Rubric deleted successfully'
+    })
+  } catch (error) {
+    console.error('Error deleting rubric:', error)
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Failed to delete rubric' 
+    }, { status: 500 })
+  }
+}
