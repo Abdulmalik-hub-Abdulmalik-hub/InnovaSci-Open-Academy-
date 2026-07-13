@@ -4,7 +4,8 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import {
   ArrowLeft, ArrowRight, Check, User, Shield, BookOpen, Key, Loader2,
-  Plus, X, Upload, Mail, Phone, Building, Briefcase, ChevronDown
+  Plus, X, Upload, Mail, Phone, Building, Briefcase, ChevronDown,
+  Users, DollarSign, UserPlus, Heart, BadgeCheck, UserCheck
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
