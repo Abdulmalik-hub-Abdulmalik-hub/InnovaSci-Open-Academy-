@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Award, Search, Calendar, DollarSign, Users, Clock, Star,
   Filter, ArrowRight, Globe, GraduationCap, Heart, BookOpen,
-  Briefcase, Code, Palette, BarChart3
+  Briefcase, Code, Palette, BarChart3, X, ChevronDown
 } from "lucide-react"
 
 interface Scholarship {
@@ -38,6 +38,15 @@ interface Scholarship {
   remainingSlots: number | null
 }
 
+interface ScholarshipType {
+  id: string
+  name: string
+  slug: string
+  icon: string | null
+  color: string | null
+  scholarshipCount: number
+}
+
 interface Pagination {
   page: number
   limit: number
@@ -55,16 +64,26 @@ const typeIcons: Record<string, React.ElementType> = {
   "sponsored": Star,
   "zakat": Heart,
   "waqf": Heart,
+  "excellence": GraduationCap,
+  "research-innovation": BookOpen,
+  "opportunity": Heart,
+  "global-partnership": Globe,
+  "leadership-impact": Star,
+  "custom": Code,
   "default": Award,
 };
 
 export default function ScholarshipsPage() {
   const [scholarships, setScholarships] = useState<Scholarship[]>([])
+  const [types, setTypes] = useState<ScholarshipType[]>([])
   const [pagination, setPagination] = useState<Pagination | null>(null)
   const [loading, setLoading] = useState(true)
+  const [typesLoading, setTypesLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [featuredOnly, setFeaturedOnly] = useState(false)
+  const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
+  const [showFilters, setShowFilters] = useState(false)
 
   const fetchScholarships = async () => {
     setLoading(true)
@@ -75,6 +94,7 @@ export default function ScholarshipsPage() {
       })
       if (search) params.append("search", search)
       if (featuredOnly) params.append("featured", "true")
+      if (selectedTypeId) params.append("typeId", selectedTypeId)
 
       const response = await fetch(`/api/public/scholarships?${params}`)
       const data = await response.json()
@@ -90,9 +110,28 @@ export default function ScholarshipsPage() {
     }
   }
 
+  const fetchTypes = async () => {
+    setTypesLoading(true)
+    try {
+      const response = await fetch("/api/public/scholarships/types")
+      const data = await response.json()
+      if (data.success && data.data) {
+        setTypes(data.data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch scholarship types:", error)
+    } finally {
+      setTypesLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchTypes()
+  }, [])
+
   useEffect(() => {
     fetchScholarships()
-  }, [search, featuredOnly, currentPage])
+  }, [search, featuredOnly, currentPage, selectedTypeId])
 
   const formatCurrency = (amount: number | null, currency: string) => {
     if (!amount) return "Varies"
@@ -136,6 +175,15 @@ export default function ScholarshipsPage() {
     }
     return typeIcons.default
   }
+
+  const clearFilters = () => {
+    setSearch("")
+    setFeaturedOnly(false)
+    setSelectedTypeId(null)
+    setCurrentPage(1)
+  }
+
+  const hasActiveFilters = search || featuredOnly || selectedTypeId
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-900 to-slate-950">
@@ -192,10 +240,83 @@ export default function ScholarshipsPage() {
                 <Star className="h-4 w-4 mr-2" />
                 Featured Only
               </Button>
+              <Button
+                variant="outline"
+                onClick={() => setShowFilters(!showFilters)}
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                <Filter className="h-4 w-4 mr-2" />
+                Filters
+                {selectedTypeId && (
+                  <Badge className="ml-2 bg-purple-500">{types.find(t => t.id === selectedTypeId)?.name || "1"}</Badge>
+                )}
+              </Button>
             </div>
           </motion.div>
         </div>
       </section>
+
+      {/* Filter Section */}
+      <AnimatePresence>
+        {showFilters && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            className="overflow-hidden"
+          >
+            <section className="py-6 px-4 border-t border-white/5 bg-white/[0.02]">
+              <div className="max-w-7xl mx-auto">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-white font-medium">Filter by Type</h3>
+                  {hasActiveFilters && (
+                    <Button
+                      variant="ghost"
+                      onClick={clearFilters}
+                      className="text-white/60 hover:text-white text-sm"
+                    >
+                      <X className="h-4 w-4 mr-1" />
+                      Clear All
+                    </Button>
+                  )}
+                </div>
+                {typesLoading ? (
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {[1, 2, 3, 4, 5, 6].map((i) => (
+                      <Skeleton key={i} className="h-10 w-32 flex-shrink-0" />
+                    ))}
+                  </div>
+                ) : (
+                  <div className="flex gap-3 overflow-x-auto pb-2">
+                    {types.map((type) => {
+                      const Icon = getTypeIcon(type.name)
+                      const isSelected = selectedTypeId === type.id
+                      return (
+                        <button
+                          key={type.id}
+                          onClick={() => {
+                            setSelectedTypeId(isSelected ? null : type.id)
+                            setCurrentPage(1)
+                          }}
+                          className={`flex items-center gap-2 px-4 py-2 rounded-full whitespace-nowrap transition-all flex-shrink-0 ${
+                            isSelected
+                              ? "bg-purple-500 text-white"
+                              : "bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                          }`}
+                          style={isSelected ? {} : type.color ? { borderColor: `${type.color}40` } : {}}
+                        >
+                          <Icon className="h-4 w-4" style={type.color ? { color: type.color } : {}} />
+                          {type.name}
+                        </button>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            </section>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Scholarships Grid */}
       <section className="py-12 px-4">
@@ -205,6 +326,11 @@ export default function ScholarshipsPage() {
             <p className="text-white/60">
               {pagination ? `${pagination.total} scholarships available` : "Loading..."}
             </p>
+            {selectedTypeId && (
+              <Badge variant="outline" className="border-purple-500/50 text-purple-300">
+                Type: {types.find(t => t.id === selectedTypeId)?.name}
+              </Badge>
+            )}
           </div>
 
           {loading ? (
@@ -227,13 +353,13 @@ export default function ScholarshipsPage() {
               <p className="text-white/50 mb-6">
                 {search ? "Try adjusting your search terms" : "Check back soon for new opportunities"}
               </p>
-              {search && (
+              {hasActiveFilters && (
                 <Button
-                  onClick={() => setSearch("")}
+                  onClick={clearFilters}
                   variant="outline"
                   className="border-white/20 text-white hover:bg-white/10"
                 >
-                  Clear Search
+                  Clear Filters
                 </Button>
               )}
             </div>

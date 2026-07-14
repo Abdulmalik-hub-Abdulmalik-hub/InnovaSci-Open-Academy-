@@ -126,18 +126,24 @@ export default function NewScholarshipPage() {
     const fetchData = async () => {
       setTypesLoading(true)
       try {
-        // Fetch scholarship types
-        const typesResponse = await fetch("/api/admin/scholarships/types")
+        // Fetch scholarship types (only active ones for the dropdown)
+        const typesResponse = await fetch("/api/public/scholarships/types")
         const typesData = await typesResponse.json()
-        if (typesData.success) {
-          setScholarshipTypes(typesData.data)
+        if (typesData.success && typesData.data) {
+          // Filter to only show active types
+          setScholarshipTypes(typesData.data.filter((t: any) => t.isActive !== false))
         }
         
         // Fetch sponsors
-        const sponsorsResponse = await fetch("/api/admin/scholarships/sponsors?limit=100")
-        const sponsorsData = await sponsorsResponse.json()
-        if (sponsorsData.success) {
-          setSponsors(sponsorsData.data?.sponsors || [])
+        try {
+          const sponsorsResponse = await fetch("/api/admin/scholarships/sponsors?limit=100")
+          const sponsorsData = await sponsorsResponse.json()
+          if (sponsorsData.success) {
+            setSponsors(sponsorsData.data?.sponsors || [])
+          }
+        } catch (e) {
+          // Sponsors might not be configured yet
+          console.log("Sponsors not available")
         }
       } catch (error) {
         console.error("Error fetching data:", error)
