@@ -983,6 +983,266 @@ model CurrencySetting {
 }
 
 // ============================================
+// PAYMENT GATEWAY MODELS
+// ============================================
+
+// Payment Gateway - Defines available payment providers
+model PaymentGateway {
+  id              String   @id @default(uuid())
+  name            String   @unique // Paystack, Stripe, Flutterwave, etc.
+  provider        String   // paystack, stripe, flutterwave, paypal, razorpay, bank_transfer, manual, crypto
+  slug            String   @unique
+  
+  // Status
+  isEnabled       Boolean  @default(false)
+  isDefault       Boolean  @default(false)
+  environment     String   @default("sandbox") // sandbox, production
+  
+  // Configuration
+  logoUrl         String?
+  iconName        String?  // Lucide icon name
+  color           String?  // Hex color for UI
+  
+  // API Credentials (encrypted)
+  publicKey       String?  // Public/API key
+  secretKey       String?  // Secret key (encrypted)
+  webhookSecret   String?  // Webhook verification secret
+  
+  // Gateway-specific settings
+  supportedCurrencies String[] // ["NGN", "USD", "GBP", etc.]
+  supportedCountries  String[] // ["NG", "US", "GB", etc.]
+  supportedMethods    String[] // ["card", "bank_transfer", "ussd", "mobile_money", "bank"]
+  
+  // Fees
+  transactionFeePercent Decimal @default(0) // Percentage fee
+  transactionFeeFixed   Decimal @default(0) // Fixed fee per transaction
+  currency             String   @default("USD") // Fee currency
+  
+  // Priority (lower = higher priority)
+  priority         Int      @default(100)
+  
+  // Health monitoring
+  lastHealthCheck DateTime?
+  healthStatus    String   @default("unknown") // healthy, degraded, down, unknown
+  healthMessage   String?
+  
+  // Notes
+  notes           String?
+  metadata        Json?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  // Relations
+  configurations  GatewayConfiguration[]
+  transactions    PaymentTransaction[]
+  logs            PaymentGatewayLog[]
+  
+  @@map("payment_gateways")
+}
+
+// Gateway Configuration per Country/Currency
+model GatewayConfiguration {
+  id              String   @id @default(uuid())
+  gatewayId       String
+  gateway PaymentGateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  
+  // Country & Currency
+  country         String   // ISO country code (NG, US, GB)
+  countryName     String   // Full country name
+  currency        String   // ISO currency code (NGN, USD, GBP)
+  
+  // Configuration
+  isEnabled       Boolean  @default(true)
+  priority        Int      @default(100) // Priority for this country/gateway combo
+  
+  // Gateway-specific config (JSON)
+  config          Json?    // Additional gateway-specific settings
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([gatewayId, country, currency])
+  @@map("gateway_configurations")
+}
+
+// Payment Transaction - Tracks all payment transactions
+model PaymentTransaction {
+  id              String   @id @default(uuid())
+  
+  // Gateway
+  gatewayId       String
+  gateway PaymentGateway @relation(fields: [gatewayId], references: [id])
+  
+  // References
+  reference       String   @unique // Our internal reference
+  gatewayRef      String?  // Gateway's transaction reference
+  userId          String?
+  
+  // Amount
+  amount          Decimal
+  currency        String   // NGN, USD, etc.
+  amountInBase   Decimal? // Amount in base currency
+  
+  // Exchange Rate
+  exchangeRate    Decimal  @default(1)
+  
+  // Status
+  status          String   @default("pending") // pending, processing, success, failed, cancelled, refunded
+  
+  // Purchase Type
+  purchaseType    String   // membership, category, domain, academy, course, certificate
+  purchaseId      String?  // ID of the purchased item
+  
+  // Metadata
+  metadata        Json?
+  
+  // Response
+  gatewayResponse Json?
+  
+  // Payment Method
+  paymentMethod   String?  // card, bank_transfer, ussd, mobile_money
+  
+  // Customer
+  customerEmail   String?
+  customerName    String?
+  
+  // Fees
+  processingFee   Decimal  @default(0)
+  platformFee     Decimal  @default(0)
+  
+  // Timeline
+  initiatedAt     DateTime @default(now())
+  completedAt     DateTime?
+  failedAt       DateTime?
+  
+  // IP & User Agent
+  ipAddress       String?
+  userAgent       String?
+  
+  // Error
+  errorMessage    String?
+  errorCode       String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([gatewayId])
+  @@index([status])
+  @@index([createdAt])
+  @@map("payment_transactions")
+}
+
+// Payment Gateway Log - For monitoring and debugging
+model PaymentGatewayLog {
+  id              String   @id @default(uuid())
+  gatewayId       String
+  gateway PaymentGateway @relation(fields: [gatewayId], references: [id], onDelete: Cascade)
+  
+  // Transaction
+  transactionId   String?
+  
+  // Log details
+  logType         String   // request, response, webhook, error, health_check
+  level           String   @default("info") // debug, info, warn, error
+  
+  // Content
+  method          String?  // HTTP method
+  endpoint        String?
+  requestBody     Json?
+  responseBody    Json?
+  responseStatus  Int?
+  responseTime    Int?     // milliseconds
+  
+  // Error
+  errorMessage    String?
+  errorStack      String?
+  
+  // IP
+  ipAddress       String?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([gatewayId])
+  @@index([transactionId])
+  @@index([logType])
+  @@index([createdAt])
+  @@map("payment_gateway_logs")
+}
+
+// Exchange Rate - For manual exchange rate management
+model ExchangeRate {
+  id              String   @id @default(uuid())
+  fromCurrency    String   // Source currency
+  toCurrency      String   // Target currency
+  
+  rate            Decimal
+  isAutomatic     Boolean  @default(false)
+  provider        String?  // fixer, manual, etc.
+  
+  validFrom       DateTime @default(now())
+  validUntil      DateTime?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([fromCurrency, toCurrency])
+  @@map("exchange_rates")
+}
+
+// Payment Settings - Global payment configuration
+model PaymentSettings {
+  id              String   @id @default(uuid())
+  
+  // Default Gateway
+  defaultGatewayId String?
+  
+  // Currency Settings
+  defaultCurrency String   @default("USD")
+  supportedCurrencies String[] // ["NGN", "USD", "GBP"]
+  
+  // Exchange Rates
+  exchangeRateMode String  @default("automatic") // automatic, manual
+  autoUpdateRates  Boolean @default(true)
+  updateIntervalHours Int @default(24)
+  
+  // Transaction Settings
+  paymentTimeout  Int      @default(30) // minutes
+  retryAttempts  Int      @default(3)
+  
+  // Refund Settings
+  refundEnabled  Boolean  @default(true)
+  refundWindowDays Int    @default(7)
+  
+  // Webhook Settings
+  webhookEnabled Boolean  @default(true)
+  webhookRetries Int      @default(3)
+  
+  // Invoice Settings
+  invoicePrefix  String   @default("INV")
+  invoiceAutoNumber Boolean @default(true)
+  
+  // Receipt Settings
+  receiptEnabled Boolean  @default(true)
+  receiptEmailEnabled Boolean @default(true)
+  
+  // Tax Settings
+  taxEnabled     Boolean  @default(false)
+  taxRate        Decimal  @default(0)
+  taxName        String   @default("Tax")
+  
+  // Platform Fee
+  platformFeePercent Decimal @default(0)
+  platformFeeFixed   Decimal @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("payment_settings")
+}
+
+// ============================================
 // 14d. CATEGORY PURCHASE - One-time purchase for category access
 // ============================================
 model CategoryPurchase {
