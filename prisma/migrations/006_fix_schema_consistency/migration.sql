@@ -178,7 +178,7 @@ BEGIN
             ('Mobile App Development', 'mobile-app-development', 'Create mobile apps', 'Build iOS and Android apps', 'intermediate', 45, true, true);
     ELSE
         UPDATE learning_paths SET "isActive" = true WHERE "isActive" IS NULL;
-        UPDATE learning_paths SET difficultyLevel = 'beginner' WHERE difficultyLevel IS NULL;
+        UPDATE learning_paths SET "difficultyLevel" = 'beginner' WHERE "difficultyLevel" IS NULL;
     END IF;
 END $$;
 
