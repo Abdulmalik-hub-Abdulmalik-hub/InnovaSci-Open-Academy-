@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && npx prisma migrate deploy && next build",
+  "buildCommand": "npx prisma generate && npx prisma migrate resolve --applied 009_add_all_missing_tables && npx prisma migrate deploy && next build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "cleanUrls": true
