@@ -2,8 +2,8 @@
 -- Migration: Add Categories
 -- ============================================
 
--- Create categories table
-CREATE TABLE "categories" (
+-- Create categories table (if not exists)
+CREATE TABLE IF NOT EXISTS "categories" (
     "id" UUID NOT NULL DEFAULT gen_random_uuid(),
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL,
@@ -18,22 +18,30 @@ CREATE TABLE "categories" (
 );
 
 -- Create unique constraints
-CREATE UNIQUE INDEX "categories_name_key" ON "categories"("name");
-CREATE UNIQUE INDEX "categories_slug_key" ON "categories"("slug");
+CREATE UNIQUE INDEX IF NOT EXISTS "categories_name_key" ON "categories"("name");
+CREATE UNIQUE INDEX IF NOT EXISTS "categories_slug_key" ON "categories"("slug");
 
 -- Add categoryId to courses table (nullable, with FK)
-ALTER TABLE "courses" ADD COLUMN "categoryId" UUID;
+ALTER TABLE "courses" ADD COLUMN IF NOT EXISTS "categoryId" UUID;
 
--- Add foreign key constraint
-ALTER TABLE "courses" 
-ADD CONSTRAINT "courses_categoryId_fkey" 
-FOREIGN KEY ("categoryId") 
-REFERENCES "categories"("id") 
-ON DELETE SET NULL 
-ON UPDATE CASCADE;
+-- Add foreign key constraint (if not exists)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM information_schema.table_constraints 
+        WHERE constraint_name = 'courses_categoryId_fkey'
+    ) THEN
+        ALTER TABLE "courses" 
+        ADD CONSTRAINT "courses_categoryId_fkey" 
+        FOREIGN KEY ("categoryId") 
+        REFERENCES "categories"("id") 
+        ON DELETE SET NULL 
+        ON UPDATE CASCADE;
+    END IF;
+END $$;
 
 -- Create indexes for better performance
-CREATE INDEX "courses_categoryId_idx" ON "courses"("categoryId");
+CREATE INDEX IF NOT EXISTS "courses_categoryId_idx" ON "courses"("categoryId");
 
 -- ============================================
 -- Seed initial categories (optional)
