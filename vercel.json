@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && npx prisma migrate resolve --rolled-back 004_enhance_learning_paths && npx prisma migrate deploy && next build",
+  "buildCommand": "npx prisma generate && npx prisma migrate resolve --rolled-back 004_enhance_learning_paths && npx prisma migrate resolve --rolled-back 006_fix_schema_consistency && npx prisma migrate deploy && next build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "cleanUrls": true
