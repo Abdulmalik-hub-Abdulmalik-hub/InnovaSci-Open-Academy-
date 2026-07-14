@@ -1,6 +1,6 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npx prisma generate && npx prisma db push && npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed-payment-gateways.ts && npx ts-node --compiler-options '{\"module\":\"CommonJS\"}' prisma/seed-scholarship-types.ts && next build",
+  "buildCommand": "npx prisma generate && npx prisma migrate deploy && next build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "cleanUrls": true
