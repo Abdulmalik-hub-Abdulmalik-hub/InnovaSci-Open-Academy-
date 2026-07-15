@@ -7,7 +7,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { 
   Menu, X, Moon, Sun, User, 
   LayoutDashboard, BookOpen, Settings, LogOut, ChevronDown,
-  CreditCard, MessageSquare, Compass, Mail, Home, BookText, LayoutGrid
+  CreditCard, MessageSquare, Compass, Mail, Home, BookText, LayoutGrid,
+  GraduationCap, Shield, FileText
 } from "lucide-react"
 import { AcademyLogo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
@@ -23,9 +24,16 @@ const navItems = [
   { href: "/courses", label: "Explore", icon: BookText, description: "Browse courses" },
   { href: "/domains", label: "Domains", icon: LayoutGrid, description: "Browse by domain" },
   { href: "/membership", label: "Membership", icon: CreditCard },
+  { href: "/scholarships", label: "Scholarships", icon: GraduationCap, description: "Financial aid" },
   { href: "/learning-paths", label: "Learning Paths", icon: Compass },
   { href: "/forum", label: "Forum", icon: MessageSquare },
   { href: "/contact", label: "Contact", icon: Mail },
+]
+
+// Legal pages
+const legalPages = [
+  { href: "/terms", label: "Terms of Service", icon: FileText },
+  { href: "/privacy", label: "Privacy Policy", icon: Shield },
 ]
 
 // User dropdown menu items

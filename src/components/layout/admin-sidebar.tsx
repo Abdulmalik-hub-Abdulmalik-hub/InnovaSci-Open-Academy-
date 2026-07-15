@@ -11,7 +11,7 @@ import {
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
   Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap,
   Layers, BookOpen, LayoutGrid, BadgeCheck, Shield,
-  FileBadge, Scroll, Bookmark, FolderGit2
+  FileBadge, Scroll, Bookmark, FolderGit2, DollarSign
 } from "lucide-react"
 
 // =============================================================================
@@ -95,6 +95,10 @@ const menuItems = [
     title: "Pricing & Plans",
     href: "/admin/pricing",
     icon: CreditCard,
+    submenu: [
+      { title: "Plans Management", href: "/admin/pricing" },
+      { title: "Exchange Rates", href: "/admin/exchange-rates" },
+    ],
   },
   {
     title: "Newsletter",

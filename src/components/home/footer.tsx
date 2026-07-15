@@ -8,16 +8,16 @@ const footerLinks = {
   platform: [
     { label: "About Us", href: "/about" },
     { label: "Courses", href: "/courses" },
+    { label: "Membership", href: "/membership" },
     { label: "Learning Paths", href: "/learning-paths" },
-    { label: "Pricing", href: "/pricing" },
-    { label: "Blog", href: "/blog" },
+    { label: "Scholarships", href: "/scholarships" },
+    { label: "Forum", href: "/forum" },
   ],
   resources: [
-    { label: "Help Center", href: "/help" },
-    { label: "Documentation", href: "/docs" },
-    { label: "API Reference", href: "/api-docs" },
-    { label: "Community", href: "/community" },
+    { label: "Help Center", href: "/dashboard/support" },
+    { label: "Knowledge Base", href: "/dashboard/knowledge-base" },
     { label: "Contact", href: "/contact" },
+    { label: "Community", href: "/forum" },
   ],
   legal: [
     { label: "Privacy Policy", href: "/privacy" },

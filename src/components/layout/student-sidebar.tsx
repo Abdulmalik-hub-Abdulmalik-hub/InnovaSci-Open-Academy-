@@ -8,7 +8,8 @@ import { FooterBranding, AcademyLogo } from "./logo"
 import { 
   BookOpen, Award, Settings,
   Heart, Clock, X, HelpCircle,
-  Code2, Briefcase, TrendingUp, Star, GraduationCap, Target
+  Code2, Briefcase, TrendingUp, Star, GraduationCap, Target,
+  MessageCircle, BookMarked, Route, BrainCircuit, Shield
 } from "lucide-react"
 
 interface MenuItem {
@@ -29,9 +30,17 @@ interface MenuItem {
 // Quick access items - Student Dashboard features ONLY
 const quickAccessItems: MenuItem[] = [
   { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
+  { title: "Learning Paths", href: "/dashboard/learning-paths", icon: Route },
+  { title: "Quizzes", href: "/dashboard/quizzes", icon: BrainCircuit },
   { title: "My Projects", href: "/dashboard/projects", icon: Code2 },
   { title: "Portfolio", href: "/portfolio", icon: Briefcase },
   { title: "Certifications", href: "/dashboard/certificates", icon: Award, description: "Category & Domain Progress" },
+]
+
+// Community items
+const communityItems: MenuItem[] = [
+  { title: "Forum", href: "/dashboard/forum", icon: MessageCircle },
+  { title: "Knowledge Base", href: "/dashboard/knowledge-base", icon: BookMarked },
   { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
 ]
@@ -39,7 +48,8 @@ const quickAccessItems: MenuItem[] = [
 // Support items
 const supportItems: MenuItem[] = [
   { title: "Help & Support", href: "/dashboard/support", icon: HelpCircle },
-  { title: "Settings", href: "/dashboard/settings/profile", icon: Settings },
+  { title: "Profile Settings", href: "/dashboard/settings/profile", icon: Settings },
+  { title: "Security", href: "/dashboard/settings/security", icon: Shield },
 ]
 
 function MenuSection({ 
@@ -138,6 +148,10 @@ export function StudentSidebar({ isOpen, onClose }: { isOpen: boolean; onClose: 
         {/* Student Dashboard Navigation */}
         <nav className="flex-1 overflow-y-auto py-4 px-3 scrollbar-thin">
           <MenuSection title="Quick Access" items={quickAccessItems} onClose={onClose} showTitle />
+          
+          <div className="h-px bg-border my-4" />
+          
+          <MenuSection title="Community" items={communityItems} onClose={onClose} showTitle />
           
           <div className="h-px bg-border my-4" />
           
