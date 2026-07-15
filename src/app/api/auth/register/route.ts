@@ -8,7 +8,7 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, fullName } = body
+    const { email, password, fullName, country, timezone } = body
 
     // Validate required fields
     if (!email || !password || !fullName) {
@@ -61,6 +61,8 @@ export async function POST(request: NextRequest) {
           create: {
             fullName: fullName.trim(),
             username: normalizedEmail.split("@")[0].toLowerCase(),
+            country: country || null,
+            preferences: timezone ? { timezone } : {},
           },
         },
       },

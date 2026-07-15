@@ -99,6 +99,20 @@ function formatPrice(price: number, currency: string = "USD"): string {
   }).format(price)
 }
 
+// Supported currencies with symbols
+const SUPPORTED_CURRENCIES = [
+  { code: "USD", symbol: "$", name: "US Dollar", flag: "🇺🇸" },
+  { code: "NGN", symbol: "₦", name: "Nigerian Naira", flag: "🇳🇬" },
+  { code: "GBP", symbol: "£", name: "British Pound", flag: "🇬🇧" },
+  { code: "EUR", symbol: "€", name: "Euro", flag: "🇪🇺" },
+  { code: "KES", symbol: "KSh", name: "Kenyan Shilling", flag: "🇰🇪" },
+  { code: "GHS", symbol: "₵", name: "Ghanaian Cedi", flag: "🇬🇭" },
+  { code: "ZAR", symbol: "R", name: "South African Rand", flag: "🇿🇦" },
+  { code: "INR", symbol: "₹", name: "Indian Rupee", flag: "🇮🇳" },
+  { code: "AED", symbol: "د.إ", name: "UAE Dirham", flag: "🇦🇪" },
+  { code: "SAR", symbol: "﷼", name: "Saudi Riyal", flag: "🇸🇦" },
+]
+
 export default function MembershipPage() {
   const [plans, setPlans] = useState<Plan[]>([])
   const [domains, setDomains] = useState<Domain[]>([])
@@ -111,6 +125,8 @@ export default function MembershipPage() {
   const [showDomainPlans, setShowDomainPlans] = useState(false)
   const [showCategoryPlans, setShowCategoryPlans] = useState(false)
   const [purchaseModal, setPurchaseModal] = useState<{plan: Plan, type: string} | null>(null)
+  const [selectedCurrency, setSelectedCurrency] = useState<string>("USD")
+  const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false)
   
   const router = useRouter()
 
@@ -169,22 +185,45 @@ export default function MembershipPage() {
     CATEGORY: plans.filter(p => p.purchaseScope === 'CATEGORY'),
   }
 
-  // Get price based on billing cycle
+  // Get price based on billing cycle and currency
   const getPlanPrice = (plan: Plan): number => {
     if (plan.pricing && typeof plan.pricing === 'object') {
-      const currency = "USD"
-      if (plan.pricing[currency]) {
-        const amount = plan.pricing[currency][billingCycle] || plan.pricing[currency].lifetime || plan.price
+      // Check if pricing exists for the selected currency
+      if (plan.pricing[selectedCurrency]) {
+        const amount = plan.pricing[selectedCurrency][billingCycle] || plan.pricing[selectedCurrency].lifetime || plan.price
         return amount
       }
+      // Fallback to USD if selected currency not available
+      if (plan.pricing["USD"]) {
+        const usdPrice = plan.pricing["USD"][billingCycle] || plan.pricing["USD"].lifetime || plan.price
+        // Apply exchange rate for other currencies (simplified - in production, use real rates)
+        const exchangeRates: Record<string, number> = {
+          NGN: 1550, GBP: 0.79, EUR: 0.92, KES: 155, GHS: 15, ZAR: 18.5,
+          INR: 83, AED: 3.67, SAR: 3.75
+        }
+        const rate = exchangeRates[selectedCurrency] || 1
+        return Math.round(usdPrice * rate * 100) / 100
+      }
     }
-    // Fallback to simple price
+    // Fallback to simple price with exchange rate
     if (billingCycle === "lifetime") {
-      return plan.price
+      const exchangeRates: Record<string, number> = {
+        NGN: 1550, GBP: 0.79, EUR: 0.92, KES: 155, GHS: 15, ZAR: 18.5,
+        INR: 83, AED: 3.67, SAR: 3.75
+      }
+      const rate = exchangeRates[selectedCurrency] || 1
+      return plan.currency === selectedCurrency ? plan.price : Math.round(plan.price * rate * 100) / 100
     }
     // For other cycles, apply a discount
     const discount = billingCycle === "yearly" ? 0.8 : billingCycle === "quarterly" ? 0.85 : 1
-    return plan.price * discount
+    const basePrice = plan.currency === selectedCurrency ? plan.price : plan.price * (exchangeRates[selectedCurrency] || 1)
+    return Math.round(basePrice * discount * 100) / 100
+  }
+  
+  // Get currency symbol
+  const getCurrencySymbol = (currency?: string): string => {
+    const curr = SUPPORTED_CURRENCIES.find(c => c.code === (currency || selectedCurrency))
+    return curr?.symbol || "$"
   }
 
   // Handle purchase
@@ -201,7 +240,7 @@ export default function MembershipPage() {
           planId: plan.id,
           targetId: targetId || null,
           amount: getPlanPrice(plan),
-          currency: plan.currency || "USD",
+          currency: selectedCurrency,
           email,
           userId,
           couponCode: couponApplied ? couponCode : undefined,
@@ -253,6 +292,59 @@ export default function MembershipPage() {
               Unlock your potential with world-class scientific education. 
               Get unlimited access to courses, certificates, and more with a single purchase.
             </p>
+
+            {/* Currency Selector */}
+            <div className="flex items-center justify-center mb-6">
+              <div className="relative inline-block">
+                <button
+                  onClick={() => setShowCurrencyDropdown(!showCurrencyDropdown)}
+                  className="flex items-center gap-2 px-4 py-2 bg-white/10 rounded-lg border border-white/20 hover:bg-white/15 transition-colors"
+                >
+                  <span className="text-lg">{SUPPORTED_CURRENCIES.find(c => c.code === selectedCurrency)?.flag}</span>
+                  <span className="font-medium">{selectedCurrency}</span>
+                  <span className="text-white/60">({getCurrencySymbol()})</span>
+                  <ChevronRight className={cn("h-4 w-4 text-white/60 transition-transform", showCurrencyDropdown && "rotate-90")} />
+                </button>
+                
+                {showCurrencyDropdown && (
+                  <>
+                    <div 
+                      className="fixed inset-0 z-40" 
+                      onClick={() => setShowCurrencyDropdown(false)} 
+                    />
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-64 bg-[#1a1a2e] border border-white/20 rounded-lg shadow-xl z-50 overflow-hidden">
+                      <div className="p-2 border-b border-white/10">
+                        <p className="text-xs text-white/50 uppercase tracking-wider">Select Currency</p>
+                      </div>
+                      <div className="max-h-64 overflow-y-auto">
+                        {SUPPORTED_CURRENCIES.map((currency) => (
+                          <button
+                            key={currency.code}
+                            onClick={() => {
+                              setSelectedCurrency(currency.code)
+                              setShowCurrencyDropdown(false)
+                            }}
+                            className={cn(
+                              "w-full flex items-center gap-3 px-3 py-2.5 hover:bg-white/10 transition-colors text-left",
+                              selectedCurrency === currency.code && "bg-white/10"
+                            )}
+                          >
+                            <span className="text-xl">{currency.flag}</span>
+                            <div className="flex-1">
+                              <p className="font-medium text-white">{currency.name}</p>
+                              <p className="text-xs text-white/50">{currency.code} ({currency.symbol})</p>
+                            </div>
+                            {selectedCurrency === currency.code && (
+                              <Check className="h-4 w-4 text-green-400" />
+                            )}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
 
             {/* Coupon Input */}
             <div className="flex items-center justify-center gap-2 mb-8">
@@ -438,7 +530,7 @@ export default function MembershipPage() {
                         <CardContent className="space-y-4">
                           <div className="flex items-baseline gap-1">
                             <span className="text-4xl font-bold">
-                              {formatPrice(price, plan.currency)}
+                              {formatPrice(price, selectedCurrency)}
                             </span>
                             <span className="text-white/50 text-sm">
                               {billingCycle !== "lifetime" ? `/${billingCycle}` : "lifetime"}
@@ -582,7 +674,7 @@ export default function MembershipPage() {
                           <CardContent className="space-y-4">
                             <div className="flex items-baseline gap-1">
                               <span className="text-4xl font-bold">
-                                {formatPrice(price, plan.currency)}
+                                {formatPrice(price, selectedCurrency)}
                               </span>
                               <span className="text-white/50 text-sm">
                                 {billingCycle !== "lifetime" ? `/${billingCycle}` : "lifetime"}
@@ -718,7 +810,7 @@ export default function MembershipPage() {
                         <CardContent className="space-y-4">
                           <div className="flex items-baseline gap-1">
                             <span className="text-4xl font-bold">
-                              {formatPrice(price, plan.currency)}
+                              {formatPrice(price, selectedCurrency)}
                             </span>
                             <span className="text-white/50 text-sm">
                               {billingCycle !== "lifetime" ? `/${billingCycle}` : "lifetime"}
