@@ -185,6 +185,12 @@ export default function MembershipPage() {
     CATEGORY: plans.filter(p => p.purchaseScope === 'CATEGORY'),
   }
 
+  // Exchange rates for currency conversion
+  const exchangeRates: Record<string, number> = {
+    NGN: 1550, GBP: 0.79, EUR: 0.92, KES: 155, GHS: 15, ZAR: 18.5,
+    INR: 83, AED: 3.67, SAR: 3.75
+  }
+
   // Get price based on billing cycle and currency
   const getPlanPrice = (plan: Plan): number => {
     if (plan.pricing && typeof plan.pricing === 'object') {
@@ -197,26 +203,19 @@ export default function MembershipPage() {
       if (plan.pricing["USD"]) {
         const usdPrice = plan.pricing["USD"][billingCycle] || plan.pricing["USD"].lifetime || plan.price
         // Apply exchange rate for other currencies (simplified - in production, use real rates)
-        const exchangeRates: Record<string, number> = {
-          NGN: 1550, GBP: 0.79, EUR: 0.92, KES: 155, GHS: 15, ZAR: 18.5,
-          INR: 83, AED: 3.67, SAR: 3.75
-        }
         const rate = exchangeRates[selectedCurrency] || 1
         return Math.round(usdPrice * rate * 100) / 100
       }
     }
     // Fallback to simple price with exchange rate
     if (billingCycle === "lifetime") {
-      const exchangeRates: Record<string, number> = {
-        NGN: 1550, GBP: 0.79, EUR: 0.92, KES: 155, GHS: 15, ZAR: 18.5,
-        INR: 83, AED: 3.67, SAR: 3.75
-      }
       const rate = exchangeRates[selectedCurrency] || 1
       return plan.currency === selectedCurrency ? plan.price : Math.round(plan.price * rate * 100) / 100
     }
     // For other cycles, apply a discount
     const discount = billingCycle === "yearly" ? 0.8 : billingCycle === "quarterly" ? 0.85 : 1
-    const basePrice = plan.currency === selectedCurrency ? plan.price : plan.price * (exchangeRates[selectedCurrency] || 1)
+    const rate = exchangeRates[selectedCurrency] || 1
+    const basePrice = plan.currency === selectedCurrency ? plan.price : plan.price * rate
     return Math.round(basePrice * discount * 100) / 100
   }
   
