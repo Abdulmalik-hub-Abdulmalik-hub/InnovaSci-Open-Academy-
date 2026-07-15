@@ -26,6 +26,7 @@ const navItems = [
   { href: "/membership", label: "Membership", icon: CreditCard },
   { href: "/scholarships", label: "Scholarships", icon: GraduationCap, description: "Financial aid" },
   { href: "/learning-paths", label: "Learning Paths", icon: Compass },
+  { href: "/knowledge-base", label: "Knowledge Base", icon: FileText },
   { href: "/forum", label: "Forum", icon: MessageSquare },
   { href: "/contact", label: "Contact", icon: Mail },
 ]

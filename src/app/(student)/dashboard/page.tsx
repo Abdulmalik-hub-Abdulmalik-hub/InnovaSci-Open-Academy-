@@ -13,7 +13,7 @@ import {
   BookOpen, Award, Clock, TrendingUp, Play, 
   ChevronRight, Calendar, Target, CheckCircle2,
   Trophy, Flame, ArrowRight, Sparkles, HelpCircle,
-  Heart, List, Eye, FileText, PlayCircle, Map as MapIcon, Brain
+  Heart, List, Eye, FileText, PlayCircle
 } from "lucide-react"
 
 export default function StudentDashboard() {
@@ -354,22 +354,10 @@ export default function StudentDashboard() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
-              <Link href="/dashboard/learning-paths" className="block">
-                <Button variant="outline" className="w-full justify-start h-11 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <MapIcon className="h-4 w-4 mr-2 text-[hsl(var(--brand-purple))]" />
-                  Browse Learning Paths
-                </Button>
-              </Link>
               <Link href="/dashboard/support" className="block">
                 <Button variant="outline" className="w-full justify-start h-11 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
                   <HelpCircle className="h-4 w-4 mr-2 text-[hsl(var(--brand-purple))]" />
                   Get Help & Support
-                </Button>
-              </Link>
-              <Link href="/dashboard/quizzes" className="block">
-                <Button variant="outline" className="w-full justify-start h-11 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700">
-                  <Brain className="h-4 w-4 mr-2 text-[hsl(var(--brand-purple))]" />
-                  Practice & Quizzes
                 </Button>
               </Link>
               <Link href="/dashboard/wishlist" className="block">

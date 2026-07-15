@@ -95,7 +95,7 @@ export function EnrollmentModal({
 
             <div className="mt-6 pt-4 border-t text-center">
               <p className="text-xs text-muted-foreground">
-                By enrolling, you get lifetime access to all course materials, quizzes, and certificate of completion.
+                By enrolling, you get lifetime access to all course materials and a certificate of completion.
               </p>
             </div>
           </motion.div>

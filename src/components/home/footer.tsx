@@ -15,7 +15,7 @@ const footerLinks = {
   ],
   resources: [
     { label: "Help Center", href: "/dashboard/support" },
-    { label: "Knowledge Base", href: "/dashboard/knowledge-base" },
+    { label: "Knowledge Base", href: "/knowledge-base" },
     { label: "Contact", href: "/contact" },
     { label: "Community", href: "/forum" },
   ],

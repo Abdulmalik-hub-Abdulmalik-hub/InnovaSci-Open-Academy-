@@ -9,7 +9,7 @@ import {
   BookOpen, Award, Settings,
   Heart, Clock, X, HelpCircle,
   Code2, Briefcase, TrendingUp, Star, GraduationCap, Target,
-  MessageCircle, BookMarked, Route, BrainCircuit, Shield
+  MessageCircle, Shield
 } from "lucide-react"
 
 interface MenuItem {
@@ -30,8 +30,6 @@ interface MenuItem {
 // Quick access items - Student Dashboard features ONLY
 const quickAccessItems: MenuItem[] = [
   { title: "My Courses", href: "/dashboard/courses", icon: BookOpen },
-  { title: "Learning Paths", href: "/dashboard/learning-paths", icon: Route },
-  { title: "Quizzes", href: "/dashboard/quizzes", icon: BrainCircuit },
   { title: "My Projects", href: "/dashboard/projects", icon: Code2 },
   { title: "Portfolio", href: "/portfolio", icon: Briefcase },
   { title: "Certifications", href: "/dashboard/certificates", icon: Award, description: "Category & Domain Progress" },
@@ -40,7 +38,6 @@ const quickAccessItems: MenuItem[] = [
 // Community items
 const communityItems: MenuItem[] = [
   { title: "Forum", href: "/dashboard/forum", icon: MessageCircle },
-  { title: "Knowledge Base", href: "/dashboard/knowledge-base", icon: BookMarked },
   { title: "Wishlist", href: "/dashboard/wishlist", icon: Heart },
   { title: "Learning History", href: "/dashboard/history", icon: Clock },
 ]
