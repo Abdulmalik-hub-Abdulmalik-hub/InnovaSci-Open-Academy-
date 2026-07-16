@@ -11,7 +11,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import {
   Award, Search, Calendar, DollarSign, Users, Clock, Star,
   Filter, ArrowRight, Globe, GraduationCap, Heart, BookOpen,
-  Briefcase, Code, Palette, BarChart3, X, ChevronDown
+  Briefcase, Code, Palette, BarChart3, X, ChevronDown, AlertCircle
 } from "lucide-react"
 
 interface Scholarship {
@@ -84,9 +84,11 @@ export default function ScholarshipsPage() {
   const [selectedTypeId, setSelectedTypeId] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [showFilters, setShowFilters] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fetchScholarships = async () => {
     setLoading(true)
+    setError(null)
     try {
       const params = new URLSearchParams({
         page: currentPage.toString(),
@@ -102,9 +104,12 @@ export default function ScholarshipsPage() {
       if (data.success) {
         setScholarships(data.data.scholarships)
         setPagination(data.data.pagination)
+      } else {
+        setError(data.error || "Failed to load scholarships")
       }
-    } catch (error) {
-      console.error("Failed to fetch scholarships:", error)
+    } catch (err) {
+      console.error("Failed to fetch scholarships:", err)
+      setError("Failed to connect to server")
     } finally {
       setLoading(false)
     }
@@ -345,6 +350,19 @@ export default function ScholarshipsPage() {
                   </CardContent>
                 </Card>
               ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-20">
+              <AlertCircle className="h-16 w-16 text-red-400 mx-auto mb-4" />
+              <h3 className="text-xl font-medium text-white/80 mb-2">Something went wrong</h3>
+              <p className="text-white/50 mb-4">{error}</p>
+              <Button
+                onClick={fetchScholarships}
+                variant="outline"
+                className="border-white/20 text-white hover:bg-white/10"
+              >
+                Try Again
+              </Button>
             </div>
           ) : scholarships.length === 0 ? (
             <div className="text-center py-20">
