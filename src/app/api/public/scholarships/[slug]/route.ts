@@ -49,15 +49,26 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       message = `Applications open on ${scholarship.openingDate.toLocaleDateString()}`
     }
 
+    // Helper function to safely parse JSON fields
+    const safeJsonParse = (value: any, defaultValue: any = []) => {
+      if (!value) return defaultValue
+      if (Array.isArray(value)) return value
+      try {
+        return JSON.parse(value)
+      } catch {
+        return defaultValue
+      }
+    }
+
     // Transform data
     const formattedScholarship = {
       ...scholarship,
       awardAmount: scholarship.awardAmount ? Number(scholarship.awardAmount) : null,
       minGPA: scholarship.minGPA ? Number(scholarship.minGPA) : null,
-      requiredDocuments: scholarship.requiredDocuments ? JSON.parse(scholarship.requiredDocuments as string) : [],
-      applicableDomains: scholarship.applicableDomains ? JSON.parse(scholarship.applicableDomains as string) : [],
-      applicableCategories: scholarship.applicableCategories ? JSON.parse(scholarship.applicableCategories as string) : [],
-      applicableDifficulties: scholarship.applicableDifficulties ? JSON.parse(scholarship.applicableDifficulties as string) : [],
+      requiredDocuments: safeJsonParse(scholarship.requiredDocuments),
+      applicableDomains: safeJsonParse(scholarship.applicableDomains),
+      applicableCategories: safeJsonParse(scholarship.applicableCategories),
+      applicableDifficulties: safeJsonParse(scholarship.applicableDifficulties),
       isOpen,
       statusMessage: message,
       applicationUrl: `/scholarships/apply/${scholarship.slug}`,
