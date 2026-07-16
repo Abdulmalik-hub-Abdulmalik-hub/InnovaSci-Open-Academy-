@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { motion } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -9,7 +10,7 @@ import { useDashboard, formatRelativeTime } from "@/hooks/useDashboard"
 import { 
   Users, GraduationCap, DollarSign, Activity, 
   BookOpen, Award, ArrowUpRight, ArrowDownRight,
-  RefreshCw, AlertCircle, Loader2, Plus
+  RefreshCw, AlertCircle, Loader2, Plus, FileText, CheckCircle
 } from "lucide-react"
 
 function StatCard({ 
@@ -270,6 +271,64 @@ export default function AdminDashboard() {
           <div className="text-sm text-white/60">Draft Courses</div>
           <div className="text-xl font-bold text-amber-400">{stats.draftCourses || 0}</div>
         </Card>
+      </div>
+
+      {/* Scholarship Statistics */}
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold text-white flex items-center gap-2">
+            <Award className="h-5 w-5 text-purple-400" />
+            Scholarships & Financial Aid
+          </h2>
+          <Link href="/admin/scholarships">
+            <Button variant="outline" size="sm" className="border-white/20 text-white hover:bg-white/10">
+              Manage Scholarships
+            </Button>
+          </Link>
+        </div>
+        <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4">
+          <Card className="bg-[#1a1a2e] border-white/10 p-4">
+            <div className="text-sm text-white/60">Scholarship Types</div>
+            <div className="text-xl font-bold text-white">{stats.totalScholarshipTypes || 0}</div>
+            <div className="text-xs text-green-400">{stats.activeScholarshipTypes || 0} active</div>
+          </Card>
+          <Card className="bg-[#1a1a2e] border-white/10 p-4">
+            <div className="text-sm text-white/60">Total Scholarships</div>
+            <div className="text-xl font-bold text-white">{stats.totalScholarships || 0}</div>
+            <div className="text-xs text-purple-400">{stats.publishedScholarships || 0} published</div>
+          </Card>
+          <Card className="bg-[#1a1a2e] border-white/10 p-4">
+            <div className="text-sm text-white/60">Applications</div>
+            <div className="text-xl font-bold text-white">{stats.totalApplications || 0}</div>
+            <div className="text-xs text-amber-400">{stats.pendingApplications || 0} pending</div>
+          </Card>
+          <Card className="bg-[#1a1a2e] border-white/10 p-4">
+            <div className="text-sm text-white/60">Awarded</div>
+            <div className="text-xl font-bold text-green-400">{stats.awardedScholarships || 0}</div>
+            <div className="text-xs text-white/50">Active awards</div>
+          </Card>
+          <Card className="bg-[#1a1a2e] border-white/10 p-4">
+            <Link href="/admin/scholarships/types">
+              <div className="text-sm text-white/60 hover:text-white transition-colors">Types</div>
+              <div className="text-xl font-bold text-purple-400">Manage</div>
+              <div className="text-xs text-white/50">Configure</div>
+            </Link>
+          </Card>
+          <Card className="bg-[#1a1a2e] border-white/10 p-4">
+            <Link href="/admin/scholarships/applications">
+              <div className="text-sm text-white/60 hover:text-white transition-colors">Applications</div>
+              <div className="text-xl font-bold text-blue-400">Review</div>
+              <div className="text-xs text-white/50">Process</div>
+            </Link>
+          </Card>
+          <Card className="bg-[#1a1a2e] border-white/10 p-4">
+            <Link href="/admin/scholarships/awards">
+              <div className="text-sm text-white/60 hover:text-white transition-colors">Awards</div>
+              <div className="text-xl font-bold text-green-400">Manage</div>
+              <div className="text-xs text-white/50">Issue awards</div>
+            </Link>
+          </Card>
+        </div>
       </div>
 
       {/* Recent Activity & Top Courses */}

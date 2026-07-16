@@ -14,6 +14,10 @@ const createTypeSchema = z.object({
   orderIndex: z.number().int().optional(),
 })
 
+const reorderSchema = z.object({
+  typeIds: z.array(z.string()).min(1),
+})
+
 // GET - List all scholarship types with statistics
 export async function GET(request: NextRequest) {
   try {
@@ -114,6 +118,61 @@ export async function POST(request: NextRequest) {
     return createdResponse(scholarshipType, "Scholarship type created successfully")
   } catch (error) {
     console.error("Error creating scholarship type:", error)
+    
+    if (error instanceof z.ZodError) {
+      return errorResponse(
+        error.errors.map((e) => e.message).join(", "),
+        ErrorCodes.VALIDATION_ERROR,
+        400
+      )
+    }
+    
+    const { status, code, message } = handlePrismaError(error)
+    return errorResponse(message, code, status)
+  }
+}
+
+// PUT - Reorder scholarship types
+export async function PUT(request: NextRequest) {
+  try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session || session.user.role !== "SUPER_ADMIN") {
+      return errorResponse("Only Super Admin can reorder scholarship types", ErrorCodes.FORBIDDEN, 403)
+    }
+
+    const body = await request.json()
+    const { typeIds } = reorderSchema.parse(body)
+
+    // Update orderIndex for each type
+    await Promise.all(
+      typeIds.map((id, index) =>
+        prisma.scholarshipType.update({
+          where: { id },
+          data: { orderIndex: index + 1 },
+        })
+      )
+    )
+
+    // Get updated types
+    const types = await prisma.scholarshipType.findMany({
+      orderBy: { orderIndex: "asc" },
+      include: {
+        _count: {
+          select: { scholarships: true },
+        },
+      },
+    })
+
+    return successResponse({
+      message: "Scholarship types reordered successfully",
+      types: types.map((type) => ({
+        ...type,
+        scholarshipCount: type._count.scholarships,
+      })),
+    })
+  } catch (error) {
+    console.error("Error reordering scholarship types:", error)
     
     if (error instanceof z.ZodError) {
       return errorResponse(

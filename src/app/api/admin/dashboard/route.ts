@@ -28,11 +28,19 @@ export async function GET() {
       draftCourses: 0,
       totalEnrollments: 0,
       completedEnrollments: 0,
-      totalRevenue: 0
+      totalRevenue: 0,
+      // Scholarship statistics
+      totalScholarshipTypes: 0,
+      activeScholarshipTypes: 0,
+      totalScholarships: 0,
+      publishedScholarships: 0,
+      totalApplications: 0,
+      pendingApplications: 0,
+      awardedScholarships: 0,
     }
 
     try {
-      const [userCount, activeCount, courseCount, pubCourses, draftCount, enrollCount, completedCount, revenueAgg] = await Promise.all([
+      const [userCount, activeCount, courseCount, pubCourses, draftCount, enrollCount, completedCount, revenueAgg, scholarshipTypesCount, activeTypesCount, scholarshipsCount, publishedScholarships, applicationsCount, pendingApps, awardsCount] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({ where: { status: "ACTIVE" } }),
         prisma.course.count(),
@@ -41,6 +49,17 @@ export async function GET() {
         prisma.enrollment.count(),
         prisma.enrollment.count({ where: { completed: true } }),
         prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED" } }),
+        // Scholarship type counts
+        prisma.scholarshipType.count(),
+        prisma.scholarshipType.count({ where: { isActive: true } }),
+        // Scholarship counts
+        prisma.scholarship.count(),
+        prisma.scholarship.count({ where: { status: "PUBLISHED" } }),
+        // Application counts
+        prisma.scholarshipApplication.count(),
+        prisma.scholarshipApplication.count({ where: { status: "SUBMITTED" } }),
+        // Award counts
+        prisma.scholarshipAward.count({ where: { status: { in: ["PENDING_ACCEPTANCE", "ACTIVE"] } } }),
       ])
 
       stats = {
@@ -51,7 +70,15 @@ export async function GET() {
         draftCourses: draftCount,
         totalEnrollments: enrollCount,
         completedEnrollments: completedCount,
-        totalRevenue: Number(revenueAgg._sum?.amount) || 0
+        totalRevenue: Number(revenueAgg._sum?.amount) || 0,
+        // Scholarship statistics
+        totalScholarshipTypes: scholarshipTypesCount,
+        activeScholarshipTypes: activeTypesCount,
+        totalScholarships: scholarshipsCount,
+        publishedScholarships: publishedScholarships,
+        totalApplications: applicationsCount,
+        pendingApplications: pendingApps,
+        awardedScholarships: awardsCount,
       }
     } catch (dbError) {
       // Database query failed, but we can still return default stats
