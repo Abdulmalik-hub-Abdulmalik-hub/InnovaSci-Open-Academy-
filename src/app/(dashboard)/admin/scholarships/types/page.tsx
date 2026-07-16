@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useCallback } from "react"
-import { motion, AnimatePresence, Reorder } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -523,13 +523,18 @@ export default function ScholarshipTypesPage() {
           </CardContent>
         </Card>
       ) : (
-        <Reorder.Group axis="y" values={filteredTypes} onReorder={handleSaveOrder} className="space-y-3">
-          {filteredTypes.map((type) => {
+        <div className="space-y-3">
+          {filteredTypes.map((type, index) => {
             const Icon = getIcon(type.icon || "Award")
             return (
-              <Reorder.Item key={type.id} value={type}>
+              <motion.div
+                key={type.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: index * 0.05 }}
+              >
                 <Card
-                  className={`bg-[#1a1a2e] border-white/10 hover:border-white/20 transition-all cursor-grab active:cursor-grabbing ${
+                  className={`bg-[#1a1a2e] border-white/10 hover:border-white/20 transition-all ${
                     !type.isActive ? "opacity-60" : ""
                   }`}
                 >
@@ -656,10 +661,9 @@ export default function ScholarshipTypesPage() {
                     </div>
                   </CardContent>
                 </Card>
-              </Reorder.Item>
-            </motion.div>
-          ))}
-        </Reorder.Group>
+              </motion.div>
+            ))}
+          </div>
       )}
 
       {/* Create/Edit Modal */}
