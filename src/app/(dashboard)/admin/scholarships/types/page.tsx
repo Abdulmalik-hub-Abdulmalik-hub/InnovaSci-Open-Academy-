@@ -100,7 +100,6 @@ export default function ScholarshipTypesPage() {
   const [editingType, setEditingType] = useState<ScholarshipType | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
-  const [isReordering, setIsReordering] = useState(false)
   const [isSeeding, setIsSeeding] = useState(false)
 
   // Form state
@@ -111,6 +110,49 @@ export default function ScholarshipTypesPage() {
     icon: "Award",
     color: "#8B5CF6",
   })
+
+  // Handle seed defaults
+  const handleSeedDefaults = async () => {
+    setIsSeeding(true)
+    try {
+      const response = await fetch("/api/admin/scholarships/types/seed", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        toast({ title: "Success", description: "Default scholarship types seeded successfully" })
+        fetchTypes()
+      } else {
+        toast({ title: "Error", description: data.error || "Failed to seed defaults", variant: "destructive" })
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to connect to server", variant: "destructive" })
+    } finally {
+      setIsSeeding(false)
+    }
+  }
+
+  // Handle save order
+  const handleSaveOrder = async (reorderedTypes: ScholarshipType[]) => {
+    try {
+      const response = await fetch("/api/admin/scholarships/types", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          typeIds: reorderedTypes.map(t => t.id),
+        }),
+      })
+      const data = await response.json()
+
+      if (data.success) {
+        setTypes(data.data.types)
+      }
+    } catch (error) {
+      console.error("Failed to save order:", error)
+    }
+  }
 
   const fetchTypes = useCallback(async () => {
     setLoading(true)
@@ -142,76 +184,6 @@ export default function ScholarshipTypesPage() {
   useEffect(() => {
     fetchTypes()
   }, [fetchTypes])
-
-  // Handle seed default types
-  const handleSeedDefaults = async () => {
-    setIsSeeding(true)
-    try {
-      const response = await fetch("/api/admin/scholarships/types/seed", {
-        method: "POST",
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: `Seeded: ${data.data.summary.created} created, ${data.data.summary.updated} updated, ${data.data.summary.skipped} skipped`,
-        })
-        fetchTypes()
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to seed scholarship types",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to connect to server",
-        variant: "destructive",
-      })
-    } finally {
-      setIsSeeding(false)
-    }
-  }
-
-  // Handle reorder save
-  const handleSaveOrder = async (reorderedTypes: ScholarshipType[]) => {
-    setIsReordering(true)
-    try {
-      const response = await fetch("/api/admin/scholarships/types", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          typeIds: reorderedTypes.map(t => t.id),
-        }),
-      })
-      const data = await response.json()
-
-      if (data.success) {
-        toast({
-          title: "Success",
-          description: "Scholarship types reordered successfully",
-        })
-        setTypes(data.data.types)
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to reorder scholarship types",
-          variant: "destructive",
-        })
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to connect to server",
-        variant: "destructive",
-      })
-    } finally {
-      setIsReordering(false)
-    }
-  }
 
   // Generate slug from name
   const generateSlug = (name: string) => {
@@ -457,31 +429,6 @@ export default function ScholarshipTypesPage() {
         </Button>
       </div>
 
-      {/* Reorder Info */}
-      <Card className="bg-purple-500/10 border-purple-500/20">
-        <CardContent className="p-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <RefreshCw className="h-5 w-5 text-purple-400" />
-            <div>
-              <p className="text-sm font-medium text-white">Drag to reorder scholarship types</p>
-              <p className="text-xs text-white/60">The order determines how types appear in dropdowns</p>
-            </div>
-          </div>
-          <Button
-            onClick={() => {
-              const reordered = [...types].sort((a, b) => a.orderIndex - b.orderIndex)
-              handleSaveOrder(reordered)
-            }}
-            disabled={isReordering}
-            size="sm"
-            variant="outline"
-            className="border-purple-500/50 text-purple-400 hover:bg-purple-500/10"
-          >
-            {isReordering ? "Saving..." : "Reset Order"}
-          </Button>
-        </CardContent>
-      </Card>
-
       {/* Types List */}
       {loading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -501,29 +448,31 @@ export default function ScholarshipTypesPage() {
             <p className="text-white/50 mb-4">
               {search ? "Try adjusting your search" : "Create your first scholarship type or seed defaults"}
             </p>
-            <div className="flex items-center justify-center gap-3">
-              <Button
-                onClick={handleSeedDefaults}
-                disabled={isSeeding}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
-              >
-                <Database className="h-4 w-4 mr-2" />
-                Seed Defaults
-              </Button>
-              <Button
-                onClick={() => handleOpenModal()}
-                variant="outline"
-                className="border-white/20 text-white hover:bg-white/10"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Type
-              </Button>
-            </div>
+            {!search && (
+              <div className="flex items-center justify-center gap-3">
+                <Button
+                  onClick={handleSeedDefaults}
+                  disabled={isSeeding}
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  <Database className="h-4 w-4 mr-2" />
+                  Seed Defaults
+                </Button>
+                <Button
+                  onClick={() => handleOpenModal()}
+                  variant="outline"
+                  className="border-white/20 text-white hover:bg-white/10"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Type
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
       ) : (
-        <div className="space-y-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {filteredTypes.map((type, index) => {
             const Icon = getIcon(type.icon || "Award")
             return (
@@ -538,69 +487,24 @@ export default function ScholarshipTypesPage() {
                     !type.isActive ? "opacity-60" : ""
                   }`}
                 >
-                  <CardContent className="p-4 flex items-center gap-4">
-                    <div className="flex items-center gap-3 flex-1">
-                      <GripVertical className="h-5 w-5 text-white/40" />
-                      <div
-                        className="w-10 h-10 rounded-lg flex items-center justify-center"
-                        style={{ backgroundColor: type.color ? `${type.color}20` : "rgba(139, 92, 246, 0.2)" }}
-                      >
-                        <Icon className="h-5 w-5" style={{ color: type.color || "#8B5CF6" }} />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-white">{type.name}</h3>
-                          <Badge
-                            variant="outline"
-                            className={type.isActive ? "border-green-500/50 text-green-400" : "border-amber-500/50 text-amber-400"}
-                          >
-                            {type.isActive ? "Active" : "Archived"}
-                          </Badge>
+                  <CardHeader className="pb-2">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-3">
+                        <div
+                          className="w-10 h-10 rounded-lg flex items-center justify-center"
+                          style={{ backgroundColor: `${type.color}20` }}
+                        >
+                          <Icon
+                            className="h-5 w-5"
+                            style={{ color: type.color || "#8B5CF6" }}
+                          />
                         </div>
-                        <p className="text-xs text-white/50">{type.slug}</p>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-white/50">
-                        {type.scholarshipCount} scholarship{type.scholarshipCount !== 1 ? "s" : ""}
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-white/60 hover:text-white"
-                          onClick={() => {
-                            const currentIndex = filteredTypes.findIndex(t => t.id === type.id)
-                            if (currentIndex > 0) {
-                              const reordered = [...filteredTypes]
-                              const temp = reordered[currentIndex]
-                              reordered[currentIndex] = reordered[currentIndex - 1]
-                              reordered[currentIndex - 1] = temp
-                              handleSaveOrder(reordered)
-                            }
-                          }}
-                          disabled={filteredTypes.findIndex(t => t.id === type.id) === 0}
-                        >
-                          <ArrowUp className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8 text-white/60 hover:text-white"
-                          onClick={() => {
-                            const currentIndex = filteredTypes.findIndex(t => t.id === type.id)
-                            if (currentIndex < filteredTypes.length - 1) {
-                              const reordered = [...filteredTypes]
-                              const temp = reordered[currentIndex]
-                              reordered[currentIndex] = reordered[currentIndex + 1]
-                              reordered[currentIndex + 1] = temp
-                              handleSaveOrder(reordered)
-                            }
-                          }}
-                          disabled={filteredTypes.findIndex(t => t.id === type.id) === filteredTypes.length - 1}
-                        >
-                          <ArrowDown className="h-4 w-4" />
-                        </Button>
+                        <div>
+                          <CardTitle className="text-white text-base">
+                            {type.name}
+                          </CardTitle>
+                          <p className="text-xs text-white/40">/{type.slug}</p>
+                        </div>
                       </div>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -617,16 +521,7 @@ export default function ScholarshipTypesPage() {
                             Edit
                           </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => {
-                              handleOpenModal()
-                              setFormData({
-                                name: `${type.name} (Copy)`,
-                                slug: `${type.slug}-copy`,
-                                description: type.description || "",
-                                icon: type.icon || "Award",
-                                color: type.color || "#8B5CF6",
-                              })
-                            }}
+                            onClick={() => handleDuplicate(type)}
                             className="text-white hover:bg-white/10"
                           >
                             <Copy className="h-4 w-4 mr-2" />
@@ -659,11 +554,32 @@ export default function ScholarshipTypesPage() {
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </div>
+                  </CardHeader>
+                  <CardContent>
+                    <p className="text-sm text-white/60 line-clamp-2 mb-4">
+                      {type.description || "No description"}
+                    </p>
+                    <div className="flex items-center justify-between text-sm">
+                      <Badge
+                        variant="outline"
+                        className={type.isActive ? "border-green-500/50 text-green-400" : "border-amber-500/50 text-amber-400"}
+                      >
+                        {type.isActive ? (
+                          <><Check className="h-3 w-3 mr-1" /> Active</>
+                        ) : (
+                          <><Archive className="h-3 w-3 mr-1" /> Archived</>
+                        )}
+                      </Badge>
+                      <span className="text-white/40">
+                        {type.scholarshipCount} scholarship{type.scholarshipCount !== 1 ? "s" : ""}
+                      </span>
+                    </div>
                   </CardContent>
                 </Card>
               </motion.div>
-            ))}
-          </div>
+            )
+          })}
+        </div>
       )}
 
       {/* Create/Edit Modal */}
