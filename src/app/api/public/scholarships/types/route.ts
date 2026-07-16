@@ -29,6 +29,12 @@ export async function GET() {
     return successResponse(formattedTypes)
   } catch (error) {
     console.error("Error fetching public scholarship types:", error)
+    
+    // Re-throw with more context for debugging
+    if (process.env.NODE_ENV === "development") {
+      throw error
+    }
+    
     const { status, code, message } = handlePrismaError(error)
     return errorResponse(message, code, status)
   }

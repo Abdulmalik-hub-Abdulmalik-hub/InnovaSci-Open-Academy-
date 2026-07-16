@@ -72,12 +72,7 @@ export async function GET(request: NextRequest) {
         status: true,
         country: true,
         gender: true,
-        scholarship: {
-          select: {
-            typeId: true,
-            type: { select: { name: true } },
-          },
-        },
+        scholarshipId: true,
       },
       orderBy: { submittedAt: "asc" },
     })
@@ -91,37 +86,48 @@ export async function GET(request: NextRequest) {
       }
     })
 
-    // Get country distribution
+    // Get country distribution - use findMany with groupBy workaround for nullable field
     const countryDistribution = await prisma.scholarshipApplication.groupBy({
       by: ["country"],
       _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
+      where: {
+        country: { not: null },
+      },
+      orderBy: {
+        _count: { id: "desc" },
+      },
       take: 10,
     })
 
-    // Get gender distribution
+    // Get gender distribution - handle nullable field
     const genderDistribution = await prisma.scholarshipApplication.groupBy({
       by: ["gender"],
       _count: { id: true },
+      where: {
+        gender: { not: null },
+      },
     })
 
-    // Get scholarship type distribution
-    const typeDistribution = await prisma.scholarshipApplication.groupBy({
+    // Get scholarship type distribution - fetch all and sort in memory for better compatibility
+    const allApplicationsByScholarship = await prisma.scholarshipApplication.groupBy({
       by: ["scholarshipId"],
       _count: { id: true },
-      orderBy: { _count: { id: "desc" } },
-      take: 5,
     })
 
+    // Sort by count descending and take top 5
+    const sortedTypeDistribution = allApplicationsByScholarship
+      .sort((a, b) => b._count.id - a._count.id)
+      .slice(0, 5)
+
     // Get scholarship names for type distribution
-    const scholarshipIds = typeDistribution.map((t) => t.scholarshipId)
+    const scholarshipIds = sortedTypeDistribution.map((t) => t.scholarshipId)
     const scholarships = await prisma.scholarship.findMany({
       where: { id: { in: scholarshipIds } },
       select: { id: true, name: true, type: { select: { name: true } } },
     })
 
     const scholarshipMap = new Map(scholarships.map((s) => [s.id, s]))
-    const topScholarships = typeDistribution.map((t) => ({
+    const topScholarships = sortedTypeDistribution.map((t) => ({
       scholarship: scholarshipMap.get(t.scholarshipId),
       applicationCount: t._count.id,
     })).filter((t) => t.scholarship)
