@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { 
@@ -64,7 +64,7 @@ interface Application {
   }[]
 }
 
-export default function TrackApplicationPage() {
+function TrackApplicationContent() {
   const searchParams = useSearchParams()
   const [loading, setLoading] = useState(false)
   const [application, setApplication] = useState<Application | null>(null)
@@ -463,5 +463,43 @@ export default function TrackApplicationPage() {
         </div>
       </div>
     </div>
+  )
+}
+
+function LoadingFallback() {
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-slate-900 via-purple-900/20 to-slate-900">
+      <div className="bg-white/5 border-b border-white/10">
+        <div className="container mx-auto px-4 py-4">
+          <div className="h-5 w-32 bg-white/10 rounded animate-pulse" />
+        </div>
+      </div>
+      <div className="container mx-auto px-4 py-12">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-center mb-12">
+            <Skeleton className="h-10 w-64 mx-auto mb-4 bg-white/10" />
+            <Skeleton className="h-5 w-96 mx-auto mb-8 bg-white/10" />
+          </div>
+          <Card className="bg-white/5 border-white/10">
+            <CardContent className="p-6">
+              <div className="flex gap-4 mb-4">
+                <Skeleton className="h-10 w-32 bg-white/10" />
+                <Skeleton className="h-10 w-32 bg-white/10" />
+                <Skeleton className="h-10 w-24 bg-white/10" />
+              </div>
+              <Skeleton className="h-12 w-full bg-white/10" />
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+export default function TrackApplicationPage() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <TrackApplicationContent />
+    </Suspense>
   )
 }
