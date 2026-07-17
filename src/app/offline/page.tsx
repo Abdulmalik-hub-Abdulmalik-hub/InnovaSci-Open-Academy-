@@ -119,10 +119,6 @@ export default function OfflinePage() {
                   </li>
                   <li className="flex items-center gap-2">
                     <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    Access cached scholarship programs
-                  </li>
-                  <li className="flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                     Continue with saved form drafts
                   </li>
                   <li className="flex items-center gap-2">

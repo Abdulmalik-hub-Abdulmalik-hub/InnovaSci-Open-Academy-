@@ -123,7 +123,7 @@ export function useLocalCache<T>(
   fetcher: () => Promise<T>,
   options: {
     ttl?: number
-    category?: "SCHOLARSHIPS" | "COURSES" | "CATEGORIES" | "ENROLLMENTS" | "USERS" | "DASHBOARD" | "GENERAL"
+    category?: "COURSES" | "CATEGORIES" | "ENROLLMENTS" | "USERS" | "DASHBOARD" | "GENERAL"
     staleWhileRevalidate?: boolean
   } = {}
 ) {

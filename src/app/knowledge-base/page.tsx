@@ -70,12 +70,6 @@ const faqs: FAQ[] = [
     category: "Courses"
   },
   {
-    id: "8",
-    question: "Do you offer scholarships?",
-    answer: "Yes! We offer scholarships and financial aid programs to support learners who may not have the means to pay full course fees. Visit our Scholarships page to learn more about available programs and apply.",
-    category: "Scholarships"
-  },
-  {
     id: "9",
     question: "How do I reset my password?",
     answer: "Click on the 'Forgot Password' link on the login page. Enter your email address, and we'll send you a password reset link. Follow the instructions in the email to create a new password.",
@@ -238,7 +232,6 @@ export default function KnowledgeBasePage() {
                             faq.category === "Certificates" ? "bg-green-100 dark:bg-green-900/30" :
                             faq.category === "Billing" ? "bg-amber-100 dark:bg-amber-900/30" :
                             faq.category === "Account" ? "bg-blue-100 dark:bg-blue-900/30" :
-                            faq.category === "Scholarships" ? "bg-green-100 dark:bg-green-900/30" :
                             "bg-gray-100 dark:bg-gray-800"
                           }`}>
                             <BookOpen className={`w-4 h-4 ${
@@ -247,7 +240,6 @@ export default function KnowledgeBasePage() {
                               faq.category === "Certificates" ? "text-green-600" :
                               faq.category === "Billing" ? "text-amber-600" :
                               faq.category === "Account" ? "text-blue-600" :
-                              faq.category === "Scholarships" ? "text-green-600" :
                               "text-gray-600 dark:text-gray-400"
                             }`} />
                           </div>
@@ -345,20 +337,6 @@ export default function KnowledgeBasePage() {
                     <div className="flex-1">
                       <p className="font-medium">Browse Courses</p>
                       <p className="text-xs text-muted-foreground">Explore our catalog</p>
-                    </div>
-                    <ArrowRight className="w-4 h-4 text-muted-foreground" />
-                  </CardContent>
-                </Card>
-              </Link>
-              <Link href="/scholarships">
-                <Card className="hover:shadow-md transition-all hover:scale-[1.02]">
-                  <CardContent className="p-4 flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg bg-green-100 dark:bg-green-900/30 flex items-center justify-center">
-                      <FileText className="w-5 h-5 text-green-600" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="font-medium">Scholarships</p>
-                      <p className="text-xs text-muted-foreground">Apply for financial aid</p>
                     </div>
                     <ArrowRight className="w-4 h-4 text-muted-foreground" />
                   </CardContent>

@@ -8,7 +8,7 @@ import {
   Menu, X, Moon, Sun, User, 
   LayoutDashboard, BookOpen, Settings, LogOut, ChevronDown,
   CreditCard, MessageSquare, Compass, Mail, Home, BookText, LayoutGrid,
-  GraduationCap, Shield, FileText
+  Shield, FileText
 } from "lucide-react"
 import { AcademyLogo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
@@ -24,7 +24,6 @@ const navItems = [
   { href: "/courses", label: "Explore", icon: BookText, description: "Browse courses" },
   { href: "/domains", label: "Domains", icon: LayoutGrid, description: "Browse by domain" },
   { href: "/membership", label: "Membership", icon: CreditCard },
-  { href: "/scholarships", label: "Scholarships", icon: GraduationCap, description: "Financial aid" },
   { href: "/learning-paths", label: "Learning Paths", icon: Compass },
   { href: "/knowledge-base", label: "Knowledge Base", icon: FileText },
   { href: "/forum", label: "Forum", icon: MessageSquare },

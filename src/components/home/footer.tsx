@@ -10,7 +10,6 @@ const footerLinks = {
     { label: "Courses", href: "/courses" },
     { label: "Membership", href: "/membership" },
     { label: "Learning Paths", href: "/learning-paths" },
-    { label: "Scholarships", href: "/scholarships" },
     { label: "Forum", href: "/forum" },
   ],
   resources: [

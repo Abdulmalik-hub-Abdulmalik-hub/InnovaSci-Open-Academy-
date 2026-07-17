@@ -30,7 +30,7 @@ export interface CacheEntry {
   data: any
   timestamp: Date
   expiresAt: Date
-  category: "SCHOLARSHIPS" | "COURSES" | "CATEGORIES" | "ENROLLMENTS" | "USERS" | "DASHBOARD" | "GENERAL"
+  category: "COURSES" | "CATEGORIES" | "ENROLLMENTS" | "USERS" | "DASHBOARD" | "GENERAL"
 }
 
 // Types for user session data
@@ -91,7 +91,6 @@ export const offlineDb = new OfflineDatabase()
 
 // Cache configuration
 export const CACHE_CONFIG = {
-  SCHOLARSHIPS: { maxAge: 5 * 60 * 1000, ttl: 5 * 60 * 1000 }, // 5 minutes
   COURSES: { maxAge: 10 * 60 * 1000, ttl: 10 * 60 * 1000 }, // 10 minutes
   CATEGORIES: { maxAge: 30 * 60 * 1000, ttl: 30 * 60 * 1000 }, // 30 minutes
   ENROLLMENTS: { maxAge: 2 * 60 * 1000, ttl: 2 * 60 * 1000 }, // 2 minutes
