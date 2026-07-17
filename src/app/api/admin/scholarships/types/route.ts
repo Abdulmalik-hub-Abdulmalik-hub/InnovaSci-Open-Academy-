@@ -2,23 +2,10 @@ import { NextRequest, NextResponse } from "next/server"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
-import { successResponse, createdResponse, errorResponse, ErrorCodes, handlePrismaError } from "@/lib/api-response"
-import { z } from "zod"
-
-const createTypeSchema = z.object({
-  name: z.string().min(1, "Name is required"),
-  slug: z.string().min(1).regex(/^[a-z0-9-]+$/, "Slug must be lowercase with hyphens"),
-  description: z.string().optional(),
-  icon: z.string().optional(),
-  color: z.string().optional(),
-  orderIndex: z.number().int().optional(),
-})
-
-const reorderSchema = z.object({
-  typeIds: z.array(z.string()).min(1),
-})
+import { successResponse, errorResponse, ErrorCodes, handlePrismaError } from "@/lib/api-response"
 
 // GET - List all scholarship types with statistics
+// Note: Templates are system-managed. This endpoint is read-only.
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
@@ -54,7 +41,24 @@ export async function GET(request: NextRequest) {
     }
 
     const formattedTypes = types.map((type) => ({
-      ...type,
+      id: type.id,
+      name: type.name,
+      slug: type.slug,
+      shortName: type.shortName,
+      description: type.description,
+      objectives: type.objectives,
+      eligibility: type.eligibility,
+      benefits: type.benefits,
+      icon: type.icon,
+      color: type.color,
+      badge: type.badge,
+      seoTitle: type.seoTitle,
+      seoDescription: type.seoDescription,
+      seoKeywords: type.seoKeywords,
+      tags: type.tags,
+      isCustom: type.isCustom,
+      isActive: type.isActive,
+      orderIndex: type.orderIndex,
       scholarshipCount: type._count.scholarships,
     }))
 
@@ -64,124 +68,6 @@ export async function GET(request: NextRequest) {
     })
   } catch (error) {
     console.error("Error fetching scholarship types:", error)
-    const { status, code, message } = handlePrismaError(error)
-    return errorResponse(message, code, status)
-  }
-}
-
-// POST - Create a new scholarship type
-export async function POST(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session || session.user.role !== "SUPER_ADMIN") {
-      return errorResponse("Only Super Admin can create scholarship types", ErrorCodes.FORBIDDEN, 403)
-    }
-
-    const body = await request.json()
-    const validatedData = createTypeSchema.parse(body)
-
-    // Check if slug already exists
-    const existingSlug = await prisma.scholarshipType.findUnique({
-      where: { slug: validatedData.slug },
-    })
-
-    if (existingSlug) {
-      return errorResponse("A scholarship type with this slug already exists", ErrorCodes.CONFLICT, 409)
-    }
-
-    // Check if name already exists
-    const existingName = await prisma.scholarshipType.findFirst({
-      where: { name: validatedData.name },
-    })
-
-    if (existingName) {
-      return errorResponse("A scholarship type with this name already exists", ErrorCodes.CONFLICT, 409)
-    }
-
-    // Get max orderIndex if not provided
-    let finalOrderIndex = validatedData.orderIndex
-    if (finalOrderIndex === undefined) {
-      const maxOrder = await prisma.scholarshipType.aggregate({
-        _max: { orderIndex: true },
-      })
-      finalOrderIndex = (maxOrder._max.orderIndex || 0) + 1
-    }
-
-    const scholarshipType = await prisma.scholarshipType.create({
-      data: {
-        ...validatedData,
-        orderIndex: finalOrderIndex,
-      },
-    })
-
-    return createdResponse(scholarshipType, "Scholarship type created successfully")
-  } catch (error) {
-    console.error("Error creating scholarship type:", error)
-    
-    if (error instanceof z.ZodError) {
-      return errorResponse(
-        error.errors.map((e) => e.message).join(", "),
-        ErrorCodes.VALIDATION_ERROR,
-        400
-      )
-    }
-    
-    const { status, code, message } = handlePrismaError(error)
-    return errorResponse(message, code, status)
-  }
-}
-
-// PUT - Reorder scholarship types
-export async function PUT(request: NextRequest) {
-  try {
-    const session = await getServerSession(authOptions)
-    
-    if (!session || session.user.role !== "SUPER_ADMIN") {
-      return errorResponse("Only Super Admin can reorder scholarship types", ErrorCodes.FORBIDDEN, 403)
-    }
-
-    const body = await request.json()
-    const { typeIds } = reorderSchema.parse(body)
-
-    // Update orderIndex for each type
-    await Promise.all(
-      typeIds.map((id, index) =>
-        prisma.scholarshipType.update({
-          where: { id },
-          data: { orderIndex: index + 1 },
-        })
-      )
-    )
-
-    // Get updated types
-    const types = await prisma.scholarshipType.findMany({
-      orderBy: { orderIndex: "asc" },
-      include: {
-        _count: {
-          select: { scholarships: true },
-        },
-      },
-    })
-
-    return successResponse({
-      message: "Scholarship types reordered successfully",
-      types: types.map((type) => ({
-        ...type,
-        scholarshipCount: type._count.scholarships,
-      })),
-    })
-  } catch (error) {
-    console.error("Error reordering scholarship types:", error)
-    
-    if (error instanceof z.ZodError) {
-      return errorResponse(
-        error.errors.map((e) => e.message).join(", "),
-        ErrorCodes.VALIDATION_ERROR,
-        400
-      )
-    }
-    
     const { status, code, message } = handlePrismaError(error)
     return errorResponse(message, code, status)
   }

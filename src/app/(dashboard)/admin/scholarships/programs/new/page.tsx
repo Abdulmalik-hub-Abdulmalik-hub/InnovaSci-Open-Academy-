@@ -24,8 +24,22 @@ interface ScholarshipType {
   id: string
   name: string
   slug: string
+  shortName?: string | null
   icon?: string
   color?: string
+  isCustom?: boolean
+  templateData?: {
+    description: string | null
+    objectives: string | null
+    eligibility: string | null
+    benefits: string | null
+    icon: string | null
+    color: string | null
+    seoTitle: string | null
+    seoDescription: string | null
+    seoKeywords: string | null
+    tags: string | null
+  } | null
 }
 
 interface Sponsor {
@@ -41,6 +55,7 @@ export default function NewScholarshipPage() {
   const [scholarshipTypes, setScholarshipTypes] = useState<ScholarshipType[]>([])
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [activeTab, setActiveTab] = useState("basic")
+  const [selectedTemplate, setSelectedTemplate] = useState<ScholarshipType | null>(null)
 
   // Form state
   const [formData, setFormData] = useState({
@@ -171,6 +186,39 @@ export default function NewScholarshipPage() {
 
   const handleChange = (field: string, value: string | boolean | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+  }
+
+  // Auto-fill form when a scholarship type is selected
+  const handleTypeSelect = (typeId: string) => {
+    const selectedType = scholarshipTypes.find(t => t.id === typeId)
+    setSelectedTemplate(selectedType || null)
+    
+    if (selectedType && selectedType.templateData) {
+      // Auto-fill from template (except for custom type)
+      if (selectedType.isCustom) {
+        // Custom type - leave all fields empty for manual entry
+        toast.success("Custom Scholarship selected - fill in your own details")
+      } else {
+        // Template type - auto-fill all template fields
+        const template = selectedType.templateData
+        setFormData(prev => ({
+          ...prev,
+          typeId,
+          description: template.description || prev.description,
+          objectives: template.objectives || prev.objectives,
+          eligibility: template.eligibility || prev.eligibility,
+          benefits: template.benefits || prev.benefits,
+          seoTitle: template.seoTitle || prev.seoTitle,
+          seoDescription: template.seoDescription || prev.seoDescription,
+          seoKeywords: template.seoKeywords || prev.seoKeywords,
+          icon: template.icon || prev.icon,
+          color: template.color || prev.color,
+        }))
+        toast.success(`"${selectedType.name}" template applied - fields auto-filled`)
+      }
+    } else {
+      handleChange("typeId", typeId)
+    }
   }
 
   const handleSubmit = async (publish: boolean = false) => {
@@ -425,9 +473,9 @@ export default function NewScholarshipPage() {
                   {typesLoading ? (
                     <Skeleton className="h-10 w-full bg-white/5" />
                   ) : (
-                    <Select value={formData.typeId} onValueChange={(v) => handleChange("typeId", v)}>
+                    <Select value={formData.typeId} onValueChange={(v) => handleTypeSelect(v)}>
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
-                        <SelectValue placeholder="Select a type" />
+                        <SelectValue placeholder="Select a scholarship type to auto-fill fields" />
                       </SelectTrigger>
                       <SelectContent className="bg-[#1a1a2e] border-white/10">
                         {scholarshipTypes.map((type) => (
@@ -440,11 +488,25 @@ export default function NewScholarshipPage() {
                                 />
                               )}
                               {type.name}
+                              {type.isCustom && (
+                                <Badge variant="outline" className="ml-2 text-xs border-teal-500/50 text-teal-400">
+                                  Custom
+                                </Badge>
+                              )}
                             </div>
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                  )}
+                  {selectedTemplate && (
+                    <p className="text-xs text-white/50 mt-1 flex items-center gap-1">
+                      <Info className="h-3 w-3" />
+                      {selectedTemplate.isCustom 
+                        ? "No auto-fill - enter your own details below"
+                        : `"${selectedTemplate.name}" selected - fields will be auto-filled`
+                      }
+                    </p>
                   )}
                 </FormField>
               </div>

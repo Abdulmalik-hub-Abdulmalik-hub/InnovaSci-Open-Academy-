@@ -2996,13 +2996,35 @@ model ScholarshipType {
   id          String   @id @default(uuid())
   name        String   @unique
   slug        String   @unique
+  shortName   String?
   description String?  @db.Text
-  icon        String?
-  color       String?
-  isActive    Boolean  @default(true)
-  orderIndex  Int      @default(0)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+  
+  // Template Fields - rich defaults for auto-fill
+  objectives        String?  @db.Text
+  eligibility       String?  @db.Text
+  benefits          String?  @db.Text
+  
+  // Visual
+  icon              String?
+  color             String?
+  badge             String?  // Badge text
+  banner            String?  // Banner description
+  
+  // SEO
+  seoTitle          String?
+  seoDescription    String?  @db.Text
+  seoKeywords       String?
+  
+  // Metadata
+  tags              String?  // Comma-separated tags for categorization
+  
+  // System flags
+  isActive          Boolean  @default(true)
+  isCustom          Boolean  @default(false) // true = custom, false = template
+  orderIndex        Int      @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
 
   // Relations
   scholarships Scholarship[]
