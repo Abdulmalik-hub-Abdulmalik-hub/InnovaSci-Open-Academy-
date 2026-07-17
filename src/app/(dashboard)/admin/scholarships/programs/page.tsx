@@ -195,24 +195,24 @@ export default function ScholarshipProgramsPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { variant: "default" | "secondary" | "success" | "destructive" | "warning"; label: string }> = {
+    const statusMap: Record<string, { variant: "default" | "secondary" | "destructive" | "purple"; label: string }> = {
       DRAFT: { variant: "secondary", label: "Draft" },
-      PUBLISHED: { variant: "success", label: "Published" },
-      CLOSED: { variant: "warning", label: "Closed" },
+      PUBLISHED: { variant: "default", label: "Published" },
+      CLOSED: { variant: "purple", label: "Closed" },
       ARCHIVED: { variant: "destructive", label: "Archived" },
     }
-    const config = statusMap[status] || { variant: "secondary", label: status }
+    const config = statusMap[status] || { variant: "secondary" as const, label: status }
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
   const getApplicationStatusBadge = (status: string) => {
-    const statusMap: Record<string, { variant: "default" | "secondary" | "success" | "destructive" | "warning"; label: string }> = {
-      OPEN: { variant: "success", label: "Open" },
+    const statusMap: Record<string, { variant: "default" | "secondary" | "destructive"; label: string }> = {
+      OPEN: { variant: "default", label: "Open" },
       CLOSED: { variant: "destructive", label: "Closed" },
-      PAUSED: { variant: "warning", label: "Paused" },
+      PAUSED: { variant: "secondary", label: "Paused" },
       BY_INVITATION: { variant: "secondary", label: "By Invitation" },
     }
-    const config = statusMap[status] || { variant: "secondary", label: status }
+    const config = statusMap[status] || { variant: "secondary" as const, label: status }
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
