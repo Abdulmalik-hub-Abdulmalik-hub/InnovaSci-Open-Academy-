@@ -28,6 +28,7 @@ interface Stats {
   activeScholarships: number
   totalApplications: number
   pendingApplications: number
+  underReviewApplications: number
   approvedApplications: number
   rejectedApplications: number
   awardedApplications: number
