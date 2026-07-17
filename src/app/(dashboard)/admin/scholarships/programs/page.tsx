@@ -395,7 +395,7 @@ export default function ScholarshipProgramsPage() {
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           {scholarship.status === "DRAFT" && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(solarship.id, "PUBLISHED")}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(scholarship.id, "PUBLISHED")}>
                               <Star className="h-4 w-4 mr-2" />
                               Publish
                             </DropdownMenuItem>
