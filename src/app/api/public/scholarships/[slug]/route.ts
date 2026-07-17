@@ -24,7 +24,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
           },
         },
         customQuestions: {
-          where: { scholarshipId: undefined }, // Only get global questions
           orderBy: { orderIndex: "asc" },
         },
       },
