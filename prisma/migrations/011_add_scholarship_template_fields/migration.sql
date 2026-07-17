@@ -1,18 +1,49 @@
 -- Migration: Add rich template fields to ScholarshipType
 -- This extends the ScholarshipType model to support auto-fill functionality
 
--- Add new columns to scholarship_types table
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "shortName" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "objectives" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "eligibility" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "benefits" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "badge" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "banner" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "seoTitle" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "seoDescription" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "seoKeywords" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "tags" TEXT;
-ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "isCustom" BOOLEAN NOT NULL DEFAULT false;
+-- Check if scholarship_types table exists, if not create it with all fields
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'scholarship_types') THEN
+        -- Create the table if it doesn't exist
+        CREATE TABLE "scholarship_types" (
+            "id" TEXT NOT NULL PRIMARY KEY DEFAULT gen_random_uuid()::text,
+            "name" TEXT NOT NULL UNIQUE,
+            "slug" TEXT NOT NULL UNIQUE,
+            "shortName" TEXT,
+            "description" TEXT,
+            "objectives" TEXT,
+            "eligibility" TEXT,
+            "benefits" TEXT,
+            "icon" TEXT,
+            "color" TEXT,
+            "badge" TEXT,
+            "banner" TEXT,
+            "seoTitle" TEXT,
+            "seoDescription" TEXT,
+            "seoKeywords" TEXT,
+            "tags" TEXT,
+            "isActive" BOOLEAN NOT NULL DEFAULT true,
+            "isCustom" BOOLEAN NOT NULL DEFAULT false,
+            "orderIndex" INTEGER NOT NULL DEFAULT 0,
+            "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+            "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
+        );
+    ELSE
+        -- Add new columns to existing table
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "shortName" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "objectives" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "eligibility" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "benefits" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "badge" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "banner" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "seoTitle" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "seoDescription" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "seoKeywords" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "tags" TEXT;
+        ALTER TABLE "scholarship_types" ADD COLUMN IF NOT EXISTS "isCustom" BOOLEAN NOT NULL DEFAULT false;
+    END IF;
+END $$;
 
 -- Update existing types with isCustom flag (they're templates, not custom)
 UPDATE "scholarship_types" SET "isCustom" = false WHERE "isCustom" IS NULL;
