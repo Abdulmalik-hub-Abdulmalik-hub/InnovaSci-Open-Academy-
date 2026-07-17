@@ -372,12 +372,6 @@ export default function ScholarshipDashboard() {
       {/* Navigation Links */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         <NavCard
-          href="/admin/scholarships/types"
-          title="Scholarship Types"
-          description="Manage scholarship categories and classifications"
-          icon={Award}
-        />
-        <NavCard
           href="/admin/scholarships/programs"
           title="Scholarship Programs"
           description="Create, edit, and manage scholarship programs"

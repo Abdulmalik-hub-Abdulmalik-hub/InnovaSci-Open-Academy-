@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
-import { motion } from "framer-motion"
+import { motion, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -16,7 +16,8 @@ import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import {
   ArrowLeft, Save, Eye, Calendar, DollarSign, Users, FileText,
-  Globe, Settings, Shield, Award, Loader2, Plus, X, Info
+  Globe, Settings, Shield, Award, Loader2, Plus, X, Info,
+  ChevronDown, ChevronUp, Sparkles, Check, AlertCircle, RefreshCw
 } from "lucide-react"
 import toast from "react-hot-toast"
 
@@ -24,22 +25,21 @@ interface ScholarshipType {
   id: string
   name: string
   slug: string
-  shortName?: string | null
-  icon?: string
-  color?: string
-  isCustom?: boolean
-  templateData?: {
-    description: string | null
-    objectives: string | null
-    eligibility: string | null
-    benefits: string | null
-    icon: string | null
-    color: string | null
-    seoTitle: string | null
-    seoDescription: string | null
-    seoKeywords: string | null
-    tags: string | null
-  } | null
+  shortName: string | null
+  description: string | null
+  objectives: string | null
+  eligibility: string | null
+  benefits: string | null
+  icon: string | null
+  color: string | null
+  badge: string | null
+  seoTitle: string | null
+  seoDescription: string | null
+  seoKeywords: string | null
+  tags: string | null
+  isCustom: boolean
+  isActive: boolean
+  orderIndex: number
 }
 
 interface Sponsor {
@@ -48,6 +48,58 @@ interface Sponsor {
   logo?: string
 }
 
+interface CustomTypeFormData {
+  name: string
+  shortName: string
+  slug: string
+  description: string
+  objectives: string
+  eligibility: string
+  benefits: string
+  icon: string
+  color: string
+  badge: string
+  seoTitle: string
+  seoDescription: string
+  seoKeywords: string
+  tags: string
+  isActive: boolean
+}
+
+const ICON_OPTIONS = [
+  { value: "GraduationCap", label: "Graduation Cap" },
+  { value: "Star", label: "Star" },
+  { value: "Heart", label: "Heart" },
+  { value: "FlaskConical", label: "Flask" },
+  { value: "Globe", label: "Globe" },
+  { value: "Lightbulb", label: "Lightbulb" },
+  { value: "Crown", label: "Crown" },
+  { value: "Users", label: "Users" },
+  { value: "Briefcase", label: "Briefcase" },
+  { value: "Accessibility", label: "Accessibility" },
+  { value: "Building", label: "Building" },
+  { value: "Sparkles", label: "Sparkles" },
+  { value: "Rocket", label: "Rocket" },
+  { value: "Brain", label: "Brain" },
+  { value: "Stethoscope", label: "Stethoscope" },
+  { value: "Dna", label: "DNA" },
+  { value: "Atom", label: "Atom" },
+  { value: "Pill", label: "Pill" },
+  { value: "Sprout", label: "Sprout" },
+  { value: "Cpu", label: "CPU" },
+  { value: "Box", label: "Box" },
+  { value: "Leaf", label: "Leaf" },
+  { value: "Target", label: "Target" },
+  { value: "Award", label: "Award" },
+]
+
+const COLOR_OPTIONS = [
+  "#8B5CF6", "#F59E0B", "#EC4899", "#3B82F6", "#10B981",
+  "#F97316", "#EAB308", "#14B8A6", "#06B6D4", "#A855F7",
+  "#64748B", "#F472B6", "#22C55E", "#6366F1", "#EF4444",
+  "#0EA5E9", "#14B8A6", "#F43F5E", "#84CC16", "#3B82F6",
+]
+
 export default function NewScholarshipPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
@@ -55,7 +107,29 @@ export default function NewScholarshipPage() {
   const [scholarshipTypes, setScholarshipTypes] = useState<ScholarshipType[]>([])
   const [sponsors, setSponsors] = useState<Sponsor[]>([])
   const [activeTab, setActiveTab] = useState("basic")
-  const [selectedTemplate, setSelectedTemplate] = useState<ScholarshipType | null>(null)
+  const [selectedType, setSelectedType] = useState<ScholarshipType | null>(null)
+  const [showCustomForm, setShowCustomForm] = useState(false)
+  const [creatingCustomType, setCreatingCustomType] = useState(false)
+  const [autoFilledFromTemplate, setAutoFilledFromTemplate] = useState(false)
+
+  // Custom type form state
+  const [customTypeForm, setCustomTypeForm] = useState<CustomTypeFormData>({
+    name: "",
+    shortName: "",
+    slug: "",
+    description: "",
+    objectives: "",
+    eligibility: "",
+    benefits: "",
+    icon: "Sparkles",
+    color: "#6366F1",
+    badge: "",
+    seoTitle: "",
+    seoDescription: "",
+    seoKeywords: "",
+    tags: "",
+    isActive: true,
+  })
 
   // Form state
   const [formData, setFormData] = useState({
@@ -137,39 +211,38 @@ export default function NewScholarshipPage() {
   })
 
   // Fetch scholarship types and sponsors
-  useEffect(() => {
-    const fetchData = async () => {
-      setTypesLoading(true)
-      try {
-        // Fetch scholarship types (only active ones for the dropdown)
-        const typesResponse = await fetch("/api/public/scholarships/types")
-        const typesData = await typesResponse.json()
-        if (typesData.success && typesData.data) {
-          // Filter to only show active types
-          setScholarshipTypes(typesData.data.filter((t: any) => t.isActive !== false))
-        }
-        
-        // Fetch sponsors
-        try {
-          const sponsorsResponse = await fetch("/api/admin/scholarships/sponsors?limit=100")
-          const sponsorsData = await sponsorsResponse.json()
-          if (sponsorsData.success) {
-            setSponsors(sponsorsData.data?.sponsors || [])
-          }
-        } catch (e) {
-          // Sponsors might not be configured yet
-          console.log("Sponsors not available")
-        }
-      } catch (error) {
-        console.error("Error fetching data:", error)
-        toast.error("Failed to load form data")
-      } finally {
-        setTypesLoading(false)
+  const fetchData = useCallback(async () => {
+    setTypesLoading(true)
+    try {
+      // Fetch scholarship types from admin API
+      const typesResponse = await fetch("/api/admin/scholarships/types")
+      const typesData = await typesResponse.json()
+      if (typesData.success && typesData.data) {
+        const activeTypes = typesData.data.types.filter((t: ScholarshipType) => t.isActive !== false)
+        setScholarshipTypes(activeTypes)
       }
+      
+      // Fetch sponsors
+      try {
+        const sponsorsResponse = await fetch("/api/admin/scholarships/sponsors?limit=100")
+        const sponsorsData = await sponsorsResponse.json()
+        if (sponsorsData.success) {
+          setSponsors(sponsorsData.data?.sponsors || [])
+        }
+      } catch (e) {
+        console.log("Sponsors not available")
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error)
+      toast.error("Failed to load form data")
+    } finally {
+      setTypesLoading(false)
     }
-    
-    fetchData()
   }, [])
+
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
 
   // Auto-generate slug from name
   useEffect(() => {
@@ -184,41 +257,172 @@ export default function NewScholarshipPage() {
     }
   }, [formData.name])
 
+  // Auto-generate custom type slug
+  useEffect(() => {
+    if (customTypeForm.name && !customTypeForm.slug) {
+      const generatedSlug = customTypeForm.name
+        .toLowerCase()
+        .replace(/[^a-z0-9\s-]/g, "")
+        .replace(/\s+/g, "-")
+        .replace(/-+/g, "-")
+        .substring(0, 50)
+      setCustomTypeForm((prev) => ({ ...prev, slug: generatedSlug }))
+    }
+  }, [customTypeForm.name])
+
   const handleChange = (field: string, value: string | boolean | number) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
   }
 
-  // Auto-fill form when a scholarship type is selected
+  const handleCustomTypeChange = (field: keyof CustomTypeFormData, value: string | boolean) => {
+    setCustomTypeForm((prev) => ({ ...prev, [field]: value }))
+  }
+
+  // Handle scholarship type selection
   const handleTypeSelect = (typeId: string) => {
-    const selectedType = scholarshipTypes.find(t => t.id === typeId)
-    setSelectedTemplate(selectedType || null)
+    if (typeId === "__custom__") {
+      setSelectedType(null)
+      setShowCustomForm(true)
+      setAutoFilledFromTemplate(false)
+      return
+    }
+
+    const type = scholarshipTypes.find(t => t.id === typeId)
+    setSelectedType(type || null)
+    setShowCustomForm(false)
     
-    if (selectedType && selectedType.templateData) {
-      // Auto-fill from template (except for custom type)
-      if (selectedType.isCustom) {
-        // Custom type - leave all fields empty for manual entry
-        toast.success("Custom Scholarship selected - fill in your own details")
-      } else {
-        // Template type - auto-fill all template fields
-        const template = selectedType.templateData
+    if (type) {
+      // Auto-fill from template
+      setFormData(prev => ({
+        ...prev,
+        typeId,
+        description: type.description || prev.description,
+        objectives: type.objectives || prev.objectives,
+        eligibility: type.eligibility || prev.eligibility,
+        benefits: type.benefits || prev.benefits,
+        seoTitle: type.seoTitle || prev.seoTitle,
+        seoDescription: type.seoDescription || prev.seoDescription,
+        seoKeywords: type.seoKeywords || prev.seoKeywords,
+        icon: type.icon || prev.icon,
+        color: type.color || prev.color,
+      }))
+      setAutoFilledFromTemplate(true)
+      toast.success(`"${type.name}" template applied - all fields are editable`)
+    }
+  }
+
+  // Create custom scholarship type
+  const handleCreateCustomType = async () => {
+    if (!customTypeForm.name.trim()) {
+      toast.error("Type name is required")
+      return
+    }
+    if (!customTypeForm.slug.trim()) {
+      toast.error("Type slug is required")
+      return
+    }
+
+    setCreatingCustomType(true)
+    try {
+      const response = await fetch("/api/admin/scholarships/types", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: customTypeForm.name.trim(),
+          shortName: customTypeForm.shortName.trim() || undefined,
+          slug: customTypeForm.slug.trim(),
+          description: customTypeForm.description.trim() || undefined,
+          objectives: customTypeForm.objectives.trim() || undefined,
+          eligibility: customTypeForm.eligibility.trim() || undefined,
+          benefits: customTypeForm.benefits.trim() || undefined,
+          icon: customTypeForm.icon,
+          color: customTypeForm.color,
+          badge: customTypeForm.badge.trim() || undefined,
+          seoTitle: customTypeForm.seoTitle.trim() || undefined,
+          seoDescription: customTypeForm.seoDescription.trim() || undefined,
+          seoKeywords: customTypeForm.seoKeywords.trim() || undefined,
+          tags: customTypeForm.tags.trim() || undefined,
+          isActive: customTypeForm.isActive,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (data.success) {
+        const newType = data.data.type
+        
+        // Refresh the types list
+        await fetchData()
+        
+        // Select the new type and auto-fill
+        setSelectedType(newType)
+        setShowCustomForm(false)
         setFormData(prev => ({
           ...prev,
-          typeId,
-          description: template.description || prev.description,
-          objectives: template.objectives || prev.objectives,
-          eligibility: template.eligibility || prev.eligibility,
-          benefits: template.benefits || prev.benefits,
-          seoTitle: template.seoTitle || prev.seoTitle,
-          seoDescription: template.seoDescription || prev.seoDescription,
-          seoKeywords: template.seoKeywords || prev.seoKeywords,
-          icon: template.icon || prev.icon,
-          color: template.color || prev.color,
+          typeId: newType.id,
+          description: newType.description || prev.description,
+          objectives: newType.objectives || prev.objectives,
+          eligibility: newType.eligibility || prev.eligibility,
+          benefits: newType.benefits || prev.benefits,
+          seoTitle: newType.seoTitle || prev.seoTitle,
+          seoDescription: newType.seoDescription || prev.seoDescription,
+          seoKeywords: newType.seoKeywords || prev.seoKeywords,
+          icon: newType.icon || prev.icon,
+          color: newType.color || prev.color,
         }))
-        toast.success(`"${selectedType.name}" template applied - fields auto-filled`)
+        setAutoFilledFromTemplate(true)
+        
+        toast.success(`Custom type "${newType.name}" created and applied!`)
+        
+        // Reset custom type form
+        setCustomTypeForm({
+          name: "",
+          shortName: "",
+          slug: "",
+          description: "",
+          objectives: "",
+          eligibility: "",
+          benefits: "",
+          icon: "Sparkles",
+          color: "#6366F1",
+          badge: "",
+          seoTitle: "",
+          seoDescription: "",
+          seoKeywords: "",
+          tags: "",
+          isActive: true,
+        })
+      } else {
+        toast.error(data.error || "Failed to create custom type")
       }
-    } else {
-      handleChange("typeId", typeId)
+    } catch (error) {
+      console.error("Error creating custom type:", error)
+      toast.error("Failed to create custom type")
+    } finally {
+      setCreatingCustomType(false)
     }
+  }
+
+  // Cancel custom type creation
+  const handleCancelCustomType = () => {
+    setShowCustomForm(false)
+    setCustomTypeForm({
+      name: "",
+      shortName: "",
+      slug: "",
+      description: "",
+      objectives: "",
+      eligibility: "",
+      benefits: "",
+      icon: "Sparkles",
+      color: "#6366F1",
+      badge: "",
+      seoTitle: "",
+      seoDescription: "",
+      seoKeywords: "",
+      tags: "",
+      isActive: true,
+    })
   }
 
   const handleSubmit = async (publish: boolean = false) => {
@@ -473,43 +677,246 @@ export default function NewScholarshipPage() {
                   {typesLoading ? (
                     <Skeleton className="h-10 w-full bg-white/5" />
                   ) : (
-                    <Select value={formData.typeId} onValueChange={(v) => handleTypeSelect(v)}>
+                    <Select 
+                      value={formData.typeId || "__placeholder__"} 
+                      onValueChange={(v) => {
+                        if (v !== "__placeholder__") {
+                          handleTypeSelect(v)
+                        }
+                      }}
+                    >
                       <SelectTrigger className="bg-white/5 border-white/10 text-white">
                         <SelectValue placeholder="Select a scholarship type to auto-fill fields" />
                       </SelectTrigger>
-                      <SelectContent className="bg-[#1a1a2e] border-white/10">
+                      <SelectContent className="bg-[#1a1a2e] border-white/10 max-h-[400px]">
                         {scholarshipTypes.map((type) => (
                           <SelectItem key={type.id} value={type.id}>
                             <div className="flex items-center gap-2">
                               {type.color && (
                                 <div
-                                  className="w-3 h-3 rounded-full"
+                                  className="w-3 h-3 rounded-full flex-shrink-0"
                                   style={{ backgroundColor: type.color }}
                                 />
                               )}
-                              {type.name}
-                              {type.isCustom && (
-                                <Badge variant="outline" className="ml-2 text-xs border-teal-500/50 text-teal-400">
-                                  Custom
-                                </Badge>
-                              )}
+                              <span className="truncate">{type.shortName || type.name}</span>
                             </div>
                           </SelectItem>
                         ))}
+                        <div className="border-t border-white/10 my-1" />
+                        <SelectItem value="__custom__">
+                          <div className="flex items-center gap-2 text-teal-400">
+                            <Sparkles className="h-4 w-4" />
+                            <span className="font-medium">Create Custom Type...</span>
+                          </div>
+                        </SelectItem>
                       </SelectContent>
                     </Select>
                   )}
-                  {selectedTemplate && (
-                    <p className="text-xs text-white/50 mt-1 flex items-center gap-1">
-                      <Info className="h-3 w-3" />
-                      {selectedTemplate.isCustom 
-                        ? "No auto-fill - enter your own details below"
-                        : `"${selectedTemplate.name}" selected - fields will be auto-filled`
-                      }
+                  {selectedType && (
+                    <p className="text-xs text-green-400 mt-1 flex items-center gap-1">
+                      <Check className="h-3 w-3" />
+                      "{selectedType.name}" selected - fields auto-filled and are editable
+                    </p>
+                  )}
+                  {autoFilledFromTemplate && !selectedType && (
+                    <p className="text-xs text-amber-400 mt-1 flex items-center gap-1">
+                      <AlertCircle className="h-3 w-3" />
+                      Custom type created - fields are editable
                     </p>
                   )}
                 </FormField>
               </div>
+
+              {/* Inline Custom Type Form */}
+              <AnimatePresence>
+                {showCustomForm && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.3 }}
+                    className="overflow-hidden"
+                  >
+                    <Card className="bg-gradient-to-br from-teal-500/10 to-purple-500/10 border-teal-500/30 mt-4">
+                      <CardHeader className="pb-3">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-lg bg-teal-500/20 flex items-center justify-center">
+                              <Sparkles className="h-5 w-5 text-teal-400" />
+                            </div>
+                            <div>
+                              <CardTitle className="text-white text-lg">Create Custom Scholarship Type</CardTitle>
+                              <CardDescription className="text-white/60">
+                                Define a new scholarship type that will be saved to the database
+                              </CardDescription>
+                            </div>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={handleCancelCustomType}
+                            className="text-white/60 hover:text-white"
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField label="Type Name" required>
+                            <Input
+                              value={customTypeForm.name}
+                              onChange={(e) => handleCustomTypeChange("name", e.target.value)}
+                              placeholder="e.g., AI Innovation Scholarship"
+                              className="bg-white/5 border-white/10 text-white"
+                            />
+                          </FormField>
+                          <FormField label="Short Name">
+                            <Input
+                              value={customTypeForm.shortName}
+                              onChange={(e) => handleCustomTypeChange("shortName", e.target.value)}
+                              placeholder="e.g., AI Innovation"
+                              className="bg-white/5 border-white/10 text-white"
+                            />
+                          </FormField>
+                        </div>
+                        
+                        <FormField label="Slug" required description="Used for URL and identification">
+                          <Input
+                            value={customTypeForm.slug}
+                            onChange={(e) => handleCustomTypeChange("slug", e.target.value)}
+                            placeholder="auto-generated-from-name"
+                            className="bg-white/5 border-white/10 text-white"
+                          />
+                        </FormField>
+
+                        <FormField label="Description">
+                          <Textarea
+                            value={customTypeForm.description}
+                            onChange={(e) => handleCustomTypeChange("description", e.target.value)}
+                            placeholder="Describe what this scholarship type is about..."
+                            className="bg-white/5 border-white/10 text-white min-h-[60px]"
+                          />
+                        </FormField>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <FormField label="Icon">
+                            <Select 
+                              value={customTypeForm.icon} 
+                              onValueChange={(v) => handleCustomTypeChange("icon", v)}
+                            >
+                              <SelectTrigger className="bg-white/5 border-white/10 text-white">
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent className="bg-[#1a1a2e] border-white/10">
+                                {ICON_OPTIONS.map((opt) => (
+                                  <SelectItem key={opt.value} value={opt.value}>
+                                    {opt.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </FormField>
+                          <FormField label="Color">
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="w-10 h-10 rounded-lg border border-white/20 flex-shrink-0"
+                                style={{ backgroundColor: customTypeForm.color }}
+                              />
+                              <Select 
+                                value={customTypeForm.color} 
+                                onValueChange={(v) => handleCustomTypeChange("color", v)}
+                              >
+                                <SelectTrigger className="bg-white/5 border-white/10 text-white flex-1">
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent className="bg-[#1a1a2e] border-white/10">
+                                  {COLOR_OPTIONS.map((color) => (
+                                    <SelectItem key={color} value={color}>
+                                      <div className="flex items-center gap-2">
+                                        <div
+                                          className="w-4 h-4 rounded"
+                                          style={{ backgroundColor: color }}
+                                        />
+                                        {color}
+                                      </div>
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </FormField>
+                        </div>
+
+                        <FormField label="Objectives">
+                          <Textarea
+                            value={customTypeForm.objectives}
+                            onChange={(e) => handleCustomTypeChange("objectives", e.target.value)}
+                            placeholder="What are the objectives of this scholarship type?"
+                            className="bg-white/5 border-white/10 text-white min-h-[60px]"
+                          />
+                        </FormField>
+
+                        <FormField label="Eligibility Criteria">
+                          <Textarea
+                            value={customTypeForm.eligibility}
+                            onChange={(e) => handleCustomTypeChange("eligibility", e.target.value)}
+                            placeholder="Who is eligible for this type of scholarship?"
+                            className="bg-white/5 border-white/10 text-white min-h-[60px]"
+                          />
+                        </FormField>
+
+                        <FormField label="Benefits">
+                          <Textarea
+                            value={customTypeForm.benefits}
+                            onChange={(e) => handleCustomTypeChange("benefits", e.target.value)}
+                            placeholder="What benefits does this scholarship type provide?"
+                            className="bg-white/5 border-white/10 text-white min-h-[60px]"
+                          />
+                        </FormField>
+
+                        <div className="flex items-center justify-between pt-4 border-t border-white/10">
+                          <div className="flex items-center gap-2">
+                            <Switch
+                              checked={customTypeForm.isActive}
+                              onCheckedChange={(checked) => handleCustomTypeChange("isActive", checked)}
+                            />
+                            <span className="text-sm text-white/70">
+                              {customTypeForm.isActive ? "Active (available in dropdown)" : "Inactive"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              onClick={handleCancelCustomType}
+                              className="border-white/20 text-white hover:bg-white/10"
+                            >
+                              Cancel
+                            </Button>
+                            <Button
+                              onClick={handleCreateCustomType}
+                              disabled={creatingCustomType}
+                              className="bg-gradient-to-r from-teal-500 to-purple-500 hover:from-teal-600 hover:to-purple-600"
+                            >
+                              {creatingCustomType ? (
+                                <>
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                  Creating...
+                                </>
+                              ) : (
+                                <>
+                                  <Sparkles className="h-4 w-4 mr-2" />
+                                  Create & Apply Type
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )}
+              </AnimatePresence>
 
               <FormField label="Description">
                 <Textarea
