@@ -341,7 +341,7 @@ export default function ScholarshipAnalyticsPage() {
                     <td className="py-3 px-4 text-right text-white">{scholarship.applications}</td>
                     <td className="py-3 px-4 text-right text-white">{scholarship.views}</td>
                     <td className="py-3 px-4 text-right">
-                      <Badge variant={scholarship.conversionRate > 10 ? "success" : "secondary"}>
+                      <Badge variant={scholarship.conversionRate > 10 ? "default" : "secondary"}>
                         {scholarship.conversionRate}%
                       </Badge>
                     </td>
