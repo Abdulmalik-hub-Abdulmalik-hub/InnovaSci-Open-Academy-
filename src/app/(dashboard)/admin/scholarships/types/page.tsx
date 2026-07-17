@@ -241,7 +241,7 @@ export default function ScholarshipTypesPage() {
                       />
                     </div>
                     <div className="flex items-center gap-2">
-                      <Badge variant={type.isActive ? "success" : "secondary"}>
+                      <Badge variant={type.isActive ? "default" : "secondary"}>
                         {type.isActive ? "Active" : "Inactive"}
                       </Badge>
                       <DropdownMenu>

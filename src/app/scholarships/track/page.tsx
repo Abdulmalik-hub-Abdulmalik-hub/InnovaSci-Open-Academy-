@@ -120,17 +120,17 @@ export default function TrackApplicationPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { variant: "default" | "secondary" | "success" | "destructive" | "warning"; label: string; icon: any }> = {
+    const statusMap: Record<string, { variant: "default" | "secondary" | "destructive" | "purple"; label: string; icon: any }> = {
       SUBMITTED: { variant: "secondary", label: "Submitted", icon: FileText },
-      UNDER_REVIEW: { variant: "warning", label: "Under Review", icon: Clock },
-      INTERVIEW: { variant: "warning", label: "Interview Scheduled", icon: Calendar },
-      APPROVED: { variant: "success", label: "Approved", icon: CheckCircle },
+      UNDER_REVIEW: { variant: "purple", label: "Under Review", icon: Clock },
+      INTERVIEW: { variant: "purple", label: "Interview Scheduled", icon: Calendar },
+      APPROVED: { variant: "default", label: "Approved", icon: CheckCircle },
       REJECTED: { variant: "destructive", label: "Not Selected", icon: XCircle },
-      WAITLISTED: { variant: "warning", label: "Waitlisted", icon: Clock },
-      AWARDED: { variant: "success", label: "Awarded", icon: CheckCircle },
-      ENROLLED: { variant: "success", label: "Enrolled", icon: GraduationCap },
+      WAITLISTED: { variant: "purple", label: "Waitlisted", icon: Clock },
+      AWARDED: { variant: "default", label: "Awarded", icon: CheckCircle },
+      ENROLLED: { variant: "default", label: "Enrolled", icon: GraduationCap },
     }
-    const config = statusMap[status] || { variant: "secondary", label: status, icon: AlertCircle }
+    const config = statusMap[status] || { variant: "secondary" as const, label: status, icon: AlertCircle }
     return (
       <Badge variant={config.variant} className="flex items-center gap-1">
         <config.icon className="h-3 w-3" />
@@ -420,7 +420,7 @@ export default function TrackApplicationPage() {
                               <p className="text-xs text-white/40">{doc.fileName}</p>
                             </div>
                           </div>
-                          <Badge variant={doc.status === "VERIFIED" ? "success" : "secondary"}>
+                          <Badge variant={doc.status === "VERIFIED" ? "default" : "secondary"}>
                             {doc.status}
                           </Badge>
                         </div>

@@ -108,12 +108,12 @@ export default function ScholarshipSponsorsPage() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { variant: "default" | "secondary" | "success" | "destructive"; label: string }> = {
-      ACTIVE: { variant: "success", label: "Active" },
+    const statusMap: Record<string, { variant: "default" | "secondary" | "destructive"; label: string }> = {
+      ACTIVE: { variant: "default", label: "Active" },
       INACTIVE: { variant: "secondary", label: "Inactive" },
       SUSPENDED: { variant: "destructive", label: "Suspended" },
     }
-    const config = statusMap[status] || { variant: "secondary", label: status }
+    const config = statusMap[status] || { variant: "secondary" as const, label: status }
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
