@@ -91,17 +91,17 @@ export default function ScholarshipsDashboard() {
   }
 
   const getStatusBadge = (status: string) => {
-    const statusMap: Record<string, { variant: "default" | "secondary" | "success" | "destructive" | "warning"; label: string }> = {
+    const statusMap: Record<string, { variant: "default" | "secondary" | "destructive" | "purple"; label: string }> = {
       SUBMITTED: { variant: "secondary", label: "Submitted" },
-      UNDER_REVIEW: { variant: "warning", label: "Under Review" },
-      INTERVIEW: { variant: "warning", label: "Interview" },
-      APPROVED: { variant: "success", label: "Approved" },
+      UNDER_REVIEW: { variant: "purple", label: "Under Review" },
+      INTERVIEW: { variant: "purple", label: "Interview" },
+      APPROVED: { variant: "default", label: "Approved" },
       REJECTED: { variant: "destructive", label: "Rejected" },
-      WAITLISTED: { variant: "warning", label: "Waitlisted" },
-      AWARDED: { variant: "success", label: "Awarded" },
-      ENROLLED: { variant: "success", label: "Enrolled" },
+      WAITLISTED: { variant: "purple", label: "Waitlisted" },
+      AWARDED: { variant: "default", label: "Awarded" },
+      ENROLLED: { variant: "default", label: "Enrolled" },
     }
-    const config = statusMap[status] || { variant: "secondary", label: status }
+    const config = statusMap[status] || { variant: "secondary" as const, label: status }
     return <Badge variant={config.variant}>{config.label}</Badge>
   }
 
