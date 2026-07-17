@@ -13,6 +13,10 @@ const badgeVariants = cva(
           "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80",
         destructive:
           "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80",
+        success:
+          "border-transparent bg-green-500/20 text-green-400 hover:bg-green-500/30",
+        warning:
+          "border-transparent bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30",
         outline: "text-foreground",
         
         // InnovaSci Brand Color Variants
