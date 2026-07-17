@@ -7,5 +7,5 @@ npx prisma migrate resolve --rolled-back 006_fix_schema_consistency 2>/dev/null 
 npx prisma migrate resolve --rolled-back 007_add_categories 2>/dev/null || true
 npx prisma migrate resolve --rolled-back 011_add_scholarship_template_fields 2>/dev/null || true
 
-# Deploy remaining migrations, seed database, and build
-npx prisma migrate deploy && npx prisma db seed && next build
+# Deploy remaining migrations and build
+npx prisma migrate deploy && next build
