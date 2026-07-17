@@ -194,7 +194,7 @@ export default function ScholarshipsDashboard() {
           <CardContent>
             <div className="text-3xl font-bold text-white">{stats?.rejectedApplications || 0}</div>
             <p className="text-xs text-orange-300 mt-1">
-              {stats?.underReviewApplications || 0} under review
+              {stats?.pendingApplications || 0} pending
             </p>
           </CardContent>
         </Card>
