@@ -401,7 +401,7 @@ export default function ScholarshipProgramsPage() {
                             </DropdownMenuItem>
                           )}
                           {scholarship.status === "PUBLISHED" && (
-                            <DropdownMenuItem onClick={() => handleStatusChange(solarship.id, "CLOSED")}>
+                            <DropdownMenuItem onClick={() => handleStatusChange(scholarship.id, "CLOSED")}>
                               <Archive className="h-4 w-4 mr-2" />
                               Close
                             </DropdownMenuItem>
