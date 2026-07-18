@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { Prisma } from "@prisma/client"
 
 // Force dynamic rendering
 export const dynamic = 'force-dynamic';
@@ -119,16 +120,20 @@ export async function GET(request: NextRequest) {
       take: 10,
     })
 
-    // Get daily application trend
-    const dailyTrend = await prisma.scholarshipApplication.groupBy({
-      by: ['createdAt'],
-      _count: true,
-      where: {
-        ...whereClause,
-        createdAt: { gte: startDate },
-      },
-      orderBy: { createdAt: 'asc' },
-    })
+    // Get daily application trend - use raw SQL for date truncation
+    const dailyTrendRaw = await prisma.$queryRaw<Array<{ date: Date; count: bigint }>>`
+      SELECT DATE_TRUNC('day', "createdAt") as date, COUNT(*) as count
+      FROM "ScholarshipApplication"
+      WHERE "createdAt" >= ${startDate}
+      ${scholarshipId ? Prisma.sql`AND "scholarshipId" = ${scholarshipId}` : Prisma.empty}
+      GROUP BY DATE_TRUNC('day', "createdAt")
+      ORDER BY date ASC
+    `
+
+    const dailyTrend = dailyTrendRaw.map(d => ({
+      createdAt: d.date,
+      _count: Number(d.count)
+    }))
 
     // Get applications by country
     const countryStats = await prisma.scholarshipApplication.groupBy({
