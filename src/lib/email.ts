@@ -434,3 +434,147 @@ export async function sendTicketStatusNotification(data: TicketEmailData): Promi
     html: wrapInEmailTemplate(content, "Status Update"),
   })
 }
+
+// ============================================
+// SCHOLARSHIP EMAIL NOTIFICATIONS
+// ============================================
+
+interface ScholarshipDecisionEmailData {
+  to: string
+  applicationNumber: string
+  trackingNumber: string
+  scholarshipName: string
+  decision: string
+  notes?: string
+}
+
+export async function sendScholarshipDecisionEmail(data: ScholarshipDecisionEmailData): Promise<SendEmailResult> {
+  const { to, applicationNumber, trackingNumber, scholarshipName, decision, notes } = data
+  const isApproved = decision === "APPROVED"
+  
+  const statusIcon = isApproved 
+    ? `<div style="width: 64px; height: 64px; background: #10B98120; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>`
+    : `<div style="width: 64px; height: 64px; background: #EF444420; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#EF4444" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </div>`
+
+  const content = `
+    ${statusIcon}
+    <h2 style="text-align: center; color: ${isApproved ? '#10B981' : '#EF4444'};">
+      Application ${isApproved ? 'Approved' : 'Not Approved'}
+    </h2>
+    
+    <div style="background: #f9fafb; padding: 20px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Scholarship</p>
+      <p style="margin: 0 0 16px; color: #1f2937; font-size: 18px; font-weight: bold;">${scholarshipName}</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <p style="margin: 0 0 4px; color: #6b7280; font-size: 12px;">Application Number</p>
+          <p style="margin: 0; color: #1f2937; font-family: monospace;">${applicationNumber}</p>
+        </div>
+        <div>
+          <p style="margin: 0 0 4px; color: #6b7280; font-size: 12px;">Tracking Number</p>
+          <p style="margin: 0; color: #1f2937; font-family: monospace;">${trackingNumber}</p>
+        </div>
+      </div>
+    </div>
+    
+    ${notes ? `
+      <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Feedback from Review Team:</p>
+        <p style="margin: 0; color: #1f2937;">${notes}</p>
+      </div>
+    ` : ''}
+    
+    ${isApproved ? `
+      <div style="background: #10B98120; border: 1px solid #10B98140; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
+        <p style="margin: 0; color: #10B981; font-weight: bold;">
+          Congratulations! You will receive an award letter with next steps.
+        </p>
+      </div>
+    ` : `
+      <div style="background: #f3f4f6; padding: 16px; border-radius: 8px; margin: 20px 0;">
+        <p style="margin: 0; color: #6b7280;">
+          We encourage you to apply for future scholarship opportunities. Keep an eye on our scholarships page for new openings.
+        </p>
+      </div>
+    `}
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${APP_URL}/scholarships/track" class="button">Track Your Application</a>
+    </div>
+  `
+  
+  return sendEmail({
+    to,
+    subject: `Scholarship Application ${isApproved ? 'Approved' : 'Update'} - ${scholarshipName}`,
+    html: wrapInEmailTemplate(content, "Scholarship Application Update")
+  })
+}
+
+interface ApplicationConfirmationEmailData {
+  to: string
+  applicationNumber: string
+  trackingNumber: string
+  scholarshipName: string
+}
+
+export async function sendApplicationConfirmationEmail(data: ApplicationConfirmationEmailData): Promise<SendEmailResult> {
+  const { to, applicationNumber, trackingNumber, scholarshipName } = data
+  
+  const content = `
+    <div style="text-align: center; margin-bottom: 30px;">
+      <div style="width: 64px; height: 64px; background: #7C3AED20; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 20px;">
+        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="2">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+      </div>
+      <h2 style="color: #7C3AED; margin: 0 0 8px;">Application Submitted!</h2>
+      <p style="color: #6b7280; margin: 0;">Your application has been received</p>
+    </div>
+    
+    <div style="background: #f9fafb; padding: 24px; border-radius: 8px; margin: 20px 0;">
+      <p style="margin: 0 0 8px; color: #6b7280; font-size: 14px;">Scholarship</p>
+      <p style="margin: 0 0 16px; color: #1f2937; font-size: 18px; font-weight: bold;">${scholarshipName}</p>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+        <div>
+          <p style="margin: 0 0 4px; color: #6b7280; font-size: 12px;">Application Number</p>
+          <p style="margin: 0; color: #1f2937; font-family: monospace;">${applicationNumber}</p>
+        </div>
+        <div>
+          <p style="margin: 0 0 4px; color: #6b7280; font-size: 12px;">Tracking Number</p>
+          <p style="margin: 0; color: #1f2937; font-family: monospace;">${trackingNumber}</p>
+        </div>
+      </div>
+    </div>
+    
+    <div style="background: #7C3AED20; border: 1px solid #7C3AED40; padding: 16px; border-radius: 8px; margin: 20px 0; text-align: center;">
+      <p style="margin: 0; color: #7C3AED; font-size: 14px;">
+        <strong>Important:</strong> Save your tracking number (${trackingNumber}) to check your application status.
+      </p>
+    </div>
+    
+    <div style="text-align: center; margin: 30px 0;">
+      <a href="${APP_URL}/scholarships/track" class="button">Track Your Application</a>
+    </div>
+    
+    <p style="color: #6b7280; font-size: 14px; text-align: center;">
+      We'll notify you via email when there are updates to your application status.
+    </p>
+  `
+  
+  return sendEmail({
+    to,
+    subject: `Application Submitted - ${scholarshipName}`,
+    html: wrapInEmailTemplate(content, "Application Submitted")
+  })
+}

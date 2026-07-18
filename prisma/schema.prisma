@@ -2980,4 +2980,820 @@ model StaffNotification {
   @@map("staff_notifications")
 }
 
+// ============================================
+// SCHOLARSHIP TYPES ENUM
+// ============================================
+enum ScholarshipType {
+  FORCEWORK
+  MERIT
+  NEED_BASED
+  RESEARCH_INNOVATION
+  SPECIAL_NEED
+  COMMUNITY_IMPACT
+  FOUNDER
+  SPONSORED
+  ZAKAT_WAQF
+  TUITION_WAIVER
+  PARTIAL
+  FULL
+  FINANCIAL_AID
+}
+
+// ============================================
+// SCHOLARSHIP STATUS ENUM
+// ============================================
+enum ScholarshipStatus {
+  DRAFT
+  PUBLISHED
+  CLOSED
+  ARCHIVED
+  DISABLED
+}
+
+// ============================================
+// APPLICATION STATUS ENUM
+// ============================================
+enum ApplicationStatus {
+  DRAFT
+  SUBMITTED
+  UNDER_REVIEW
+  INTERVIEW
+  APPROVED
+  REJECTED
+  AWARDED
+  EXPIRED
+  WITHDRAWN
+}
+
+// ============================================
+// SPONSOR TYPE ENUM
+// ============================================
+enum SponsorType {
+  COMPANY
+  NGO
+  FOUNDATION
+  GOVERNMENT
+  INDIVIDUAL
+  ISLAMIC_ORG
+}
+
+// ============================================
+// SPONSOR STATUS ENUM
+// ============================================
+enum SponsorStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// ============================================
+// AWARD STATUS ENUM
+// ============================================
+enum AwardStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  REVOKED
+  EXPIRED
+}
+
+// ============================================
+// REVIEW STATUS ENUM
+// ============================================
+enum ReviewStatus {
+  PENDING
+  IN_PROGRESS
+  COMPLETED
+}
+
+// ============================================
+// SCHOLARSHIP - Main scholarship program
+// ============================================
+model Scholarship {
+  id              String   @id @default(uuid())
+  
+  // Basic Info
+  name            String
+  shortName       String?
+  slug            String   @unique
+  type            ScholarshipType
+  description     String?  @db.Text
+  objectives      String?  @db.Text
+  
+  // Requirements
+  eligibility     String?  @db.Text
+  benefits        String?  @db.Text
+  
+  // Award Details
+  coverage        String?  @db.Text
+  awardAmount     Decimal? @default(0)
+  currency        String   @default("USD")
+  availableSlots  Int?     @default(0)
+  
+  // Dates
+  openingDate     DateTime?
+  closingDate     DateTime?
+  applicationDeadline DateTime?
+  
+  // Selection
+  selectionMethod String?  // INTERVIEW, EXAM, PORTFOLIO, COMMITTEE, MIXED
+  
+  // Status & Visibility
+  status          ScholarshipStatus @default(DRAFT)
+  visibility      String   @default("PUBLIC") // PUBLIC, PRIVATE, FEATURED
+  isFeatured      Boolean  @default(false)
+  
+  // Media
+  bannerUrl       String?
+  thumbnailUrl    String?
+  color           String?
+  icon            String?
+  
+  // SEO
+  seoTitle        String?
+  seoDescription  String?
+  seoKeywords     String?
+  
+  // Configuration
+  config          Json?    // Custom configuration
+  benefitsConfig  Json?    // Benefits configuration for auto-enrollment
+  
+  // Auto-enrollment settings
+  autoEnroll      Boolean  @default(false)
+  createAccount    Boolean  @default(true)
+  assignMembership Boolean @default(false)
+  assignDomain     Boolean  @default(false)
+  assignCategory   Boolean @default(false)
+  assignCourse     Boolean  @default(false)
+  waiverFees       Boolean  @default(false)
+  
+  // Review settings
+  requireInterview Boolean  @default(false)
+  scoringRubricId String?
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  publishedAt     DateTime?
+  closedAt       DateTime?
+  
+  // Relations
+  sponsorId       String?
+  sponsor         Sponsor? @relation(fields: [sponsorId], references: [id], onDelete: SetNull)
+  
+  // Academic Relations
+  domains         ScholarshipDomain[]
+  categories      ScholarshipCategory[]
+  difficulties    ScholarshipDifficulty[]
+  certificates    ScholarshipCertificate[]
+  plans           ScholarshipPlan[]
+  
+  // Applications
+  applications    ScholarshipApplication[]
+  
+  // Reviewers
+  reviewers       ScholarshipReviewer[]
+  
+  // Custom Questions
+  customQuestions ScholarshipCustomQuestion[]
+  
+  // Analytics
+  viewCount       Int      @default(0)
+  applicationCount Int     @default(0)
+  
+  @@index([slug])
+  @@index([status])
+  @@index([visibility])
+  @@index([type])
+  @@index([isFeatured])
+  @@index([sponsorId])
+  @@index([closingDate])
+  @@map("scholarships")
+}
+
+// ============================================
+// SCHOLARSHIP DOMAIN - Domains applicable to scholarship
+// ============================================
+model ScholarshipDomain {
+  id            String   @id @default(uuid())
+  scholarshipId String
+  domainId      String
+  
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  domain        Domain     @relation(fields: [domainId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  
+  @@unique([scholarshipId, domainId])
+  @@index([scholarshipId])
+  @@index([domainId])
+  @@map("scholarship_domains")
+}
+
+// ============================================
+// SCHOLARSHIP CATEGORY - Categories applicable to scholarship
+// ============================================
+model ScholarshipCategory {
+  id            String   @id @default(uuid())
+  scholarshipId String
+  categoryId    String
+  
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  category      Category    @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  
+  @@unique([scholarshipId, categoryId])
+  @@index([scholarshipId])
+  @@index([categoryId])
+  @@map("scholarship_categories")
+}
+
+// ============================================
+// SCHOLARSHIP DIFFICULTY - Difficulty levels applicable to scholarship
+// ============================================
+model ScholarshipDifficulty {
+  id            String   @id @default(uuid())
+  scholarshipId String
+  difficultyLevel String
+  
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  
+  @@unique([scholarshipId, difficultyLevel])
+  @@index([scholarshipId])
+  @@map("scholarship_difficulties")
+}
+
+// ============================================
+// SCHOLARSHIP CERTIFICATE - Certificates available through scholarship
+// ============================================
+model ScholarshipCertificate {
+  id            String   @id @default(uuid())
+  scholarshipId String
+  certificateId String
+  
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  certificate   CertificateTemplate @relation(fields: [certificateId], references: [id], onDelete: Cascade)
+  
+  createdAt     DateTime @default(now())
+  
+  @@unique([scholarshipId, certificateId])
+  @@index([scholarshipId])
+  @@index([certificateId])
+  @@map("scholarship_certificates")
+}
+
+// ============================================
+// SCHOLARSHIP PLAN - Membership plans granted through scholarship
+// ============================================
+model ScholarshipPlan {
+  id            String   @id @default(uuid())
+  scholarshipId String
+  planId        String
+  
+  scholarship   Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  plan          Plan        @relation(fields: [planId], references: [id], onDelete: Cascade)
+  
+  duration      Int?      @default(365) // Days
+  
+  createdAt     DateTime @default(now())
+  
+  @@unique([scholarshipId, planId])
+  @@index([scholarshipId])
+  @@index([planId])
+  @@map("scholarship_plans")
+}
+
+// ============================================
+// SPONSOR - Scholarship sponsors
+// ============================================
+model Sponsor {
+  id            String   @id @default(uuid())
+  
+  // Basic Info
+  name          String
+  shortName     String?
+  slug          String   @unique
+  type          SponsorType
+  logo          String?
+  website       String?
+  description   String?  @db.Text
+  
+  // Contact
+  contactName   String?
+  contactEmail  String?
+  contactPhone  String?
+  address       String?
+  
+  // Status
+  status        SponsorStatus @default(ACTIVE)
+  
+  // Financial
+  budget        Decimal? @default(0)
+  spent         Decimal  @default(0)
+  currency      String   @default("USD")
+  
+  // SEO
+  seoTitle      String?
+  seoDescription String?
+  
+  // Config
+  config        Json?
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  scholarships  Scholarship[]
+  sponsoredStudents SponsorStudent[]
+  reports       SponsorReport[]
+  
+  @@index([slug])
+  @@index([status])
+  @@index([type])
+  @@map("sponsors")
+}
+
+// ============================================
+// SPONSOR STUDENT - Students sponsored by a sponsor
+// ============================================
+model SponsorStudent {
+  id            String   @id @default(uuid())
+  
+  sponsorId     String
+  sponsor       Sponsor  @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  
+  studentEmail  String
+  studentName   String?
+  studentId     String?  // User ID if registered
+  
+  // Scholarship
+  scholarshipId String?
+  applicationId String?
+  awardId      String?
+  
+  // Status
+  status        String   @default("ACTIVE") // ACTIVE, GRADUATED, TERMINATED
+  
+  // Funding
+  amount        Decimal?
+  currency      String   @default("USD")
+  
+  // Progress
+  progressReport String? @db.Text
+  lastReportDate DateTime?
+  
+  // Timestamps
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  @@index([sponsorId])
+  @@index([studentEmail])
+  @@index([status])
+  @@map("sponsor_students")
+}
+
+// ============================================
+// SPONSOR REPORT - Reports sent to sponsors
+// ============================================
+model SponsorReport {
+  id            String   @id @default(uuid())
+  
+  sponsorId     String
+  sponsor       Sponsor  @relation(fields: [sponsorId], references: [id], onDelete: Cascade)
+  
+  title         String
+  description   String?  @db.Text
+  data          Json?
+  fileUrl       String?
+  
+  period        String?  // MONTHLY, QUARTERLY, ANNUALLY
+  periodStart   DateTime?
+  periodEnd     DateTime?
+  
+  sentAt        DateTime @default(now())
+  
+  @@index([sponsorId])
+  @@index([sentAt])
+  @@map("sponsor_reports")
+}
+
+// ============================================
+// SCHOLARSHIP APPLICATION - Student applications
+// ============================================
+model ScholarshipApplication {
+  id              String   @id @default(uuid())
+  
+  // Reference
+  applicationNumber String @unique
+  trackingNumber    String @unique
+  
+  // Scholarship
+  scholarshipId    String
+  scholarship      Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  
+  // Status
+  status          ApplicationStatus @default(DRAFT)
+  
+  // Personal Information
+  firstName       String
+  lastName        String
+  email           String
+  phone           String?
+  nationality     String?
+  state           String?
+  country         String?
+  gender          String?
+  dateOfBirth     DateTime?
+  
+  // Educational Background
+  highestDegree   String?
+  institution     String?
+  fieldOfStudy    String?
+  graduationYear  Int?
+  gpa             Decimal?
+  
+  // Professional
+  employmentStatus String?
+  currentEmployer String?
+  yearsExperience Int?
+  
+  // Online Presence
+  linkedIn        String?
+  github          String?
+  googleScholar    String?
+  orcid           String?
+  website         String?
+  
+  // Emergency Contact
+  emergencyName   String?
+  emergencyPhone  String?
+  emergencyRelation String?
+  
+  // Motivation
+  statementOfPurpose String? @db.Text
+  motivationLetter   String? @db.Text
+  financialNeedStatement String? @db.Text
+  
+  // Research Interests
+  researchInterests Json?  // Array of strings
+  
+  // Custom Responses
+  customResponses  Json?  // { questionId: response }
+  
+  // Documents
+  documents        Json?  // [{ type, url, name }]
+  cvUrl            String?
+  transcriptUrl    String?
+  recommendationLetters Json? // [{ name, email, url }]
+  
+  // National ID
+  nationalIdType   String? // PASSPORT, NATIONAL_ID
+  nationalIdUrl    String?
+  
+  // Interview
+  interviewDate   DateTime?
+  interviewNotes  String? @db.Text
+  interviewScore  Int?
+  
+  // Review
+  totalScore      Decimal? @default(0)
+  recommendation  String?  // STRONG_APPROVE, APPROVE, NEUTRAL, REJECT, STRONG_REJECT
+  reviewerNotes   String? @db.Text
+  
+  // Decision
+  decisionDate    DateTime?
+  decisionBy      String?
+  decisionNotes   String? @db.Text
+  
+  // Award
+  awardId         String?
+  award           ScholarshipAward? @relation(fields: [awardId], references: [id])
+  
+  // Auto-created account
+  userId          String?
+  accountCreated  Boolean @default(false)
+  
+  // Draft
+  isDraft         Boolean @default(true)
+  lastSavedAt     DateTime?
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  submittedAt     DateTime?
+  
+  // Relations
+  reviews         ApplicationReview[]
+  statusHistory   ApplicationStatusHistory[]
+  notifications   ApplicationNotification[]
+  
+  @@index([applicationNumber])
+  @@index([trackingNumber])
+  @@index([scholarshipId])
+  @@index([status])
+  @@index([email])
+  @@index([country])
+  @@index([submittedAt])
+  @@map("scholarship_applications")
+}
+
+// ============================================
+// APPLICATION REVIEW - Reviewer evaluations
+// ============================================
+model ApplicationReview {
+  id              String   @id @default(uuid())
+  
+  applicationId   String
+  application     ScholarshipApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  reviewerId      String?
+  reviewerEmail   String?  // For external reviewers
+  
+  // Scores
+  scores          Json?   // { criterion: score }
+  totalScore      Decimal @default(0)
+  
+  // Evaluation
+  evaluation      String? @db.Text
+  strengths       String? @db.Text
+  weaknesses      String? @db.Text
+  
+  // Recommendation
+  recommendation  String?  // APPROVE, REJECT, REQUEST_INFO, INTERVIEW
+  confidenceLevel String?  // HIGH, MEDIUM, LOW
+  
+  // Status
+  status          ReviewStatus @default(PENDING)
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  completedAt     DateTime?
+  
+  @@index([applicationId])
+  @@index([reviewerId])
+  @@index([status])
+  @@map("application_reviews")
+}
+
+// ============================================
+// APPLICATION STATUS HISTORY - Status change tracking
+// ============================================
+model ApplicationStatusHistory {
+  id              String   @id @default(uuid())
+  
+  applicationId   String
+  application     ScholarshipApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  previousStatus  String?
+  newStatus       String
+  
+  changedBy       String?  // User ID or system
+  changedByName   String?
+  
+  notes           String? @db.Text
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([applicationId])
+  @@index([createdAt])
+  @@map("application_status_history")
+}
+
+// ============================================
+// APPLICATION NOTIFICATION - Notifications for applicants
+// ============================================
+model ApplicationNotification {
+  id              String   @id @default(uuid())
+  
+  applicationId   String
+  application     ScholarshipApplication @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  
+  type            String   // SUBMITTED, UNDER_REVIEW, INTERVIEW, APPROVED, REJECTED, AWARDED
+  title           String
+  message         String   @db.Text
+  
+  channel         String   @default("EMAIL") // EMAIL, SMS, WHATSAPP, IN_APP
+  
+  sentAt          DateTime?
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  
+  metadata        Json?
+  
+  createdAt       DateTime @default(now())
+  
+  @@index([applicationId])
+  @@index([type])
+  @@index([createdAt])
+  @@map("application_notifications")
+}
+
+// ============================================
+// SCHOLARSHIP AWARD - Awards given to approved applicants
+// ============================================
+model ScholarshipAward {
+  id              String   @id @default(uuid())
+  
+  // Reference
+  awardNumber     String   @unique
+  
+  applicationId   String?  @unique
+  application     ScholarshipApplication? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  
+  // Scholarship
+  scholarshipId   String
+  
+  // Recipient
+  recipientName   String
+  recipientEmail  String
+  userId          String?  // If registered
+  
+  // Award Details
+  amount          Decimal?
+  currency        String   @default("USD")
+  startDate       DateTime?
+  endDate         DateTime?
+  
+  // Benefits
+  benefits        Json?    // Assigned benefits
+  
+  // Status
+  status          AwardStatus @default(PENDING)
+  
+  // Acceptance
+  acceptanceDeadline DateTime?
+  acceptedAt       DateTime?
+  declinedAt       DateTime?
+  
+  // Letter
+  awardLetterUrl   String?
+  certificateUrl   String?
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  issuedAt        DateTime?
+  
+  // Relations
+  enrollmentRecords ScholarshipEnrollment[]
+  
+  @@index([awardNumber])
+  @@index([scholarshipId])
+  @@index([recipientEmail])
+  @@index([status])
+  @@map("scholarship_awards")
+}
+
+// ============================================
+// SCHOLARSHIP ENROLLMENT - Auto-enrollment records
+// ============================================
+model ScholarshipEnrollment {
+  id              String   @id @default(uuid())
+  
+  awardId         String
+  award           ScholarshipAward @relation(fields: [awardId], references: [id], onDelete: Cascade)
+  
+  // Enrollment Type
+  type            String   // MEMBERSHIP, DOMAIN, CATEGORY, COURSE, PLAN
+  
+  // References
+  membershipId    String?
+  domainId        String?
+  categoryId      String?
+  courseId        String?
+  planId          String?
+  certificateId   String?
+  
+  // Status
+  status          String   @default("PENDING") // PENDING, ACTIVE, EXPIRED, REVOKED
+  
+  // Duration
+  durationDays    Int?     // Null means unlimited
+  
+  // Timestamps
+  createdAt       DateTime @default(now())
+  activatedAt     DateTime?
+  expiresAt       DateTime?
+  
+  @@index([awardId])
+  @@index([type])
+  @@index([status])
+  @@map("scholarship_enrollments")
+}
+
+// ============================================
+// SCHOLARSHIP REVIEWER - Assigned reviewers
+// ============================================
+model ScholarshipReviewer {
+  id              String   @id @default(uuid())
+  
+  scholarshipId   String
+  scholarship     Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  
+  reviewerId      String?  // User ID if internal
+  reviewerEmail   String   // Email for notifications
+  reviewerName    String?
+  
+  // Permissions
+  canApprove      Boolean  @default(false)
+  canReject       Boolean  @default(false)
+  canScheduleInterview Boolean @default(false)
+  
+  // Status
+  isActive        Boolean  @default(true)
+  
+  // Stats
+  assignedCount   Int      @default(0)
+  reviewedCount   Int      @default(0)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([scholarshipId, reviewerEmail])
+  @@index([scholarshipId])
+  @@index([reviewerId])
+  @@map("scholarship_reviewers")
+}
+
+// ============================================
+// SCHOLARSHIP CUSTOM QUESTION - Custom application questions
+// ============================================
+model ScholarshipCustomQuestion {
+  id              String   @id @default(uuid())
+  
+  scholarshipId   String
+  scholarship     Scholarship @relation(fields: [scholarshipId], references: [id], onDelete: Cascade)
+  
+  question        String
+  questionType    String   @default("TEXT") // TEXT, TEXTAREA, SELECT, MULTISELECT, RADIO, CHECKBOX, DATE, FILE, NUMBER
+  options         Json?    // For select/radio/checkbox types
+  isRequired      Boolean  @default(true)
+  order           Int      @default(0)
+  
+  // Validation
+  validation      Json?    // { min, max, pattern, etc. }
+  
+  helpText        String?
+  placeholder     String?
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([scholarshipId])
+  @@map("scholarship_custom_questions")
+}
+
+// ============================================
+// SCHOLARSHIP ANALYTICS - Aggregated analytics data
+// ============================================
+model ScholarshipAnalytics {
+  id              String   @id @default(uuid())
+  
+  scholarshipId   String?
+  
+  date            DateTime @db.Date
+  
+  views           Int      @default(0)
+  applications    Int      @default(0)
+  approved        Int      @default(0)
+  rejected        Int      @default(0)
+  pending         Int      @default(0)
+  
+  demographics    Json?    // { country: count, gender: count, etc. }
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@unique([scholarshipId, date])
+  @@index([date])
+  @@map("scholarship_analytics")
+}
+
+// ============================================
+// SCHOLARSHIP SCORING RUBRIC - Evaluation rubrics
+// ============================================
+model ScholarshipScoringRubric {
+  id              String   @id @default(uuid())
+  
+  name            String
+  description     String?  @db.Text
+  
+  criteria        Json     // [{ name, description, maxScore, weight }]
+  
+  totalScore      Int      @default(100)
+  passingScore    Int      @default(60)
+  
+  isDefault       Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@map("scholarship_scoring_rubrics")
+}
+
 

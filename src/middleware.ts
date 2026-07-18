@@ -36,6 +36,7 @@ const STUDENT_ROUTES = [
   "/api/student",
   "/api/public",
   "/verify",
+  "/scholarships",
 ]
 
 async function getMaintenanceStatus(): Promise<{ isMaintenance: boolean; message: string }> {
