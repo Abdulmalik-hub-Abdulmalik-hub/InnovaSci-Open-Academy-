@@ -70,7 +70,7 @@ export async function POST(
         applicationId: params.id,
         reviewerId: session.user.id,
         reviewerEmail: session.user.email!,
-        scores: validatedData.scores,
+        scores: validatedData.scores || {},
         totalScore: validatedData.totalScore || 0,
         evaluation: validatedData.evaluation,
         strengths: validatedData.strengths,
@@ -78,6 +78,7 @@ export async function POST(
         recommendation: validatedData.recommendation,
         confidenceLevel: validatedData.confidenceLevel,
         status: validatedData.status || "IN_PROGRESS",
+        completedAt: validatedData.status === "COMPLETED" ? new Date() : null,
       },
       update: {
         scores: validatedData.scores,
@@ -90,20 +91,6 @@ export async function POST(
         status: validatedData.status,
         completedAt: validatedData.status === "COMPLETED" ? new Date() : null,
       },
-      create: {
-        applicationId: params.id,
-        reviewerId: session.user.id,
-        reviewerEmail: session.user.email!,
-        scores: validatedData.scores || {},
-        totalScore: validatedData.totalScore || 0,
-        evaluation: validatedData.evaluation,
-        strengths: validatedData.strengths,
-        weaknesses: validatedData.weaknesses,
-        recommendation: validatedData.recommendation,
-        confidenceLevel: validatedData.confidenceLevel,
-        status: validatedData.status || "IN_PROGRESS",
-        completedAt: validatedData.status === "COMPLETED" ? new Date() : null,
-      }
     })
     
     // If completed, update the application with average score

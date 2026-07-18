@@ -42,15 +42,15 @@ export async function GET(
             lastName: true,
             email: true,
             scholarshipId: true,
-          }
-        },
-        scholarship: {
-          select: {
-            id: true,
-            name: true,
-            slug: true,
-            type: true,
-            sponsorId: true,
+            scholarship: {
+              select: {
+                id: true,
+                name: true,
+                slug: true,
+                type: true,
+                sponsorId: true,
+              }
+            }
           }
         },
         enrollmentRecords: {

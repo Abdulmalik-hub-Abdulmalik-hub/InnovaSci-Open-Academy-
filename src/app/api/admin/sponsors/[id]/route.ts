@@ -34,12 +34,7 @@ export async function GET(
         },
         sponsoredStudents: {
           take: 20,
-          orderBy: { createdAt: "desc" },
-          include: {
-            scholarship: {
-              select: { name: true }
-            }
-          }
+          orderBy: { createdAt: "desc" }
         },
         reports: {
           take: 10,

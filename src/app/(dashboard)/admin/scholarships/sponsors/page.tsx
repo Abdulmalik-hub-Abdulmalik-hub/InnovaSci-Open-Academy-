@@ -79,6 +79,8 @@ const createSponsorSchema = z.object({
   budget: z.string().optional(),
 })
 
+type CreateSponsorInput = z.infer<typeof createSponsorSchema>
+
 export default function SponsorsPage() {
   const [sponsors, setSponsors] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -94,7 +96,7 @@ export default function SponsorsPage() {
     handleSubmit,
     reset,
     formState: { errors, isSubmitting },
-  } = useForm({
+  } = useForm<CreateSponsorInput>({
     resolver: zodResolver(createSponsorSchema),
     defaultValues: {
       type: "COMPANY",

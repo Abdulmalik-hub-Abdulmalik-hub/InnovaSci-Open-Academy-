@@ -3,6 +3,7 @@ import { getServerSession } from "next-auth"
 import { authOptions } from "@/lib/auth"
 import { prisma } from "@/lib/prisma"
 import { hasPermission } from "@/lib/permissions"
+import { Prisma } from "@prisma/client"
 import { z } from "zod"
 
 const actionSchema = z.object({
@@ -148,7 +149,7 @@ export async function POST(
             waiverFees: original.waiverFees,
             requireInterview: original.requireInterview,
             scoringRubricId: original.scoringRubricId,
-            benefitsConfig: original.benefitsConfig,
+            benefitsConfig: original.benefitsConfig ?? Prisma.JsonNull,
             domains: original.domains.length > 0 ? {
               create: original.domains.map(d => ({ domainId: d.domainId }))
             } : undefined,
@@ -168,10 +169,10 @@ export async function POST(
               create: original.customQuestions.map((q, idx) => ({
                 question: q.question,
                 questionType: q.questionType,
-                options: q.options,
+                options: q.options ?? Prisma.JsonNull,
                 isRequired: q.isRequired,
                 order: q.order,
-                validation: q.validation,
+                validation: q.validation ?? Prisma.JsonNull,
                 helpText: q.helpText,
                 placeholder: q.placeholder,
               }))

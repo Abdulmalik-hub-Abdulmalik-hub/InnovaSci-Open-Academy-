@@ -89,6 +89,7 @@ export async function POST(
       await sendScholarshipDecisionEmail({
         to: application.email,
         applicationNumber: application.applicationNumber,
+        trackingNumber: application.trackingNumber,
         scholarshipName: application.scholarship.name,
         decision: validatedData.decision,
         notes: validatedData.notes,

@@ -51,14 +51,14 @@ export async function GET(request: NextRequest) {
               scholarshipId: true,
               firstName: true,
               lastName: true,
-            }
-          },
-          scholarship: {
-            select: {
-              id: true,
-              name: true,
-              slug: true,
-              type: true,
+              scholarship: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  type: true,
+                }
+              }
             }
           },
           enrollmentRecords: true

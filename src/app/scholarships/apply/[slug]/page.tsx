@@ -93,6 +93,9 @@ const applicationSchema = z.object({
   customResponses: z.record(z.any()).optional(),
 })
 
+type ApplicationFormData = z.infer<typeof applicationSchema>
+type FormFieldName = keyof ApplicationFormData
+
 const countries = [
   { value: "NG", label: "Nigeria" },
   { value: "US", label: "United States" },
@@ -246,7 +249,7 @@ export default function ApplyScholarshipPage() {
     const currentIndex = tabs.indexOf(activeTab)
     if (currentIndex < tabs.length - 1) {
       // Validate current tab fields
-      let fieldsToValidate: string[] = []
+      let fieldsToValidate: ("firstName" | "lastName" | "email")[] = []
       switch (activeTab) {
         case "personal":
           fieldsToValidate = ["firstName", "lastName", "email"]
