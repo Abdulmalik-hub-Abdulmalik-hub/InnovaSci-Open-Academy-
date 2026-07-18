@@ -136,7 +136,7 @@ export default function ScholarshipsDashboard() {
               View Programs
             </Button>
           </Link>
-          <Link href="/admin/scholarships/programs?action=create">
+          <Link href="/admin/scholarships/programs/create">
             <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
               <Plus className="h-4 w-4 mr-2" />
               Create Scholarship
@@ -272,7 +272,7 @@ export default function ScholarshipsDashboard() {
               <div className="text-center py-8 text-white/50">
                 <GraduationCap className="h-12 w-12 mx-auto mb-3 opacity-50" />
                 <p>No scholarships yet</p>
-                <Link href="/admin/scholarships/programs?action=create">
+                <Link href="/admin/scholarships/programs/create">
                   <Button variant="link" className="text-purple-400">Create your first scholarship</Button>
                 </Link>
               </div>
