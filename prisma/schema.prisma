@@ -3481,6 +3481,7 @@ model ScholarshipApplication {
   
   // Award
   awardId         String? // Reference to award (no relation)
+  award           ScholarshipAward? // Inverse relation
   
   // Auto-created account
   userId          String?
