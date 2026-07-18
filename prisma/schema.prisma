@@ -132,6 +132,9 @@ model Domain {
   // Staff Management Relations
   staffAssignments StaffAssignment[]
   projectSupervisors ProjectSupervisor[]
+  
+  // Scholarship Relations
+  scholarshipDomains ScholarshipDomain[]
 
   @@index([slug])
   @@index([status])
@@ -176,6 +179,9 @@ model Category {
   // Staff Management Relations
   staffAssignments StaffAssignment[]
   projectSupervisors ProjectSupervisor[]
+
+  // Scholarship Relations
+  scholarshipCategories ScholarshipCategory[]
 
   @@unique([domainId, slug])
   @@unique([domainId, name])
@@ -524,6 +530,8 @@ model CertificateTemplate {
 
   // Relations
   courses Course[]
+  // Scholarship Relations
+  scholarshipCertificates ScholarshipCertificate[]
 
   @@map("certificate_templates")
 }
@@ -934,6 +942,8 @@ model Plan {
   domainPurchases    DomainPurchase[]
   academyPurchases   AcademyPurchase[]
   discountCampaigns  DiscountCampaign[]
+  // Scholarship Relations
+  scholarshipPlans    ScholarshipPlan[]
 
   @@map("plans")
 }
@@ -3470,8 +3480,7 @@ model ScholarshipApplication {
   decisionNotes   String? @db.Text
   
   // Award
-  awardId         String?
-  award           ScholarshipAward? @relation(fields: [awardId], references: [id])
+  awardId         String? // Reference to award (no relation)
   
   // Auto-created account
   userId          String?
