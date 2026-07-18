@@ -457,14 +457,14 @@ export default function ScholarshipsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/10">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/scholarships/${scholarship.slug}`} className="cursor-pointer">
+                            <DropdownMenuItem>
+                              <Link href={`/scholarships/${scholarship.slug}`} className="flex items-center w-full">
                                 <Eye className="h-4 w-4 mr-2" />
                                 View Public Page
                               </Link>
                             </DropdownMenuItem>
-                            <DropdownMenuItem asChild>
-                              <Link href={`/admin/scholarships/${scholarship.id}`} className="cursor-pointer">
+                            <DropdownMenuItem>
+                              <Link href={`/admin/scholarships/${scholarship.id}`} className="flex items-center w-full">
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit
                               </Link>

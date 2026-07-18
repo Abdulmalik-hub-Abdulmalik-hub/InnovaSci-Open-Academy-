@@ -276,14 +276,14 @@ export default function ApplicationsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/10">
-                              <DropdownMenuItem asChild>
-                                <Link href={`/admin/scholarships/applications/${app.id}`} className="cursor-pointer">
+                              <DropdownMenuItem>
+                                <Link href={`/admin/scholarships/applications/${app.id}`} className="flex items-center w-full">
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </Link>
                               </DropdownMenuItem>
-                              <DropdownMenuItem asChild>
-                                <a href={`mailto:${app.email}`} className="cursor-pointer">
+                              <DropdownMenuItem>
+                                <a href={`mailto:${app.email}`} className="flex items-center w-full">
                                   <Mail className="h-4 w-4 mr-2" />
                                   Send Email
                                 </a>

@@ -260,8 +260,8 @@ export default function AwardsPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="bg-[#1a1a2e] border-white/10">
-                              <DropdownMenuItem asChild>
-                                <a href={`/admin/scholarships/awards/${award.id}`} className="cursor-pointer">
+                              <DropdownMenuItem>
+                                <a href={`/admin/scholarships/awards/${award.id}`} className="flex items-center w-full">
                                   <Eye className="h-4 w-4 mr-2" />
                                   View Details
                                 </a>
