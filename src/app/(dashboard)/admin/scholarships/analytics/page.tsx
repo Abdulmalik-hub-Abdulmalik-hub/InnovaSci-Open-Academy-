@@ -204,7 +204,8 @@ export default function ScholarshipAnalyticsPage() {
                 <div className="space-y-4">
                   {Object.entries(analytics.applicationStats || {}).map(([status, count]) => {
                     const total = analytics.overview?.totalApplications || 1
-                    const percentage = Math.round((count / total) * 100)
+                    const countNum = typeof count === 'number' ? count : 0
+                    const percentage = Math.round((countNum / total) * 100)
                     
                     const colors: Record<string, string> = {
                       SUBMITTED: "bg-blue-500",
