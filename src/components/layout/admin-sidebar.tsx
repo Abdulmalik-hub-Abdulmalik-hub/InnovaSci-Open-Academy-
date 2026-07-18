@@ -9,10 +9,10 @@ import { HeaderLogo, FooterBranding } from "./logo"
 import { 
   LayoutDashboard, Users, Video, Award, CreditCard, 
   Mail, HardDrive, BarChart3, Database, Settings, ScrollText, 
-  Headphones, FileText, X, LayoutTemplate, Folder, GraduationCap,
+  Headphones, FileText, X, LayoutTemplate, Folder, 
   Layers, BookOpen, LayoutGrid, BadgeCheck, Shield,
   FileBadge, Scroll, Bookmark, FolderGit2, DollarSign,
-  GraduationCapIcon, HandHeart, Users2, BarChart4, FileTextIcon,
+  Users2, BarChart4, FileTextIcon,
   Building2, SettingsIcon, Megaphone
 } from "lucide-react"
 
@@ -51,22 +51,6 @@ const menuItems = [
       { title: "Courses", href: "/admin/mccs/courses" },
       { title: "Difficulty Capstones", href: "/admin/courses/capstones/difficulty" },
       { title: "Professional Capstones", href: "/admin/courses/capstones/professional" },
-    ],
-  },
-  {
-    title: "Scholarships & Financial Aid",
-    href: "/admin/scholarships",
-    icon: GraduationCapIcon,
-    submenu: [
-      { title: "Scholarship Dashboard", href: "/admin/scholarships" },
-      { title: "Scholarship Programs", href: "/admin/scholarships/programs" },
-      { title: "Applications", href: "/admin/scholarships/applications" },
-      { title: "Sponsors", href: "/admin/scholarships/sponsors" },
-      { title: "Scholarship Types", href: "/admin/scholarships/types" },
-      { title: "Review Queue", href: "/admin/scholarships/review" },
-      { title: "Award Management", href: "/admin/scholarships/awards" },
-      { title: "Analytics", href: "/admin/scholarships/analytics" },
-      { title: "Settings", href: "/admin/scholarships/settings" },
     ],
   },
   {

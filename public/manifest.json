@@ -29,12 +29,6 @@
       "short_name": "Courses",
       "url": "/dashboard/courses",
       "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
-    },
-    {
-      "name": "Scholarships",
-      "short_name": "Scholarships",
-      "url": "/scholarships",
-      "icons": [{ "src": "/logo.png", "sizes": "96x96" }]
     }
   ]
 }

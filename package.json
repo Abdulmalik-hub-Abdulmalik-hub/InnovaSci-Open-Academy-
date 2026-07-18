@@ -13,9 +13,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed.ts",
     "db:seed-drug-discovery": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-python-drug-discovery.ts",
-    "db:seed-types": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-scholarship-types.ts",
     "db:seed-gateways": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-payment-gateways.ts",
-    "db:seed-all": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-scholarship-types.ts && npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-payment-gateways.ts",
+    "db:seed-all": "npx ts-node --compiler-options {\"module\":\"CommonJS\"} prisma/seed-payment-gateways.ts",
     "db:studio": "prisma studio",
     "postinstall": "prisma generate"
   },
