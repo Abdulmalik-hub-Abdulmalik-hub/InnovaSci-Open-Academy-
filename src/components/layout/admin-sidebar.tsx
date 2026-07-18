@@ -13,7 +13,7 @@ import {
   Layers, BookOpen, LayoutGrid, BadgeCheck, Shield,
   FileBadge, Scroll, Bookmark, FolderGit2, DollarSign,
   Users2, BarChart4, FileTextIcon,
-  Building2, SettingsIcon, Megaphone
+  Building2, SettingsIcon, Megaphone, GraduationCap
 } from "lucide-react"
 
 // =============================================================================
@@ -51,6 +51,20 @@ const menuItems = [
       { title: "Courses", href: "/admin/mccs/courses" },
       { title: "Difficulty Capstones", href: "/admin/courses/capstones/difficulty" },
       { title: "Professional Capstones", href: "/admin/courses/capstones/professional" },
+    ],
+  },
+  {
+    title: "Scholarships & Financial Aid",
+    href: "/admin/scholarships",
+    icon: GraduationCap,
+    submenu: [
+      { title: "All Scholarships", href: "/admin/scholarships" },
+      { title: "Create Scholarship", href: "/admin/scholarships/create" },
+      { title: "Applications", href: "/admin/scholarships/applications" },
+      { title: "Sponsors", href: "/admin/scholarships/sponsors" },
+      { title: "Awards", href: "/admin/scholarships/awards" },
+      { title: "Analytics", href: "/admin/scholarships/analytics" },
+      { title: "Settings", href: "/admin/scholarships/settings" },
     ],
   },
   {
