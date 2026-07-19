@@ -56,7 +56,8 @@ export const authOptions: NextAuthOptions = {
               console.log("[Auth] Sample users in DB:", sampleUsers.map(u => u.email).join(", "))
             }
             
-            return null
+            // Return a specific error that can be handled by the login page
+            throw new Error("User not found")
           }
 
           console.log("[Auth] SUCCESS: User found!")
@@ -71,13 +72,13 @@ export const authOptions: NextAuthOptions = {
           // Check user status
           if (user.status !== "ACTIVE") {
             console.log("[Auth] ERROR: User account is NOT active. Status:", user.status)
-            return null
+            throw new Error("Account Inactive")
           }
           console.log("[Auth] User status check PASSED (ACTIVE)")
           
           if (!user.passwordHash) {
             console.log("[Auth] ERROR: User has no password hash (may be SSO/SAML user)")
-            return null
+            throw new Error("User has no password hash")
           }
 
           console.log("[Auth] Comparing password...")
@@ -93,7 +94,7 @@ export const authOptions: NextAuthOptions = {
             console.log("[Auth] 1. Wrong password entered")
             console.log("[Auth] 2. Password was never set properly")
             console.log("[Auth] 3. Password was changed after account creation")
-            return null
+            throw new Error("Invalid Password")
           }
 
           console.log("[Auth] SUCCESS: Password validation PASSED!")

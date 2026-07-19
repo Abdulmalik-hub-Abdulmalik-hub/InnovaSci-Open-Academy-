@@ -1,12 +1,24 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 // GET /api/student/lessons/next - Get the next lesson after the current one
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    // Get user from NextAuth session
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required. Please log in." },
+        { status: 401 }
+      )
+    }
+    
+    const userId = session.user.id
     const { searchParams } = new URL(request.url)
     const currentLessonId = searchParams.get("lessonId")
     const courseId = searchParams.get("courseId")

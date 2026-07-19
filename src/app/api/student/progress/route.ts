@@ -10,7 +10,15 @@ export const dynamic = "force-dynamic"
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required. Please log in." },
+        { status: 401 }
+      )
+    }
+    
+    const userId = session.user.id
     const { searchParams } = new URL(request.url)
     const courseId = searchParams.get("courseId")
 
@@ -78,7 +86,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required. Please log in." },
+        { status: 401 }
+      )
+    }
+    
+    const userId = session.user.id
     const body = await request.json()
     const { lessonId, courseId, watchTime, completed, lastPosition } = body
 

@@ -25,7 +25,15 @@ function isPrismaInitError(error: unknown): boolean {
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required. Please log in." },
+        { status: 401 }
+      )
+    }
+    
+    const userId = session.user.id
 
     // Fetch all published learning paths with pathCourses
     const learningPaths = await prisma.learningPath.findMany({

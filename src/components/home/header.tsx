@@ -2,8 +2,9 @@
 
 import { useState, useEffect, useRef } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { motion, AnimatePresence } from "framer-motion"
+import { signOut, useSession } from "next-auth/react"
 import { 
   Menu, X, Moon, Sun, User, 
   LayoutDashboard, BookOpen, Settings, LogOut, ChevronDown,
@@ -43,29 +44,23 @@ const userMenuItems = [
   { href: "/dashboard/settings", label: "Account Settings", icon: Settings },
 ]
 
-// Demo user state (simulating authentication)
-interface UserState {
-  isAuthenticated: boolean
-  name: string
-  email: string
-  avatar?: string
-}
-
 export function Header() {
   const [isOpen, setIsOpen] = useState(false)
   const [userMenuOpen, setUserMenuOpen] = useState(false)
   const [mounted, setMounted] = useState(false)
   const { theme, setTheme } = useTheme()
   const pathname = usePathname()
+  const router = useRouter()
   const userMenuRef = useRef<HTMLDivElement>(null)
 
-  // Mock authenticated user state
-  const [user] = useState<UserState>({
-    isAuthenticated: false, // Set to true to see authenticated state
-    name: "Abdulmalik",
-    email: "abdulmalik@innovasci.com",
-    avatar: undefined
-  })
+  // Use NextAuth session for actual authentication state
+  const { data: session, status } = useSession()
+  
+  // Derive user state from session
+  const isAuthenticated = status === "authenticated" && !!session?.user
+  const userName = session?.user?.name || session?.user?.email?.split("@")[0] || "User"
+  const userEmail = session?.user?.email || ""
+  const userAvatar = session?.user?.image || undefined
 
   // Handle mounting for theme to avoid hydration mismatch
   useEffect(() => {
@@ -176,7 +171,7 @@ export function Header() {
 
             {/* Auth Actions - Desktop */}
             <div className="hidden md:flex items-center gap-2">
-              {user.isAuthenticated ? (
+              {isAuthenticated ? (
                 /* User Avatar Dropdown */
                 <div className="relative" ref={userMenuRef}>
                   <button
@@ -184,9 +179,9 @@ export function Header() {
                     className="flex items-center gap-2 p-1.5 rounded-full hover:bg-muted transition-colors"
                   >
                     <Avatar className="h-8 w-8 ring-2 ring-transparent hover:ring-[hsl(var(--brand-purple))/20] transition-all">
-                      <AvatarImage src={user.avatar} alt={user.name} />
+                      <AvatarImage src={userAvatar} alt={userName} />
                       <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--brand-purple))] to-[hsl(var(--brand-blue))] text-white text-sm font-medium">
-                        {user.name.charAt(0).toUpperCase()}
+                        {userName.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
                     <ChevronDown className={cn(
@@ -206,8 +201,8 @@ export function Header() {
                         className="absolute right-0 mt-2 w-64 origin-top-right rounded-xl border bg-popover shadow-lg ring-1 ring-black/5 animate-scale-in"
                       >
                         <div className="p-3 border-b">
-                          <p className="font-medium text-sm">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">{user.email}</p>
+                          <p className="font-medium text-sm">{userName}</p>
+                          <p className="text-xs text-muted-foreground">{userEmail}</p>
                         </div>
                         <div className="p-2">
                           {userMenuItems.map((item) => {
@@ -229,6 +224,7 @@ export function Header() {
                           <button
                             onClick={() => {
                               setUserMenuOpen(false)
+                              signOut({ callbackUrl: "/" })
                             }}
                             className="flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-sm text-destructive hover:bg-destructive/10 transition-colors"
                           >
@@ -305,19 +301,19 @@ export function Header() {
                 
                 {/* Auth Actions - Mobile */}
                 <div className="pt-4 mt-4 border-t space-y-3">
-                  {user.isAuthenticated ? (
+                  {isAuthenticated ? (
                     <>
                       <div className="px-4 py-3">
                         <div className="flex items-center gap-3">
                           <Avatar className="h-10 w-10">
-                            <AvatarImage src={user.avatar} alt={user.name} />
+                            <AvatarImage src={userAvatar} alt={userName} />
                             <AvatarFallback className="bg-gradient-to-br from-[hsl(var(--brand-purple))] to-[hsl(var(--brand-blue))] text-white">
-                              {user.name.charAt(0).toUpperCase()}
+                              {userName.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
                           <div>
-                            <p className="font-medium text-sm">{user.name}</p>
-                            <p className="text-xs text-muted-foreground">{user.email}</p>
+                            <p className="font-medium text-sm">{userName}</p>
+                            <p className="text-xs text-muted-foreground">{userEmail}</p>
                           </div>
                         </div>
                       </div>
@@ -335,6 +331,7 @@ export function Header() {
                         )
                       })}
                       <button
+                        onClick={() => signOut({ callbackUrl: "/" })}
                         className="flex items-center gap-3 w-full px-4 py-3 text-sm font-medium text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
                       >
                         <LogOut className="h-5 w-5" />

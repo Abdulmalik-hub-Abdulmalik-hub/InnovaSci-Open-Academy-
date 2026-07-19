@@ -1,12 +1,27 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/lib/auth"
 
 // GET /api/student/tickets - Get user's support tickets
 // Force dynamic rendering - API routes that use request properties must be dynamic
 export const dynamic = 'force-dynamic';
+
+async function getAuthenticatedUserId(): Promise<string | null> {
+  const session = await getServerSession(authOptions)
+  return session?.user?.id || null
+}
+
 export async function GET(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    const userId = await getAuthenticatedUserId()
+    
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required. Please log in." },
+        { status: 401 }
+      )
+    }
     const { searchParams } = new URL(request.url)
     const status = searchParams.get("status")
 
@@ -42,7 +57,14 @@ export async function GET(request: NextRequest) {
 // POST /api/student/tickets - Create a new support ticket
 export async function POST(request: NextRequest) {
   try {
-    const userId = request.headers.get("x-user-id") || "demo-user-id"
+    const userId = await getAuthenticatedUserId()
+    
+    if (!userId) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required. Please log in." },
+        { status: 401 }
+      )
+    }
     const body = await request.json()
     const { category, subject, message, courseId, priority } = body
 

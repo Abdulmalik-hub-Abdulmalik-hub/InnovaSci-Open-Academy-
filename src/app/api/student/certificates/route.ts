@@ -9,7 +9,15 @@ export const dynamic = "force-dynamic"
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions)
-    const userId = session?.user?.id || request.headers.get("x-user-id") || "demo-user-id"
+    
+    if (!session?.user?.id) {
+      return NextResponse.json(
+        { success: false, error: "Authentication required. Please log in." },
+        { status: 401 }
+      )
+    }
+    
+    const userId = session.user.id
 
     const { searchParams } = new URL(request.url)
     const type = searchParams.get("type") // "category", "domain", or "all"
