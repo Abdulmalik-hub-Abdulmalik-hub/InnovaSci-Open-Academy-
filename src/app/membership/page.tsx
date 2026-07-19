@@ -9,11 +9,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
+import { useLocalization } from "@/hooks/useLocalization"
 import { 
   Check, X, CreditCard, Award, Download, 
   Infinity, Clock, Zap, Shield, BookOpen, MessageCircle, Headphones,
   Star, Sparkles, ChevronRight, Crown, Grid3X3, Layers,
-  Lock, ShoppingCart, Percent, Tag, Gift
+  Lock, ShoppingCart, Percent, Tag, Gift, Globe
 } from "lucide-react"
 
 interface Domain {
@@ -129,6 +130,16 @@ export default function MembershipPage() {
   const [showCurrencyDropdown, setShowCurrencyDropdown] = useState(false)
   
   const router = useRouter()
+  
+  // Get user localization
+  const { localization } = useLocalization()
+  
+  // Auto-detect currency from user profile
+  useEffect(() => {
+    if (localization?.currency) {
+      setSelectedCurrency(localization.currency)
+    }
+  }, [localization])
 
   const fetchPlans = useCallback(async () => {
     try {

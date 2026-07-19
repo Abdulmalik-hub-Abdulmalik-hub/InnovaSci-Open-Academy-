@@ -16,8 +16,19 @@ export interface UserProfile {
   avatarUrl: string | null
   phone: string | null
   country: string | null
+  countryCode: string | null
+  state: string | null
+  stateCode: string | null
   city: string | null
+  postalCode: string | null
+  streetAddress: string | null
   gender: string | null
+  // Localization
+  currency: string | null
+  currencySymbol: string | null
+  language: string | null
+  timezone: string | null
+  preferredGateway: string | null
 }
 
 export interface UserData {
@@ -56,7 +67,24 @@ export function useStudentProfile() {
     }
   }, [])
 
-  const updateProfile = async (updates: { fullName?: string; bio?: string; avatarUrl?: string }) => {
+  const updateProfile = async (updates: {
+    fullName?: string
+    bio?: string
+    avatarUrl?: string
+    phone?: string
+    country?: string
+    countryCode?: string
+    state?: string
+    stateCode?: string
+    city?: string
+    postalCode?: string
+    streetAddress?: string
+    currency?: string
+    currencySymbol?: string
+    language?: string
+    timezone?: string
+    preferredGateway?: string
+  }) => {
     try {
       const response = await fetch("/api/student/profile", {
         method: "PUT",

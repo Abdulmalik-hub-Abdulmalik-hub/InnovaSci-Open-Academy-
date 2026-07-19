@@ -8,12 +8,37 @@ const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { email, password, fullName, country, timezone } = body
+    const { 
+      email, 
+      password, 
+      fullName, 
+      country, 
+      countryCode,
+      state,
+      stateCode,
+      city,
+      streetAddress,
+      postalCode,
+      phone,
+      currency,
+      currencySymbol,
+      timezone,
+      preferredGateway,
+      language
+    } = body
 
     // Validate required fields
     if (!email || !password || !fullName) {
       return NextResponse.json(
         { error: "Email, password, and full name are required" },
+        { status: 400 }
+      )
+    }
+
+    // Country is required
+    if (!countryCode) {
+      return NextResponse.json(
+        { error: "Country is required" },
         { status: 400 }
       )
     }
@@ -61,7 +86,21 @@ export async function POST(request: NextRequest) {
           create: {
             fullName: fullName.trim(),
             username: normalizedEmail.split("@")[0].toLowerCase(),
+            // Location data
             country: country || null,
+            countryCode: countryCode || null,
+            state: state || null,
+            stateCode: stateCode || null,
+            city: city || null,
+            streetAddress: streetAddress || null,
+            postalCode: postalCode || null,
+            phone: phone || null,
+            // Localization data
+            currency: currency || null,
+            currencySymbol: currencySymbol || null,
+            language: language || null,
+            timezone: timezone || null,
+            preferredGateway: preferredGateway || null,
             preferences: timezone ? { timezone } : {},
           },
         },

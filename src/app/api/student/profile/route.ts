@@ -76,8 +76,18 @@ export async function GET(request: NextRequest) {
           avatarUrl: user.profile.avatarUrl,
           phone: user.profile.phone,
           country: user.profile.country,
+          countryCode: user.profile.countryCode,
+          state: user.profile.state,
+          stateCode: user.profile.stateCode,
           city: user.profile.city,
-          gender: user.profile.gender
+          postalCode: user.profile.postalCode,
+          streetAddress: user.profile.streetAddress,
+          gender: user.profile.gender,
+          currency: user.profile.currency,
+          currencySymbol: user.profile.currencySymbol,
+          language: user.profile.language,
+          timezone: user.profile.timezone,
+          preferredGateway: user.profile.preferredGateway
         } : null,
         stats: {
           coursesCompleted,
@@ -95,12 +105,29 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// PUT /api/student/profile - Update profile (displayName, bio, avatar)
+// PUT /api/student/profile - Update profile (displayName, bio, avatar, location, localization)
 export async function PUT(request: NextRequest) {
   try {
     const userId = request.headers.get("x-user-id") || "demo-user-id"
     const body = await request.json()
-    const { fullName, bio, avatarUrl } = body
+    const { 
+      fullName, 
+      bio, 
+      avatarUrl,
+      phone,
+      country,
+      countryCode,
+      state,
+      stateCode,
+      city,
+      postalCode,
+      streetAddress,
+      currency,
+      currencySymbol,
+      language,
+      timezone,
+      preferredGateway
+    } = body
 
     // Validate inputs
     if (fullName && fullName.length > 100) {
@@ -123,13 +150,39 @@ export async function PUT(request: NextRequest) {
       update: {
         fullName: fullName || undefined,
         bio: bio !== undefined ? bio : undefined,
-        avatarUrl: avatarUrl !== undefined ? avatarUrl : undefined
+        avatarUrl: avatarUrl !== undefined ? avatarUrl : undefined,
+        phone: phone !== undefined ? phone : undefined,
+        country: country !== undefined ? country : undefined,
+        countryCode: countryCode !== undefined ? countryCode : undefined,
+        state: state !== undefined ? state : undefined,
+        stateCode: stateCode !== undefined ? stateCode : undefined,
+        city: city !== undefined ? city : undefined,
+        postalCode: postalCode !== undefined ? postalCode : undefined,
+        streetAddress: streetAddress !== undefined ? streetAddress : undefined,
+        currency: currency !== undefined ? currency : undefined,
+        currencySymbol: currencySymbol !== undefined ? currencySymbol : undefined,
+        language: language !== undefined ? language : undefined,
+        timezone: timezone !== undefined ? timezone : undefined,
+        preferredGateway: preferredGateway !== undefined ? preferredGateway : undefined
       },
       create: {
         userId,
         fullName: fullName || null,
         bio: bio || null,
-        avatarUrl: avatarUrl || null
+        avatarUrl: avatarUrl || null,
+        phone: phone || null,
+        country: country || null,
+        countryCode: countryCode || null,
+        state: state || null,
+        stateCode: stateCode || null,
+        city: city || null,
+        postalCode: postalCode || null,
+        streetAddress: streetAddress || null,
+        currency: currency || null,
+        currencySymbol: currencySymbol || null,
+        language: language || null,
+        timezone: timezone || null,
+        preferredGateway: preferredGateway || null
       }
     })
 
@@ -140,7 +193,20 @@ export async function PUT(request: NextRequest) {
           id: profile.id,
           fullName: profile.fullName,
           bio: profile.bio,
-          avatarUrl: profile.avatarUrl
+          avatarUrl: profile.avatarUrl,
+          phone: profile.phone,
+          country: profile.country,
+          countryCode: profile.countryCode,
+          state: profile.state,
+          stateCode: profile.stateCode,
+          city: profile.city,
+          postalCode: profile.postalCode,
+          streetAddress: profile.streetAddress,
+          currency: profile.currency,
+          currencySymbol: profile.currencySymbol,
+          language: profile.language,
+          timezone: profile.timezone,
+          preferredGateway: profile.preferredGateway
         }
       }
     })

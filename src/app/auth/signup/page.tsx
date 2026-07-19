@@ -1,68 +1,26 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
-import { Mail, Lock, Eye, EyeOff, User, AlertCircle, Loader2, Globe, Clock } from "lucide-react"
+import { Mail, Lock, Eye, EyeOff, User, AlertCircle, Loader2, Globe, Phone, MapPin, ChevronDown } from "lucide-react"
 import { AcademyLogo } from "@/components/layout/logo"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { cn } from "@/lib/utils"
+import { 
+  countries, 
+  getCountryByCode, 
+  getStatesByCountry, 
+  hasStates,
+  getCitiesByState,
+  hasCities,
+  getTimezoneOptions
+} from "@/lib/countries"
 
 // Secure email validation regex
 const EMAIL_REGEX = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
-
-// Common countries with flags
-const COUNTRIES = [
-  { code: "NG", name: "Nigeria", currency: "NGN", timezone: "Africa/Lagos" },
-  { code: "US", name: "United States", currency: "USD", timezone: "America/New_York" },
-  { code: "GB", name: "United Kingdom", currency: "GBP", timezone: "Europe/London" },
-  { code: "CA", name: "Canada", currency: "CAD", timezone: "America/Toronto" },
-  { code: "AU", name: "Australia", currency: "AUD", timezone: "Australia/Sydney" },
-  { code: "IN", name: "India", currency: "INR", timezone: "Asia/Kolkata" },
-  { code: "GH", name: "Ghana", currency: "GHS", timezone: "Africa/Accra" },
-  { code: "KE", name: "Kenya", currency: "KES", timezone: "Africa/Nairobi" },
-  { code: "ZA", name: "South Africa", currency: "ZAR", timezone: "Africa/Johannesburg" },
-  { code: "EG", name: "Egypt", currency: "EGP", timezone: "Africa/Cairo" },
-  { code: "AE", name: "United Arab Emirates", currency: "AED", timezone: "Asia/Dubai" },
-  { code: "SA", name: "Saudi Arabia", currency: "SAR", timezone: "Asia/Riyadh" },
-  { code: "MY", name: "Malaysia", currency: "MYR", timezone: "Asia/Kuala_Lumpur" },
-  { code: "SG", name: "Singapore", currency: "SGD", timezone: "Asia/Singapore" },
-  { code: "PH", name: "Philippines", currency: "PHP", timezone: "Asia/Manila" },
-  { code: "ID", name: "Indonesia", currency: "IDR", timezone: "Asia/Jakarta" },
-  { code: "BR", name: "Brazil", currency: "BRL", timezone: "America/Sao_Paulo" },
-  { code: "MX", name: "Mexico", currency: "MXN", timezone: "America/Mexico_City" },
-  { code: "PK", name: "Pakistan", currency: "PKR", timezone: "Asia/Karachi" },
-  { code: "BD", name: "Bangladesh", currency: "BDT", timezone: "Asia/Dhaka" },
-]
-
-// Timezones by region
-const TIMEZONES = [
-  { value: "Africa/Lagos", label: "Africa - Lagos (WAT)" },
-  { value: "Africa/Accra", label: "Africa - Accra (GMT)" },
-  { value: "Africa/Nairobi", label: "Africa - Nairobi (EAT)" },
-  { value: "Africa/Johannesburg", label: "Africa - Johannesburg (SAST)" },
-  { value: "Africa/Cairo", label: "Africa - Cairo (EET)" },
-  { value: "America/New_York", label: "Americas - New York (EST)" },
-  { value: "America/Chicago", label: "Americas - Chicago (CST)" },
-  { value: "America/Denver", label: "Americas - Denver (MST)" },
-  { value: "America/Los_Angeles", label: "Americas - Los Angeles (PST)" },
-  { value: "America/Sao_Paulo", label: "Americas - São Paulo (BRT)" },
-  { value: "America/Mexico_City", label: "Americas - Mexico City (CST)" },
-  { value: "Europe/London", label: "Europe - London (GMT)" },
-  { value: "Europe/Paris", label: "Europe - Paris (CET)" },
-  { value: "Europe/Berlin", label: "Europe - Berlin (CET)" },
-  { value: "Asia/Dubai", label: "Asia - Dubai (GST)" },
-  { value: "Asia/Riyadh", label: "Asia - Riyadh (AST)" },
-  { value: "Asia/Kolkata", label: "Asia - Mumbai/Delhi (IST)" },
-  { value: "Asia/Singapore", label: "Asia - Singapore (SGT)" },
-  { value: "Asia/Kuala_Lumpur", label: "Asia - Kuala Lumpur (MYT)" },
-  { value: "Asia/Manila", label: "Asia - Manila (PHT)" },
-  { value: "Asia/Jakarta", label: "Asia - Jakarta (WIB)" },
-  { value: "Australia/Sydney", label: "Australia - Sydney (AEST)" },
-  { value: "Pacific/Auckland", label: "Pacific - Auckland (NZST)" },
-]
 
 export default function SignupPage() {
   const router = useRouter()
@@ -74,16 +32,88 @@ export default function SignupPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [acceptTerms, setAcceptTerms] = useState(false)
-  const [country, setCountry] = useState("")
+  
+  // Location fields
+  const [countryCode, setCountryCode] = useState("")
+  const [selectedCountry, setSelectedCountry] = useState<typeof countries[0] | null>(null)
+  const [stateCode, setStateCode] = useState("")
+  const [selectedState, setSelectedState] = useState<string>("")
+  const [city, setCity] = useState("")
+  const [streetAddress, setStreetAddress] = useState("")
+  const [postalCode, setPostalCode] = useState("")
+  const [phone, setPhone] = useState("")
   const [timezone, setTimezone] = useState("")
+  const [showCountryDropdown, setShowCountryDropdown] = useState(false)
+  const [showStateDropdown, setShowStateDropdown] = useState(false)
+  const [showCityDropdown, setShowCityDropdown] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [stateSearchQuery, setStateSearchQuery] = useState("")
+  const [citySearchQuery, setCitySearchQuery] = useState("")
+  
+  // Detected timezone
   const [detectedTimezone, setDetectedTimezone] = useState("")
 
-  // Detect user's timezone
+  // Detect user's timezone on mount
   useEffect(() => {
     const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone
     setDetectedTimezone(userTimezone)
     setTimezone(userTimezone)
   }, [])
+
+  // Update country details when country is selected
+  useEffect(() => {
+    if (countryCode) {
+      const country = getCountryByCode(countryCode)
+      if (country) {
+        setSelectedCountry(country)
+        setTimezone(country.timezone)
+      }
+      setStateCode("")
+      setCity("")
+    } else {
+      setSelectedCountry(null)
+    }
+  }, [countryCode])
+
+  // Get states for selected country
+  const availableStates = useMemo(() => {
+    if (!countryCode) return []
+    return getStatesByCountry(countryCode)
+  }, [countryCode])
+
+  // Get cities for selected state
+  const availableCities = useMemo(() => {
+    if (!countryCode || !stateCode) return []
+    return getCitiesByState(countryCode, stateCode)
+  }, [countryCode, stateCode])
+
+  // Filtered countries for search
+  const filteredCountries = useMemo(() => {
+    if (!searchQuery) return countries
+    const query = searchQuery.toLowerCase()
+    return countries.filter(c => 
+      c.name.toLowerCase().includes(query) ||
+      c.code.toLowerCase().includes(query) ||
+      c.currency.toLowerCase().includes(query)
+    ).slice(0, 10)
+  }, [searchQuery])
+
+  // Filtered states for search
+  const filteredStates = useMemo(() => {
+    if (!stateSearchQuery) return availableStates
+    const query = stateSearchQuery.toLowerCase()
+    return availableStates.filter(s => 
+      s.name.toLowerCase().includes(query) ||
+      s.code.toLowerCase().includes(query)
+    )
+  }, [availableStates, stateSearchQuery])
+
+  // Filtered cities for search
+  const filteredCities = useMemo(() => {
+    if (!citySearchQuery) return availableCities
+    const query = citySearchQuery.toLowerCase()
+    return availableCities.filter(c => c.toLowerCase().includes(query))
+  }, [availableCities, citySearchQuery])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -92,6 +122,11 @@ export default function SignupPage() {
     // Validate email format
     if (!EMAIL_REGEX.test(email)) {
       setError("Please enter a valid email address")
+      return
+    }
+
+    if (!countryCode) {
+      setError("Please select your country")
       return
     }
 
@@ -110,10 +145,6 @@ export default function SignupPage() {
       return
     }
 
-    // Get country name from code
-    const countryData = COUNTRIES.find(c => c.code === country)
-    const countryName = countryData?.name || country
-
     setIsLoading(true)
 
     try {
@@ -124,8 +155,20 @@ export default function SignupPage() {
           email: email.trim().toLowerCase(),
           password,
           fullName: fullName.trim(),
-          country: countryName,
+          // Location data
+          country: selectedCountry?.name || "",
+          countryCode,
+          state: selectedState,
+          stateCode,
+          city,
+          streetAddress,
+          postalCode,
+          phone,
+          // Localization
+          currency: selectedCountry?.currency || "USD",
+          currencySymbol: selectedCountry?.currencySymbol || "$",
           timezone: timezone || detectedTimezone,
+          preferredGateway: selectedCountry?.paymentGateways[0] || "stripe",
         }),
       })
 
@@ -152,7 +195,7 @@ export default function SignupPage() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
+        className="w-full max-w-lg"
       >
         {/* Logo */}
         <div className="text-center mb-8">
@@ -164,7 +207,7 @@ export default function SignupPage() {
         </div>
 
         {/* Signup Form */}
-        <div className="bg-card rounded-2xl border shadow-sm p-6">
+        <div className="bg-card rounded-2xl border shadow-sm p-6 max-h-[85vh] overflow-y-auto">
           <form onSubmit={handleSubmit} className="space-y-4">
             {error && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 text-destructive text-sm">
@@ -173,9 +216,10 @@ export default function SignupPage() {
               </div>
             )}
 
+            {/* Full Name */}
             <div className="space-y-2">
               <label htmlFor="fullName" className="text-sm font-medium">
-                Full Name
+                Full Name <span className="text-destructive">*</span>
               </label>
               <div className="relative">
                 <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -191,9 +235,10 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* Email */}
             <div className="space-y-2">
               <label htmlFor="email" className="text-sm font-medium">
-                Email
+                Email Address <span className="text-destructive">*</span>
               </label>
               <div className="relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -209,9 +254,237 @@ export default function SignupPage() {
               </div>
             </div>
 
+            {/* Country (Required) */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium flex items-center gap-1">
+                <Globe className="h-3 w-3" />
+                Country <span className="text-destructive">*</span>
+              </label>
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setShowCountryDropdown(!showCountryDropdown)}
+                  className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  {selectedCountry ? (
+                    <span className="flex items-center gap-2">
+                      <span>{selectedCountry.flag}</span>
+                      <span>{selectedCountry.name}</span>
+                      <span className="text-muted-foreground text-xs">({selectedCountry.currency})</span>
+                    </span>
+                  ) : (
+                    <span className="text-muted-foreground">Select your country</span>
+                  )}
+                  <ChevronDown className="h-4 w-4 opacity-50" />
+                </button>
+                
+                {showCountryDropdown && (
+                  <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
+                    <div className="p-2">
+                      <Input
+                        placeholder="Search country..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="mb-2"
+                        autoFocus
+                      />
+                    </div>
+                    <div className="max-h-60 overflow-y-auto">
+                      {filteredCountries.map((country) => (
+                        <button
+                          key={country.code}
+                          type="button"
+                          onClick={() => {
+                            setCountryCode(country.code)
+                            setSelectedCountry(country)
+                            setSearchQuery("")
+                            setShowCountryDropdown(false)
+                          }}
+                          className={cn(
+                            "w-full px-3 py-2 text-left text-sm hover:bg-muted flex items-center gap-2",
+                            country.code === countryCode && "bg-muted"
+                          )}
+                        >
+                          <span>{country.flag}</span>
+                          <span>{country.name}</span>
+                          <span className="text-muted-foreground text-xs ml-auto">{country.currency}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* State/Province - Dynamic */}
+            {countryCode && hasStates(countryCode) && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  State / Province
+                </label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowStateDropdown(!showStateDropdown)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {selectedState ? (
+                      <span>{selectedState}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Select state/province</span>
+                    )}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </button>
+                  
+                  {showStateDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
+                      <div className="p-2">
+                        <Input
+                          placeholder="Search state..."
+                          value={stateSearchQuery}
+                          onChange={(e) => setStateSearchQuery(e.target.value)}
+                          className="mb-2"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        {filteredStates.map((state) => (
+                          <button
+                            key={state.code}
+                            type="button"
+                            onClick={() => {
+                              setStateCode(state.code)
+                              setSelectedState(state.name)
+                              setStateSearchQuery("")
+                              setShowStateDropdown(false)
+                            }}
+                            className={cn(
+                              "w-full px-3 py-2 text-left text-sm hover:bg-muted",
+                              state.code === stateCode && "bg-muted"
+                            )}
+                          >
+                            {state.name}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* City - Dynamic */}
+            {countryCode && stateCode && hasCities(countryCode, stateCode) && (
+              <div className="space-y-2">
+                <label className="text-sm font-medium">City</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowCityDropdown(!showCityDropdown)}
+                    className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {city ? (
+                      <span>{city}</span>
+                    ) : (
+                      <span className="text-muted-foreground">Select city</span>
+                    )}
+                    <ChevronDown className="h-4 w-4 opacity-50" />
+                  </button>
+                  
+                  {showCityDropdown && (
+                    <div className="absolute z-50 w-full mt-1 bg-background border rounded-md shadow-lg">
+                      <div className="p-2">
+                        <Input
+                          placeholder="Search city..."
+                          value={citySearchQuery}
+                          onChange={(e) => setCitySearchQuery(e.target.value)}
+                          className="mb-2"
+                          autoFocus
+                        />
+                      </div>
+                      <div className="max-h-60 overflow-y-auto">
+                        {filteredCities.map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              setCity(c)
+                              setCitySearchQuery("")
+                              setShowCityDropdown(false)
+                            }}
+                            className={cn(
+                              "w-full px-3 py-2 text-left text-sm hover:bg-muted",
+                              c === city && "bg-muted"
+                            )}
+                          >
+                            {c}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Street Address */}
+            <div className="space-y-2">
+              <label htmlFor="streetAddress" className="text-sm font-medium flex items-center gap-1">
+                <MapPin className="h-3 w-3" />
+                Street Address
+              </label>
+              <Input
+                id="streetAddress"
+                type="text"
+                placeholder="123 Main Street"
+                value={streetAddress}
+                onChange={(e) => setStreetAddress(e.target.value)}
+              />
+            </div>
+
+            {/* Phone Number */}
+            <div className="space-y-2">
+              <label htmlFor="phone" className="text-sm font-medium flex items-center gap-1">
+                <Phone className="h-3 w-3" />
+                Phone Number
+              </label>
+              <div className="flex gap-2">
+                {selectedCountry && (
+                  <div className="flex items-center h-10 px-3 bg-muted rounded-md text-sm text-muted-foreground">
+                    {selectedCountry.flag} {selectedCountry.callingCode}
+                  </div>
+                )}
+                <Input
+                  id="phone"
+                  type="tel"
+                  placeholder="Phone number"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+            </div>
+
+            {/* Postal Code */}
+            {countryCode && (
+              <div className="space-y-2">
+                <label htmlFor="postalCode" className="text-sm font-medium">
+                  Postal / ZIP Code
+                </label>
+                <Input
+                  id="postalCode"
+                  type="text"
+                  placeholder="Postal code"
+                  value={postalCode}
+                  onChange={(e) => setPostalCode(e.target.value)}
+                />
+              </div>
+            )}
+
+            {/* Password */}
             <div className="space-y-2">
               <label htmlFor="password" className="text-sm font-medium">
-                Password
+                Password <span className="text-destructive">*</span>
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -230,18 +503,15 @@ export default function SignupPage() {
                   onClick={() => setShowPassword(!showPassword)}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                 >
-                  {showPassword ? (
-                    <EyeOff className="h-4 w-4" />
-                  ) : (
-                    <Eye className="h-4 w-4" />
-                  )}
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
+            {/* Confirm Password */}
             <div className="space-y-2">
               <label htmlFor="confirmPassword" className="text-sm font-medium">
-                Confirm Password
+                Confirm Password <span className="text-destructive">*</span>
               </label>
               <div className="relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -257,51 +527,7 @@ export default function SignupPage() {
               </div>
             </div>
 
-            {/* Localization Fields */}
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="country" className="text-sm font-medium flex items-center gap-1">
-                  <Globe className="h-3 w-3" />
-                  Country
-                </label>
-                <select
-                  id="country"
-                  value={country}
-                  onChange={(e) => setCountry(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  required
-                >
-                  <option value="">Select country</option>
-                  {COUNTRIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="timezone" className="text-sm font-medium flex items-center gap-1">
-                  <Clock className="h-3 w-3" />
-                  Timezone
-                </label>
-                <select
-                  id="timezone"
-                  value={timezone}
-                  onChange={(e) => setTimezone(e.target.value)}
-                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                  required
-                >
-                  <option value="">Select timezone</option>
-                  {TIMEZONES.map((tz) => (
-                    <option key={tz.value} value={tz.value}>
-                      {tz.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
+            {/* Terms */}
             <div className="flex items-start gap-2">
               <input
                 type="checkbox"
