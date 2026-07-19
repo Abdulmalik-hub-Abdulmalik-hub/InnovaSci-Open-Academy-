@@ -460,6 +460,8 @@ DO $$
 DECLARE
     admin_user_id UUID;
     admin_profile_id UUID;
+    -- Correct bcrypt hash for 'admin123' generated with bcryptjs
+    correct_admin_hash TEXT := '$2b$12$sDtr4kYQ6WFJkpmRHF59i.Ls624UJXbX/WpGYHth6DNAMD9IpYhE.';
 BEGIN
     -- Check if admin user already exists
     SELECT id INTO admin_user_id FROM users WHERE email = 'abdulmalikmusba@gmail.com';
@@ -467,11 +469,12 @@ BEGIN
     IF admin_user_id IS NULL THEN
         admin_user_id := gen_random_uuid();
         INSERT INTO users (id, email, "passwordHash", role, status, "createdAt", "updatedAt") VALUES
-            (admin_user_id, 'abdulmalikmusba@gmail.com', '$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5iHJ4j.S4IXTK', 'ADMIN', 'ACTIVE', NOW(), NOW());
+            (admin_user_id, 'abdulmalikmusba@gmail.com', correct_admin_hash, 'ADMIN', 'ACTIVE', NOW(), NOW());
         RAISE NOTICE 'Admin user created';
     ELSE
-        UPDATE users SET role = 'ADMIN', status = 'ACTIVE' WHERE id = admin_user_id;
-        RAISE NOTICE 'Admin user updated';
+        -- Update password hash to correct value
+        UPDATE users SET "passwordHash" = correct_admin_hash, role = 'ADMIN', status = 'ACTIVE' WHERE id = admin_user_id;
+        RAISE NOTICE 'Admin user updated with correct password hash';
     END IF;
     
     -- Check if profile exists
@@ -497,17 +500,20 @@ DO $$
 DECLARE
     student_user_id UUID;
     student_profile_id UUID;
+    -- Correct bcrypt hash for 'student123' generated with bcryptjs
+    correct_student_hash TEXT := '$2b$12$AZKJfO4B2232diTb5gSP9evLPcjBWYSWa2SWHHEZpMaYQSjsMx7dm';
 BEGIN
     SELECT id INTO student_user_id FROM users WHERE email = 'student@innovasci.com';
     
     IF student_user_id IS NULL THEN
         student_user_id := gen_random_uuid();
         INSERT INTO users (id, email, "passwordHash", role, status, "createdAt", "updatedAt") VALUES
-            (student_user_id, 'student@innovasci.com', '$2b$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', 'STUDENT', 'ACTIVE', NOW(), NOW());
+            (student_user_id, 'student@innovasci.com', correct_student_hash, 'STUDENT', 'ACTIVE', NOW(), NOW());
         RAISE NOTICE 'Student user created';
     ELSE
-        UPDATE users SET role = 'STUDENT', status = 'ACTIVE' WHERE id = student_user_id;
-        RAISE NOTICE 'Student user updated';
+        -- Update password hash to correct value
+        UPDATE users SET "passwordHash" = correct_student_hash, role = 'STUDENT', status = 'ACTIVE' WHERE id = student_user_id;
+        RAISE NOTICE 'Student user updated with correct password hash';
     END IF;
     
     SELECT id INTO student_profile_id FROM profiles WHERE "userId" = student_user_id;
