@@ -13,6 +13,13 @@ export interface DashboardStats {
   completionRate: number
   totalRevenue: number
   formattedRevenue: string
+  // Scholarship stats
+  totalScholarships: number
+  activeScholarships: number
+  totalApplications: number
+  pendingApplications: number
+  totalAwards: number
+  activeAwards: number
 }
 
 export interface RecentActivity {

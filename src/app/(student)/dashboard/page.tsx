@@ -13,7 +13,7 @@ import {
   BookOpen, Award, Clock, TrendingUp, Play, 
   ChevronRight, Calendar, Target, CheckCircle2,
   Trophy, Flame, ArrowRight, Sparkles, HelpCircle,
-  Heart, List, Eye, FileText, PlayCircle
+  Heart, List, Eye, FileText, PlayCircle, GraduationCap
 } from "lucide-react"
 
 export default function StudentDashboard() {
@@ -50,7 +50,9 @@ export default function StudentDashboard() {
     totalEnrolled: 0,
     completedCourses: 0,
     totalHoursLearned: 0,
-    certificatesEarned: 0
+    certificatesEarned: 0,
+    activeAwards: 0,
+    pendingApplications: 0
   }
 
   return (
@@ -172,7 +174,7 @@ export default function StudentDashboard() {
       )}
 
       {/* Stats Row */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm">
           <CardContent className="p-4 flex items-center gap-4">
             <div className="w-12 h-12 rounded-xl bg-[hsl(var(--brand-purple))/10 flex items-center justify-center">
@@ -217,6 +219,19 @@ export default function StudentDashboard() {
             </div>
           </CardContent>
         </Card>
+        <Link href="/dashboard/scholarships">
+          <Card className="bg-white dark:bg-gray-800 border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="w-12 h-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <GraduationCap className="h-6 w-6 text-amber-500" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{stats.activeAwards || 0}</p>
+                <p className="text-xs text-gray-500">Awards</p>
+              </div>
+            </CardContent>
+          </Card>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">

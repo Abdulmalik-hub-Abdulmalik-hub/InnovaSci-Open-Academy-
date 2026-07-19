@@ -10,7 +10,8 @@ import { useDashboard, formatRelativeTime } from "@/hooks/useDashboard"
 import { 
   Users, GraduationCap, DollarSign, Activity, 
   BookOpen, Award, ArrowUpRight, ArrowDownRight,
-  RefreshCw, AlertCircle, Loader2, Plus, FileText, CheckCircle
+  RefreshCw, AlertCircle, Loader2, Plus, FileText, CheckCircle,
+  Users2, FileBadge, DollarSign as DollarSignAlt
 } from "lucide-react"
 
 function StatCard({ 
@@ -248,6 +249,73 @@ export default function AdminDashboard() {
             icon={Activity}
             color="text-amber-400"
             bg="bg-amber-400/10"
+            loading={loading}
+          />
+        </motion.div>
+      </div>
+
+      {/* Scholarship Stats */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.5 }}
+        >
+          <StatCard
+            title="Active Scholarships"
+            value={stats.activeScholarships || 0}
+            change={`${stats.totalScholarships || 0} total`}
+            icon={GraduationCap}
+            color="text-emerald-400"
+            bg="bg-emerald-400/10"
+            loading={loading}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+        >
+          <StatCard
+            title="Applications"
+            value={stats.pendingApplications || 0}
+            change="pending review"
+            icon={FileBadge}
+            color="text-amber-400"
+            bg="bg-amber-400/10"
+            loading={loading}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.6 }}
+        >
+          <StatCard
+            title="Total Awards"
+            value={stats.totalAwards || 0}
+            change={`${stats.activeAwards || 0} active`}
+            icon={Award}
+            color="text-purple-400"
+            bg="bg-purple-400/10"
+            loading={loading}
+          />
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.65 }}
+        >
+          <StatCard
+            title="Total Users"
+            value={stats.totalUsers?.toLocaleString() || 0}
+            change={`${stats.activeUsers || 0} active`}
+            icon={Users2}
+            color="text-blue-400"
+            bg="bg-blue-400/10"
             loading={loading}
           />
         </motion.div>

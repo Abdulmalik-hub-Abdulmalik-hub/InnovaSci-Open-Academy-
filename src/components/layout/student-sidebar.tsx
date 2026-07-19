@@ -33,6 +33,7 @@ const quickAccessItems: MenuItem[] = [
   { title: "My Projects", href: "/dashboard/projects", icon: Code2 },
   { title: "Portfolio", href: "/portfolio", icon: Briefcase },
   { title: "Certifications", href: "/dashboard/certificates", icon: Award, description: "Category & Domain Progress" },
+  { title: "My Scholarships", href: "/dashboard/scholarships", icon: GraduationCap, description: "Awards & Applications" },
 ]
 
 // Community items

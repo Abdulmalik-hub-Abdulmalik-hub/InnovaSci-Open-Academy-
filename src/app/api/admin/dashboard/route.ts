@@ -29,10 +29,32 @@ export async function GET() {
       totalEnrollments: 0,
       completedEnrollments: 0,
       totalRevenue: 0,
+      // Scholarship stats
+      totalScholarships: 0,
+      activeScholarships: 0,
+      totalApplications: 0,
+      pendingApplications: 0,
+      totalAwards: 0,
+      activeAwards: 0,
     }
 
     try {
-      const [userCount, activeCount, courseCount, pubCourses, draftCount, enrollCount, completedCount, revenueAgg] = await Promise.all([
+      const [
+        userCount, 
+        activeCount, 
+        courseCount, 
+        pubCourses, 
+        draftCount, 
+        enrollCount, 
+        completedCount, 
+        revenueAgg,
+        scholarshipCount,
+        activeScholarshipCount,
+        applicationCount,
+        pendingAppCount,
+        awardCount,
+        activeAwardCount,
+      ] = await Promise.all([
         prisma.user.count(),
         prisma.user.count({ where: { status: "ACTIVE" } }),
         prisma.course.count(),
@@ -41,6 +63,17 @@ export async function GET() {
         prisma.enrollment.count(),
         prisma.enrollment.count({ where: { completed: true } }),
         prisma.payment.aggregate({ _sum: { amount: true }, where: { status: "COMPLETED" } }),
+        // Scholarship stats
+        prisma.scholarship.count(),
+        prisma.scholarship.count({ where: { status: "PUBLISHED" } }),
+        prisma.scholarshipApplication.count(),
+        prisma.scholarshipApplication.count({ 
+          where: { 
+            status: { in: ["SUBMITTED", "UNDER_REVIEW", "INTERVIEW"] } 
+          } 
+        }),
+        prisma.scholarshipAward.count(),
+        prisma.scholarshipAward.count({ where: { status: "ACCEPTED" } }),
       ])
 
       stats = {
@@ -52,6 +85,13 @@ export async function GET() {
         totalEnrollments: enrollCount,
         completedEnrollments: completedCount,
         totalRevenue: Number(revenueAgg._sum?.amount) || 0,
+        // Scholarship stats
+        totalScholarships: scholarshipCount,
+        activeScholarships: activeScholarshipCount,
+        totalApplications: applicationCount,
+        pendingApplications: pendingAppCount,
+        totalAwards: awardCount,
+        activeAwards: activeAwardCount,
       }
     } catch (dbError) {
       // Database query failed, but we can still return default stats

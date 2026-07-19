@@ -67,8 +67,20 @@ export default function ScholarshipSettingsPage() {
   const handleSave = async () => {
     setLoading(true)
     try {
-      // In a real app, this would save to the database
-      await new Promise(resolve => setTimeout(resolve, 1000))
+      const response = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          category: "scholarship",
+          settings: settings
+        }),
+      })
+      
+      if (!response.ok) {
+        throw new Error("Failed to save settings")
+      }
       
       toast({
         title: "Settings Saved",
@@ -77,7 +89,7 @@ export default function ScholarshipSettingsPage() {
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to save settings.",
+        description: "Failed to save settings. Please try again.",
         variant: "destructive",
       })
     } finally {
