@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
     }
     
     const userId = session.user.id
+    const userEmail = session.user.email
     console.log(`[${endpoint}] userId:`, userId)
 
     console.log(`[${endpoint}] Executing: prisma.enrollment.findMany...`)
@@ -96,6 +97,8 @@ export async function GET(request: NextRequest) {
     let certificates: any[] = []
     let recommendedCourses: any[] = []
     let recentActivity: any[] = []
+    let awards: any[] = []
+    let applications: any[] = []
 
     try {
       console.log(`[${endpoint}] Executing: prisma.issuedCertificate.findMany...`)
@@ -188,12 +191,98 @@ export async function GET(request: NextRequest) {
       console.error(`[${endpoint}] ERROR fetching learning progress:`, e?.message, e?.code)
     }
 
+    // Fetch student's awards
+    try {
+      console.log(`[${endpoint}] Executing: prisma.scholarshipAward.findMany...`)
+      const studentAwards = await prisma.scholarshipAward.findMany({
+        where: {
+          OR: [
+            { userId: userId },
+            { recipientEmail: userEmail }
+          ]
+        },
+        include: {
+          application: {
+            include: {
+              scholarship: {
+                select: {
+                  id: true,
+                  name: true,
+                  slug: true,
+                  type: true
+                }
+              }
+            }
+          }
+        },
+        orderBy: { createdAt: "desc" }
+      })
+      console.log(`[${endpoint}] Awards found:`, studentAwards.length)
+
+      awards = studentAwards.map(award => ({
+        id: award.id,
+        awardNumber: award.awardNumber,
+        status: award.status,
+        amount: award.amount ? Number(award.amount) : null,
+        currency: award.currency,
+        benefits: award.benefits,
+        startDate: award.startDate,
+        endDate: award.endDate,
+        acceptanceDeadline: award.acceptanceDeadline,
+        scholarship: award.application?.scholarship || { id: award.scholarshipId, name: "Unknown Scholarship", slug: "", type: "" }
+      }))
+    } catch (e: any) {
+      console.error(`[${endpoint}] ERROR fetching awards:`, e?.message, e?.code)
+    }
+
+    // Fetch student's scholarship applications
+    try {
+      console.log(`[${endpoint}] Executing: prisma.scholarshipApplication.findMany...`)
+      const studentApplications = await prisma.scholarshipApplication.findMany({
+        where: {
+          OR: [
+            { userId: userId },
+            { email: userEmail }
+          ]
+        },
+        include: {
+          scholarship: {
+            select: {
+              id: true,
+              name: true,
+              slug: true,
+              type: true,
+              thumbnailUrl: true
+            }
+          }
+        },
+        orderBy: { createdAt: "desc" }
+      })
+      console.log(`[${endpoint}] Applications found:`, studentApplications.length)
+
+      applications = studentApplications.map(app => ({
+        id: app.id,
+        applicationNumber: app.applicationNumber,
+        trackingNumber: app.trackingNumber,
+        status: app.status,
+        scholarship: app.scholarship,
+        createdAt: app.createdAt,
+        submittedAt: app.submittedAt
+      }))
+    } catch (e: any) {
+      console.error(`[${endpoint}] ERROR fetching applications:`, e?.message, e?.code)
+    }
+
     // Calculate stats
     const totalEnrolled = enrollments.length
     const completedCourses = enrollments.filter(e => e.completed).length
     const totalHoursLearned = enrollments.reduce((acc, e) => {
       return acc + ((e.course.durationHours || 0) * e.progressPercent / 100)
     }, 0)
+
+    // Calculate scholarship stats
+    const activeAwards = awards.filter(a => a.status === "ACCEPTED").length
+    const pendingApplications = applications.filter(a => ["SUBMITTED", "UNDER_REVIEW", "INTERVIEW"].includes(a.status)).length
 
     console.log(`[${endpoint}] Returning HTTP 200 with success`)
     console.log("===========================================")
@@ -219,11 +308,15 @@ export async function GET(request: NextRequest) {
         certificates,
         recommendedCourses,
         recentActivity,
+        awards,
+        applications,
         stats: {
           totalEnrolled,
           completedCourses,
           totalHoursLearned: Math.round(totalHoursLearned),
-          certificatesEarned: certificates.length
+          certificatesEarned: certificates.length,
+          activeAwards,
+          pendingApplications
         }
       }
     })

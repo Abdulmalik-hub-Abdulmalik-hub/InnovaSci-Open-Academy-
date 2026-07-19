@@ -67,6 +67,42 @@ export interface DashboardStats {
   completedCourses: number
   totalHoursLearned: number
   certificatesEarned: number
+  activeAwards: number
+  pendingApplications: number
+}
+
+export interface StudentAward {
+  id: string
+  awardNumber: string
+  status: string
+  amount: number | null
+  currency: string
+  benefits: any
+  startDate: string | null
+  endDate: string | null
+  acceptanceDeadline: string | null
+  scholarship: {
+    id: string
+    name: string
+    slug: string
+    type: string
+  }
+}
+
+export interface StudentApplication {
+  id: string
+  applicationNumber: string
+  trackingNumber: string
+  status: string
+  scholarship: {
+    id: string
+    name: string
+    slug: string
+    type: string
+    thumbnailUrl: string | null
+  }
+  createdAt: string
+  submittedAt: string | null
 }
 
 export interface StudentDashboardData {
@@ -75,6 +111,8 @@ export interface StudentDashboardData {
   certificates: Certificate[]
   recommendedCourses: RecommendedCourse[]
   recentActivity: RecentActivity[]
+  awards: StudentAward[]
+  applications: StudentApplication[]
   stats: DashboardStats
 }
 
