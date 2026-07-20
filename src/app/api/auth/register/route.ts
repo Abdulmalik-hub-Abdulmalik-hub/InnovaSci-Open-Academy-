@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { prisma } from "@/lib/prisma"
+import { createServerClient } from "@/lib/supabase"
 import bcrypt from "bcryptjs"
 
 // Secure email validation regex
@@ -60,91 +61,124 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Check if user already exists
-    const existingUser = await prisma.user.findUnique({
-      where: { email: normalizedEmail },
-    })
+    // Create Supabase Auth client (with service role key)
+    const supabaseAdmin = createServerClient()
 
-    if (existingUser) {
-      return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 409 }
-      )
+    // Step 1: Create user in Supabase Auth (if configured)
+    let supabaseUserId: string | null = null
+    
+    if (supabaseAdmin) {
+      try {
+        const { data: supabaseUser, error: supabaseError } = await supabaseAdmin.auth.admin.createUser({
+          email: normalizedEmail,
+          password: password,
+          email_confirm: true,
+          user_metadata: {
+            full_name: fullName.trim(),
+          }
+        })
+
+        if (supabaseError) {
+          console.log("Supabase signup skipped:", supabaseError.message)
+        } else {
+          supabaseUserId = supabaseUser.user?.id || null
+          console.log("Supabase user created:", supabaseUserId)
+        }
+      } catch (supabaseErr) {
+        console.log("Supabase not configured, continuing with Prisma-only signup")
+      }
+    } else {
+      console.log("Supabase not configured, continuing with Prisma-only signup")
     }
 
-    // Hash password
+    // Step 2: Hash password for Prisma storage
     const passwordHash = await bcrypt.hash(password, 12)
 
-    // Create user with STUDENT role
-    const user = await prisma.user.create({
-      data: {
-        email: normalizedEmail,
-        passwordHash,
-        role: "STUDENT", // Always create as STUDENT
-        status: "ACTIVE",
-        profile: {
-          create: {
-            fullName: fullName.trim(),
-            username: normalizedEmail.split("@")[0].toLowerCase(),
-            // Location data
-            country: country || null,
-            countryCode: countryCode || null,
-            state: state || null,
-            stateCode: stateCode || null,
-            city: city || null,
-            streetAddress: streetAddress || null,
-            postalCode: postalCode || null,
-            phone: phone || null,
-            // Localization data
-            currency: currency || null,
-            currencySymbol: currencySymbol || null,
-            language: language || null,
-            timezone: timezone || null,
-            preferredGateway: preferredGateway || null,
-            preferences: timezone ? { timezone } : {},
+    // Step 3: Create user in Prisma database
+    try {
+      const user = await prisma.user.create({
+        data: {
+          email: normalizedEmail,
+          passwordHash,
+          role: "STUDENT",
+          status: "ACTIVE",
+          emailVerified: new Date(),
+          profile: {
+            create: {
+              fullName: fullName.trim(),
+              username: normalizedEmail.split("@")[0].toLowerCase(),
+              // Location data
+              country: country || null,
+              countryCode: countryCode || null,
+              state: state || null,
+              stateCode: stateCode || null,
+              city: city || null,
+              streetAddress: streetAddress || null,
+              postalCode: postalCode || null,
+              phone: phone || null,
+              // Localization data
+              currency: currency || null,
+              currencySymbol: currencySymbol || null,
+              language: language || null,
+              timezone: timezone || null,
+              preferredGateway: preferredGateway || null,
+              preferences: timezone ? { timezone } : {},
+            },
           },
         },
-      },
-      include: {
-        profile: true,
-      },
-    })
-
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Account created successfully",
-        user: {
-          id: user.id,
-          email: user.email,
-          role: user.role,
-          profile: user.profile,
+        include: {
+          profile: true,
         },
-      },
-      { status: 201 }
-    )
+      })
+
+      console.log("Prisma user created:", user.id)
+
+      return NextResponse.json(
+        {
+          success: true,
+          message: "Account created successfully",
+          user: {
+            id: user.id,
+            email: user.email,
+            role: user.role,
+            profile: user.profile,
+          },
+        },
+        { status: 201 }
+      )
+    } catch (prismaError: any) {
+      // If Prisma fails, clean up Supabase user if created
+      if (supabaseUserId && supabaseAdmin) {
+        try {
+          await supabaseAdmin.auth.admin.deleteUser(supabaseUserId)
+        } catch (cleanupError) {
+          console.error("Failed to cleanup Supabase user:", cleanupError)
+        }
+      }
+      
+      if (prismaError?.code === 'P2002') {
+        return NextResponse.json(
+          { error: "An account with this email already exists" },
+          { status: 409 }
+        )
+      }
+      
+      if (prismaError?.message?.includes('prisma')) {
+        return NextResponse.json(
+          { error: "Database connection error. Please try again later." },
+          { status: 503 }
+        )
+      }
+      
+      return NextResponse.json(
+        { error: "Database error. Please try again." },
+        { status: 503 }
+      )
+    }
   } catch (error: any) {
     console.error("Registration error:", error)
     
-    // Provide more specific error messages based on error type
-    if (error?.code === 'P2002') {
-      // Prisma error for unique constraint violation
-      return NextResponse.json(
-        { error: "An account with this email already exists" },
-        { status: 409 }
-      )
-    }
-    
-    if (error?.code === 'P2025') {
-      // Record not found - likely role ID issue
-      return NextResponse.json(
-        { error: "Registration configuration error. Please contact support." },
-        { status: 500 }
-      )
-    }
-    
     if (error?.message?.includes('prisma')) {
-      // Database connection issues
       return NextResponse.json(
         { error: "Database connection error. Please try again later." },
         { status: 503 }

@@ -296,6 +296,14 @@ export async function POST(request: NextRequest) {
     
     // Upload to Supabase Storage
     const supabase = createServerClient()
+    
+    if (!supabase) {
+      return NextResponse.json(
+        { success: false, error: "Storage not configured" },
+        { status: 500 }
+      )
+    }
+    
     const fileExt = file.name.split(".").pop() || "jpg"
     const fileName = `avatars/${userId}_${Date.now()}.${fileExt}`
 
