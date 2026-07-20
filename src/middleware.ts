@@ -83,10 +83,15 @@ async function getMaintenanceStatus(): Promise<{ isMaintenance: boolean; message
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
   
+  console.log("[Middleware] ============================================")
+  console.log("[Middleware] Request path:", pathname)
+  
   // Check if path is exempt
   const isExempt = EXEMPT_PATHS.some((path) => pathname.startsWith(path))
   
   if (isExempt) {
+    console.log("[Middleware] Path is exempt, allowing through")
+    console.log("[Middleware] ============================================")
     return NextResponse.next()
   }
   
@@ -94,13 +99,33 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = ADMIN_ROUTES.some((path) => pathname.startsWith(path))
   
   if (isAdminRoute) {
+    console.log("[Middleware] Admin route detected!")
+    console.log("[Middleware] ============================================")
+    
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     
-    console.log("[Middleware] Admin route check for:", pathname)
+    console.log("[Middleware] ============================================")
+    console.log("[Middleware] MIDDLEWARE: Getting JWT token...")
     console.log("[Middleware] Token exists:", !!token)
+    
     if (token) {
-      console.log("[Middleware] Token role:", token.role)
-      console.log("[Middleware] Token id:", token.id)
+      console.log("[Middleware] Token ID:", token.id)
+      console.log("[Middleware] Token email:", token.email)
+      console.log("[Middleware] Token role (from JWT):", token.role)
+      console.log("[Middleware] ============================================")
+      
+      // CRITICAL: Verify the role is NOT from Supabase
+      if (token.role === 'authenticated') {
+        console.error("[Middleware] CRITICAL ERROR: Token role is 'authenticated'!")
+        console.error("[Middleware] This should NEVER happen - Prisma role must be in JWT!")
+        console.error("[Middleware] ============================================")
+        const loginUrl = new URL("/auth/login", request.url)
+        loginUrl.searchParams.set("error", "role_error")
+        return NextResponse.redirect(loginUrl)
+      }
+    } else {
+      console.log("[Middleware] No token found - user not authenticated")
+      console.log("[Middleware] ============================================")
     }
     
     // No token = not logged in, redirect to login
@@ -108,6 +133,8 @@ export async function middleware(request: NextRequest) {
       console.log("[Middleware] No token, redirecting to login")
       const loginUrl = new URL("/auth/login", request.url)
       loginUrl.searchParams.set("callbackUrl", pathname)
+      console.log("[Middleware] Redirect destination: /auth/login")
+      console.log("[Middleware] ============================================")
       return NextResponse.redirect(loginUrl)
     }
     
@@ -115,15 +142,22 @@ export async function middleware(request: NextRequest) {
     const userRole = token.role as string
     const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN"
     
-    console.log("[Middleware] User role:", userRole, "isAdmin:", isAdmin)
+    console.log("[Middleware] User role from JWT:", userRole)
+    console.log("[Middleware] Is admin?", isAdmin)
+    console.log("[Middleware] ============================================")
     
     if (!isAdmin) {
       // Redirect non-admins to 403 page
-      console.log("[Middleware] Not admin, redirecting to forbidden")
+      console.log("[Middleware] NOT ADMIN - Role is:", userRole)
+      console.log("[Middleware] Expected: ADMIN or SUPER_ADMIN")
+      console.log("[Middleware] Redirecting to /forbidden")
+      console.log("[Middleware] ============================================")
       return NextResponse.redirect(new URL("/forbidden", request.url))
     }
     
-    console.log("[Middleware] Admin access granted")
+    console.log("[Middleware] ADMIN ACCESS GRANTED!")
+    console.log("[Middleware] Redirect: /admin (no redirect needed - already going to /admin)")
+    console.log("[Middleware] ============================================")
     return NextResponse.next()
   }
   
@@ -132,6 +166,8 @@ export async function middleware(request: NextRequest) {
   
   if (!isStudentRoute) {
     // Not a protected route, allow through
+    console.log("[Middleware] Not a protected route, allowing through")
+    console.log("[Middleware] ============================================")
     return NextResponse.next()
   }
   
@@ -148,6 +184,8 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(maintenanceUrl)
   }
   
+  console.log("[Middleware] Student route, no maintenance - allowing through")
+  console.log("[Middleware] ============================================")
   return NextResponse.next()
 }
 

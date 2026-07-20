@@ -65,18 +65,34 @@ function LoginForm() {
 
   // Get redirect URL based on role
   const getRedirectUrl = (role: string | undefined): string => {
+    console.log("[Login] ============================================")
+    console.log("[Login] getRedirectUrl() called with role:", role)
+    
     // Check if callbackUrl is provided and is a valid internal URL
     if (callbackUrl && callbackUrl.startsWith("/")) {
+      console.log("[Login] Using callbackUrl:", callbackUrl)
+      console.log("[Login] ============================================")
       return callbackUrl
     }
+    
     // Use role-based portal mapping - role must be explicitly checked
+    // CRITICAL: This MUST use the Prisma role from JWT/Session, NOT Supabase role
     if (role === "ADMIN" || role === "SUPER_ADMIN" || role === "CONTENT_MANAGER" || role === "FINANCE" || role === "SUPPORT_STAFF") {
+      console.log("[Login] Role matches admin - redirecting to /admin")
+      console.log("[Login] ============================================")
       return "/admin"
     }
     if (role === "STUDENT" || role === "INSTRUCTOR" || role === "REVIEWER" || role === "ACADEMIC_DIRECTOR" || role === "ADMISSIONS") {
+      console.log("[Login] Role matches student - redirecting to /dashboard")
+      console.log("[Login] ============================================")
       return "/dashboard"
     }
-    // Default fallback
+    
+    // Default fallback - CRITICAL: This should never happen if role is correctly set
+    console.log("[Login] WARNING: Unknown role, defaulting to /dashboard")
+    console.log("[Login] Role received:", role)
+    console.log("[Login] If this is an ADMIN user, this is a BUG!")
+    console.log("[Login] ============================================")
     return "/dashboard"
   }
 
@@ -86,6 +102,10 @@ function LoginForm() {
     setErrorType("error")
     setIsLoading(true)
 
+    console.log("[Login] ============================================")
+    console.log("[Login] Form submitted for:", email)
+    console.log("[Login] ============================================")
+
     try {
       const result = await signIn("credentials", {
         email: email.trim().toLowerCase(),
@@ -94,6 +114,9 @@ function LoginForm() {
       })
 
       if (result?.error) {
+        console.log("[Login] signIn ERROR:", result.error)
+        console.log("[Login] ============================================")
+        
         // Get user-friendly error message
         const errorInfo = AUTH_ERROR_MESSAGES[result.error] || {
           user: "Invalid email or password. Please try again.",
@@ -109,21 +132,47 @@ function LoginForm() {
         return
       }
 
+      console.log("[Login] signIn SUCCESS - fetching session...")
+      console.log("[Login] ============================================")
+
       // Fetch user role from session API - this reads directly from JWT token
       const res = await fetch("/api/auth/session")
       const data = await res.json()
       
+      console.log("[Login] ============================================")
+      console.log("[Login] Session API response:", JSON.stringify(data))
+      console.log("[Login] Session user role:", data?.user?.role)
+      console.log("[Login] ============================================")
+      
       if (data?.user?.role) {
+        console.log("[Login] Role from session:", data.user.role)
+        
+        // CRITICAL: Check if role is the Supabase 'authenticated' role (should never happen)
+        if (data.user.role === 'authenticated') {
+          console.error("[Login] CRITICAL ERROR: Role is 'authenticated'!")
+          console.error("[Login] This should NEVER happen - Prisma role must be in session!")
+          setError("Authentication error: role mismatch. Please contact support.")
+          setIsLoading(false)
+          return
+        }
+        
         const redirectUrl = getRedirectUrl(data.user.role)
+        console.log("[Login] FINAL REDIRECT:", redirectUrl)
+        console.log("[Login] Expected for ADMIN: /admin")
+        console.log("[Login] ============================================")
         router.push(redirectUrl)
         router.refresh()
       } else {
         // Fallback: redirect based on result if session fetch fails
         // The signIn result doesn't contain user info, so default to dashboard
+        console.log("[Login] WARNING: No role in session, defaulting to /dashboard")
+        console.log("[Login] ============================================")
         router.push("/dashboard")
         router.refresh()
       }
     } catch (err) {
+      console.error("[Login] Exception:", err)
+      console.log("[Login] ============================================")
       setError("An error occurred. Please try again later.")
       setErrorType("error")
       setIsLoading(false)

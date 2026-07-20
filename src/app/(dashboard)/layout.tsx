@@ -21,21 +21,43 @@ export default function DashboardLayout({
   const [bannerDismissed, setBannerDismissed] = useState(false)
   
   // Check if user is admin
-  const isAdmin = session?.user?.role === "ADMIN" || session?.user?.role === "SUPER_ADMIN"
+  const sessionRole = session?.user?.role
+  const isAdmin = sessionRole === "ADMIN" || sessionRole === "SUPER_ADMIN"
+  
+  console.log("[Dashboard Layout] ============================================")
+  console.log("[Dashboard Layout] Session status:", status)
+  console.log("[Dashboard Layout] Session role:", sessionRole)
+  console.log("[Dashboard Layout] isAdmin:", isAdmin)
+  
+  // CRITICAL: Verify role is not from Supabase
+  if (sessionRole === 'authenticated') {
+    console.error("[Dashboard Layout] CRITICAL ERROR: Session role is 'authenticated'!")
+    console.error("[Dashboard Layout] This should NEVER happen - Prisma role must be used!")
+    console.error("[Dashboard Layout] ============================================")
+  }
   
   // Redirect if not authenticated or not admin
   useEffect(() => {
     if (status === "loading") return
     
     if (status === "unauthenticated") {
+      console.log("[Dashboard Layout] Not authenticated - redirecting to login")
+      console.log("[Dashboard Layout] ============================================")
       router.push("/auth/login?callbackUrl=/admin")
       return
     }
     
     if (!isAdmin) {
+      console.log("[Dashboard Layout] NOT ADMIN - Role is:", sessionRole)
+      console.log("[Dashboard Layout] Expected: ADMIN or SUPER_ADMIN")
+      console.log("[Dashboard Layout] Redirecting to /forbidden")
+      console.log("[Dashboard Layout] ============================================")
       router.push("/forbidden")
+    } else {
+      console.log("[Dashboard Layout] ADMIN ACCESS CONFIRMED - Rendering dashboard")
+      console.log("[Dashboard Layout] ============================================")
     }
-  }, [status, isAdmin, router])
+  }, [status, isAdmin, sessionRole, router])
   
   // Show loading while checking auth
   if (status === "loading") {
@@ -51,8 +73,13 @@ export default function DashboardLayout({
   
   // Don't render if not admin
   if (!isAdmin) {
+    console.log("[Dashboard Layout] Not admin - not rendering dashboard")
+    console.log("[Dashboard Layout] ============================================")
     return null
   }
+  
+  console.log("[Dashboard Layout] Rendering admin dashboard for role:", sessionRole)
+  console.log("[Dashboard Layout] ============================================")
 
   // Fetch maintenance status
   useEffect(() => {
