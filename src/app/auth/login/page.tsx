@@ -70,7 +70,9 @@ function LoginForm() {
       return callbackUrl
     }
     // Use role-based portal mapping
-    return ROLE_PORTAL_MAP[role] || "/dashboard"
+    const redirect = ROLE_PORTAL_MAP[role] || "/dashboard"
+    console.log("[Login] Role:", role, "-> Redirect:", redirect)
+    return redirect
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -106,15 +108,20 @@ function LoginForm() {
       const res = await fetch("/api/auth/session")
       const session = await res.json()
       
+      console.log("[Login] Session data:", JSON.stringify(session))
+      
       if (session?.user) {
+        console.log("[Login] User role from session:", session.user.role)
         const redirectUrl = getRedirectUrl(session.user.role)
         router.push(redirectUrl)
       } else {
+        console.log("[Login] No user in session, defaulting to /dashboard")
         router.push("/dashboard")
       }
       
       router.refresh()
     } catch (err) {
+      console.error("[Login] Error:", err)
       setError("An error occurred. Please try again later.")
       setErrorType("error")
       setIsLoading(false)

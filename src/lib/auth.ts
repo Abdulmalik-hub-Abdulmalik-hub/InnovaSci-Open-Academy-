@@ -38,18 +38,29 @@ export const authOptions: NextAuthOptions = {
             })
 
             if (!signInError && signInData.user) {
-              console.log("[Auth] Supabase auth successful!")
+              console.log("[Auth] Supabase auth successful for:", signInData.user.email)
               
-              // Get or create Prisma user
+              // Get or create Prisma user - PRESERVE EXISTING ROLE
               try {
                 let prismaUser = await prisma.user.findFirst({
                   where: { email: normalizedEmail },
                   include: { profile: true }
                 })
 
-                if (!prismaUser) {
-                  // Create Prisma user from Supabase user
-                  console.log("[Auth] Creating Prisma user from Supabase...")
+                if (prismaUser) {
+                  // User exists in Prisma - use their existing role
+                  console.log("[Auth] Found Prisma user:", prismaUser.id, "with role:", prismaUser.role)
+                  
+                  // Return user with their EXISTING Prisma role (preserves ADMIN, etc.)
+                  return {
+                    id: prismaUser.id,
+                    email: prismaUser.email,
+                    name: prismaUser.profile?.fullName || signInData.user.user_metadata?.full_name || prismaUser.email.split("@")[0],
+                    role: prismaUser.role // This preserves ADMIN if user is ADMIN in Prisma
+                  }
+                } else {
+                  // New user - create with STUDENT role
+                  console.log("[Auth] Creating new Prisma user from Supabase...")
                   prismaUser = await prisma.user.create({
                     data: {
                       email: signInData.user.email!,
@@ -58,17 +69,17 @@ export const authOptions: NextAuthOptions = {
                     },
                     include: { profile: true }
                   })
-                }
-
-                return {
-                  id: prismaUser.id,
-                  email: prismaUser.email,
-                  name: prismaUser.profile?.fullName || signInData.user.user_metadata?.full_name || prismaUser.email.split("@")[0],
-                  role: prismaUser.role
+                  
+                  return {
+                    id: prismaUser.id,
+                    email: prismaUser.email,
+                    name: signInData.user.user_metadata?.full_name || prismaUser.email.split("@")[0],
+                    role: prismaUser.role
+                  }
                 }
               } catch (prismaError) {
                 console.error("[Auth] Prisma sync error:", prismaError)
-                // Return Supabase user data
+                // Return Supabase user data with default STUDENT role
                 const userEmail = signInData.user.email || ''
                 return {
                   id: signInData.user.id,
@@ -98,7 +109,7 @@ export const authOptions: NextAuthOptions = {
             if (prismaUser.passwordHash) {
               const isValid = await bcrypt.compare(credentials.password, prismaUser.passwordHash)
               if (isValid) {
-                console.log("[Auth] Prisma auth successful!")
+                console.log("[Auth] Prisma auth successful! Role:", prismaUser.role)
                 return {
                   id: prismaUser.id,
                   email: prismaUser.email,
@@ -124,16 +135,20 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
+      console.log("[Auth] JWT callback - user:", user ? `${user.id} role: ${(user as any).role}` : "none")
       if (user) {
         token.id = user.id
         token.role = (user as any).role
+        console.log("[Auth] JWT token set - id:", token.id, "role:", token.role)
       }
       return token
     },
     async session({ session, token }) {
+      console.log("[Auth] Session callback - token role:", token.role)
       if (session.user) {
         session.user.id = token.id as string
         session.user.role = token.role as string
+        console.log("[Auth] Session set - id:", session.user.id, "role:", session.user.role)
       }
       return session
     }
