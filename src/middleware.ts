@@ -96,8 +96,16 @@ export async function middleware(request: NextRequest) {
   if (isAdminRoute) {
     const token = await getToken({ req: request, secret: process.env.NEXTAUTH_SECRET })
     
+    console.log("[Middleware] Admin route check for:", pathname)
+    console.log("[Middleware] Token exists:", !!token)
+    if (token) {
+      console.log("[Middleware] Token role:", token.role)
+      console.log("[Middleware] Token id:", token.id)
+    }
+    
     // No token = not logged in, redirect to login
     if (!token) {
+      console.log("[Middleware] No token, redirecting to login")
       const loginUrl = new URL("/auth/login", request.url)
       loginUrl.searchParams.set("callbackUrl", pathname)
       return NextResponse.redirect(loginUrl)
@@ -107,11 +115,15 @@ export async function middleware(request: NextRequest) {
     const userRole = token.role as string
     const isAdmin = userRole === "ADMIN" || userRole === "SUPER_ADMIN"
     
+    console.log("[Middleware] User role:", userRole, "isAdmin:", isAdmin)
+    
     if (!isAdmin) {
       // Redirect non-admins to 403 page
+      console.log("[Middleware] Not admin, redirecting to forbidden")
       return NextResponse.redirect(new URL("/forbidden", request.url))
     }
     
+    console.log("[Middleware] Admin access granted")
     return NextResponse.next()
   }
   
