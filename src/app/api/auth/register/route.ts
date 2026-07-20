@@ -61,8 +61,21 @@ export async function POST(request: NextRequest) {
 
     // Create user in Prisma database
     try {
-      console.log("[Register] Creating user in Prisma:", normalizedEmail)
+      console.log("[Register] Creating user:", normalizedEmail)
       
+      // First check if user already exists
+      const existingUser = await prisma.user.findUnique({
+        where: { email: normalizedEmail }
+      })
+      
+      if (existingUser) {
+        return NextResponse.json(
+          { error: "An account with this email already exists" },
+          { status: 409 }
+        )
+      }
+      
+      // Create user first without profile
       const user = await prisma.user.create({
         data: {
           email: normalizedEmail,
@@ -70,35 +83,43 @@ export async function POST(request: NextRequest) {
           role: "STUDENT",
           status: "ACTIVE",
           emailVerified: new Date(),
-          profile: {
-            create: {
-              fullName: fullName.trim(),
-              username: normalizedEmail.split("@")[0].toLowerCase(),
-              country: country || null,
-              countryCode: countryCode || null,
-              state: state || null,
-              stateCode: stateCode || null,
-              city: city || null,
-              streetAddress: streetAddress || null,
-              postalCode: postalCode || null,
-              phone: phone || null,
-              currency: currency || null,
-              currencySymbol: currencySymbol || null,
-              language: language || null,
-              timezone: timezone || null,
-              preferredGateway: preferredGateway || null,
-              preferences: timezone ? { timezone } : {},
-            },
-          },
-        },
-        include: {
-          profile: true,
         },
       })
 
-      console.log("[Register] User created successfully:", user.id)
+      console.log("[Register] User created:", user.id)
 
-      // Also create in Supabase Auth if configured
+      // Then create profile separately
+      await prisma.profile.create({
+        data: {
+          userId: user.id,
+          fullName: fullName.trim(),
+          username: normalizedEmail.split("@")[0].toLowerCase(),
+          country: country || null,
+          countryCode: countryCode || null,
+          state: state || null,
+          stateCode: stateCode || null,
+          city: city || null,
+          streetAddress: streetAddress || null,
+          postalCode: postalCode || null,
+          phone: phone || null,
+          currency: currency || null,
+          currencySymbol: currencySymbol || null,
+          language: language || null,
+          timezone: timezone || null,
+          preferredGateway: preferredGateway || null,
+          preferences: timezone ? { timezone } : {},
+        },
+      })
+
+      console.log("[Register] Profile created for user:", user.id)
+
+      // Get user with profile
+      const userWithProfile = await prisma.user.findUnique({
+        where: { id: user.id },
+        include: { profile: true }
+      })
+
+      // Also create in Supabase Auth if configured (async, don't wait)
       if (process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
         try {
           const { createClient } = await import("@supabase/supabase-js")
@@ -107,7 +128,7 @@ export async function POST(request: NextRequest) {
             process.env.SUPABASE_SERVICE_ROLE_KEY
           )
           
-          const { data: supabaseUser, error: supabaseError } = await supabase.auth.admin.createUser({
+          await supabase.auth.admin.createUser({
             email: normalizedEmail,
             password: password,
             email_confirm: true,
@@ -115,14 +136,9 @@ export async function POST(request: NextRequest) {
               full_name: fullName.trim(),
             }
           })
-
-          if (supabaseError) {
-            console.log("[Register] Supabase sync failed:", supabaseError.message)
-          } else {
-            console.log("[Register] Supabase user created:", supabaseUser.user?.id)
-          }
-        } catch (supabaseErr) {
-          console.log("[Register] Supabase not configured, skipping")
+          console.log("[Register] Supabase user created")
+        } catch (supabaseErr: any) {
+          console.log("[Register] Supabase sync skipped:", supabaseErr?.message)
         }
       }
 
@@ -134,14 +150,16 @@ export async function POST(request: NextRequest) {
             id: user.id,
             email: user.email,
             role: user.role,
-            profile: user.profile,
+            profile: userWithProfile?.profile,
           },
         },
         { status: 201 }
       )
     } catch (prismaError: any) {
-      console.error("[Register] Prisma error:", prismaError)
+      console.error("[Register] Prisma error:", prismaError?.message)
+      console.error("[Register] Error code:", prismaError?.code)
       
+      // Handle specific Prisma errors
       if (prismaError?.code === 'P2002') {
         return NextResponse.json(
           { error: "An account with this email already exists" },
@@ -149,20 +167,19 @@ export async function POST(request: NextRequest) {
         )
       }
       
-      // Check for connection errors
-      const errorMessage = prismaError?.message || ''
-      if (errorMessage.includes('connection') || 
-          errorMessage.includes('timeout') ||
-          errorMessage.includes('prisma') ||
-          errorMessage.includes('database') ||
-          errorMessage.includes('ECONNREFUSED') ||
-          errorMessage.includes('ETIMEDOUT')) {
+      // Handle connection errors specifically
+      const errorMessage = prismaError?.message?.toLowerCase() || ''
+      if (errorMessage.includes('connection refused') || 
+          errorMessage.includes('connect ETIMEDOUT') ||
+          errorMessage.includes('connect ECONNREFUSED') ||
+          errorMessage.includes('connection timeout')) {
         return NextResponse.json(
-          { error: "Database connection error. Please check your database configuration." },
+          { error: "Database connection error. Please try again later." },
           { status: 503 }
         )
       }
       
+      // Generic error for any other Prisma issue
       return NextResponse.json(
         { error: "Registration failed. Please try again." },
         { status: 500 }
