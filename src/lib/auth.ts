@@ -1,8 +1,16 @@
 import { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "@/lib/prisma"
-import { createServerClient } from "@/lib/supabase"
 import bcrypt from "bcryptjs"
+
+// Helper to check if Supabase is configured
+function isSupabaseConfigured(): boolean {
+  return !!(
+    process.env.NEXT_PUBLIC_SUPABASE_URL &&
+    process.env.SUPABASE_SERVICE_ROLE_KEY &&
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  )
+}
 
 export const authOptions: NextAuthOptions = {
   providers: [
@@ -13,131 +21,127 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
-        console.log("[Auth] =======================================")
-        console.log("[Auth] AUTHORIZE FUNCTION CALLED")
-        console.log("[Auth] Email:", credentials?.email)
-        console.log("[Auth] =======================================")
+        console.log("[Auth] Login attempt for:", credentials?.email)
         
         if (!credentials?.email || !credentials?.password) {
-          console.log("[Auth] ERROR: Missing credentials")
           return null
         }
 
+        const normalizedEmail = credentials.email.toLowerCase().trim()
+
+        // PRIMARY: Authenticate via Prisma database (bcrypt password hash)
         try {
-          const normalizedEmail = credentials.email.toLowerCase().trim()
+          console.log("[Auth] Checking Prisma database...")
           
-          // Step 1: List users from Supabase Auth (using admin API)
-          console.log("[Auth] Checking Supabase Auth...")
-          const supabaseAdmin = createServerClient()
-          
-          let supabaseAuthUser = null
-          
-          if (supabaseAdmin) {
-            const { data: supabaseUsers, error: listError } = await supabaseAdmin.auth.admin.listUsers()
-            
-            if (listError) {
-              console.log("[Auth] Supabase list error:", listError.message)
-            } else {
-              supabaseAuthUser = supabaseUsers?.users.find(
-                u => u.email?.toLowerCase() === normalizedEmail
-              )
-            }
-          } else {
-            console.log("[Auth] Supabase not configured, using Prisma-only auth")
-          }
-          
-          // Step 2: Check Prisma for the user
           const prismaUser = await prisma.user.findFirst({
             where: { email: normalizedEmail },
             include: { profile: true }
           })
 
-          // If user is in Supabase but NOT in Prisma, create them
-          if (supabaseAuthUser && !prismaUser) {
-            console.log("[Auth] Creating Prisma user from Supabase user...")
-            const newUser = await prisma.user.create({
-              data: {
-                email: supabaseAuthUser.email!,
-                role: "STUDENT",
-                status: "ACTIVE",
-                emailVerified: supabaseAuthUser.email_confirmed_at ? new Date(supabaseAuthUser.email_confirmed_at) : null,
-              },
-              include: { profile: true }
-            })
-            console.log("[Auth] Prisma user created:", newUser.id)
-            return {
-              id: newUser.id,
-              email: newUser.email,
-              name: newUser.profile?.fullName || newUser.email.split("@")[0],
-              role: newUser.role
-            }
-          }
-
-          // If user is in Prisma, verify password using bcrypt (Prisma-stored hash)
           if (prismaUser) {
             console.log("[Auth] User found in Prisma:", prismaUser.id)
             
-            if (prismaUser.status !== "ACTIVE") {
-              console.log("[Auth] User account is not active")
-              return null
-            }
-            
-            // If Prisma user has password hash, verify it
+            // Check if user has a password hash
             if (prismaUser.passwordHash) {
               const isValid = await bcrypt.compare(credentials.password, prismaUser.passwordHash)
-              if (!isValid) {
-                console.log("[Auth] Password verification failed")
+              if (isValid) {
+                console.log("[Auth] Prisma password verified!")
+                
+                // Update last login
+                await prisma.user.update({
+                  where: { id: prismaUser.id },
+                  data: { updatedAt: new Date() }
+                }).catch(() => {}) // Ignore update errors
+                
+                return {
+                  id: prismaUser.id,
+                  email: prismaUser.email,
+                  name: prismaUser.profile?.fullName || prismaUser.email.split("@")[0],
+                  role: prismaUser.role
+                }
+              } else {
+                console.log("[Auth] Password incorrect")
                 return null
-              }
-              console.log("[Auth] Password verified successfully")
-              return {
-                id: prismaUser.id,
-                email: prismaUser.email,
-                name: prismaUser.profile?.fullName || prismaUser.email.split("@")[0],
-                role: prismaUser.role
               }
             }
             
-            // If Prisma user has no password hash, check Supabase
-            if (supabaseAuthUser) {
-              // Use Supabase signInWithPassword via client
-              const { createClient } = await import("@supabase/supabase-js")
-              const supabaseClient = createClient(
-                process.env.NEXT_PUBLIC_SUPABASE_URL!,
-                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-              )
-              
-              const { error: signInError } = await supabaseClient.auth.signInWithPassword({
-                email: normalizedEmail,
-                password: credentials.password
-              })
-              
-              if (signInError) {
-                console.log("[Auth] Supabase signIn error:", signInError.message)
-                return null
-              }
-              
-              console.log("[Auth] Supabase authentication successful")
-              return {
-                id: prismaUser.id,
-                email: prismaUser.email,
-                name: prismaUser.profile?.fullName || prismaUser.email.split("@")[0],
-                role: prismaUser.role
-              }
-            }
-            
-            console.log("[Auth] ERROR: No password hash found")
-            return null
+            // User exists but has no password hash
+            console.log("[Auth] User has no password hash, checking Supabase...")
+          } else {
+            console.log("[Auth] User not in Prisma, checking Supabase...")
           }
-
-          // User not found anywhere
-          console.log("[Auth] User not found in Supabase or Prisma")
-          return null
-          
-        } catch (error: any) {
-          console.error("[Auth] ERROR:", error?.message || error)
-          return null
+        } catch (prismaError) {
+          console.error("[Auth] Prisma error:", prismaError)
         }
+
+        // FALLBACK: If Supabase is configured, try Supabase Auth
+        if (isSupabaseConfigured()) {
+          try {
+            console.log("[Auth] Trying Supabase Auth...")
+            
+            const { createClient } = await import("@supabase/supabase-js")
+            const supabase = createClient(
+              process.env.NEXT_PUBLIC_SUPABASE_URL!,
+              process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+            )
+
+            const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+              email: normalizedEmail,
+              password: credentials.password
+            })
+
+            if (signInError) {
+              console.log("[Auth] Supabase error:", signInError.message)
+              return null
+            }
+
+            console.log("[Auth] Supabase auth successful!")
+
+            // Check if user exists in Prisma
+            try {
+              let prismaUser = await prisma.user.findFirst({
+                where: { email: normalizedEmail },
+                include: { profile: true }
+              })
+
+              // If not in Prisma, create them
+              if (!prismaUser && signInData.user) {
+                console.log("[Auth] Creating Prisma user from Supabase...")
+                prismaUser = await prisma.user.create({
+                  data: {
+                    email: signInData.user.email!,
+                    role: "STUDENT",
+                    status: "ACTIVE",
+                  },
+                  include: { profile: true }
+                })
+              }
+
+              if (prismaUser) {
+                return {
+                  id: prismaUser.id,
+                  email: prismaUser.email,
+                  name: prismaUser.profile?.fullName || prismaUser.email.split("@")[0],
+                  role: prismaUser.role
+                }
+              }
+            } catch (prismaError) {
+              console.error("[Auth] Could not sync to Prisma:", prismaError)
+              // Still return user from Supabase
+              return {
+                id: signInData.user?.id || "supabase-user",
+                email: signInData.user?.email || normalizedEmail,
+                name: signInData.user?.user_metadata?.full_name || normalizedEmail.split("@")[0],
+                role: "STUDENT"
+              }
+            }
+          } catch (supabaseError) {
+            console.error("[Auth] Supabase error:", supabaseError)
+          }
+        }
+
+        console.log("[Auth] Authentication failed - user not found or invalid password")
+        return null
       }
     })
   ],
