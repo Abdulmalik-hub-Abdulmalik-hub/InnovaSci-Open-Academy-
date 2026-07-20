@@ -64,15 +64,20 @@ function LoginForm() {
   const [isLoading, setIsLoading] = useState(false)
 
   // Get redirect URL based on role
-  const getRedirectUrl = (role: string): string => {
+  const getRedirectUrl = (role: string | undefined): string => {
     // Check if callbackUrl is provided and is a valid internal URL
     if (callbackUrl && callbackUrl.startsWith("/")) {
       return callbackUrl
     }
-    // Use role-based portal mapping
-    const redirect = ROLE_PORTAL_MAP[role] || "/dashboard"
-    console.log("[Login] Role:", role, "-> Redirect:", redirect)
-    return redirect
+    // Use role-based portal mapping - role must be explicitly checked
+    if (role === "ADMIN" || role === "SUPER_ADMIN" || role === "CONTENT_MANAGER" || role === "FINANCE" || role === "SUPPORT_STAFF") {
+      return "/admin"
+    }
+    if (role === "STUDENT" || role === "INSTRUCTOR" || role === "REVIEWER" || role === "ACADEMIC_DIRECTOR" || role === "ADMISSIONS") {
+      return "/dashboard"
+    }
+    // Default fallback
+    return "/dashboard"
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -104,24 +109,21 @@ function LoginForm() {
         return
       }
 
-      // Fetch user role to determine redirect
+      // Fetch user role from session API - this reads directly from JWT token
       const res = await fetch("/api/auth/session")
-      const session = await res.json()
+      const data = await res.json()
       
-      console.log("[Login] Session data:", JSON.stringify(session))
-      
-      if (session?.user) {
-        console.log("[Login] User role from session:", session.user.role)
-        const redirectUrl = getRedirectUrl(session.user.role)
+      if (data?.user?.role) {
+        const redirectUrl = getRedirectUrl(data.user.role)
         router.push(redirectUrl)
+        router.refresh()
       } else {
-        console.log("[Login] No user in session, defaulting to /dashboard")
+        // Fallback: redirect based on result if session fetch fails
+        // The signIn result doesn't contain user info, so default to dashboard
         router.push("/dashboard")
+        router.refresh()
       }
-      
-      router.refresh()
     } catch (err) {
-      console.error("[Login] Error:", err)
       setError("An error occurred. Please try again later.")
       setErrorType("error")
       setIsLoading(false)
