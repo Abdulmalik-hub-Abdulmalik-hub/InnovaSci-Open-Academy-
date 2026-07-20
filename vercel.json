@@ -1,7 +1,10 @@
 {
   "framework": "nextjs",
-  "buildCommand": "npx prisma migrate deploy && npm run build",
+  "buildCommand": "npm run build",
   "devCommand": "npm run dev",
   "installCommand": "npm install",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "env": {
+    "NEXT_TELEMETRY_DISABLED": "1"
+  }
 }
