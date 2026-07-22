@@ -33,10 +33,13 @@ export const authOptions: NextAuthOptions = {
         // PRIMARY: Try Supabase Auth first (if configured)
         const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
         const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+        const isSupabaseConfigured = supabaseUrl && supabaseKey && 
+          supabaseUrl !== "https://your-project.supabase.co" &&
+          supabaseUrl.startsWith("https://")
         
-        console.log("[Auth] Supabase configured:", !!supabaseUrl && !!supabaseKey && supabaseUrl !== "https://your-project.supabase.co")
+        console.log("[Auth] Supabase configured:", isSupabaseConfigured)
         
-        if (supabaseUrl && supabaseKey && supabaseUrl !== "https://your-project.supabase.co") {
+        if (isSupabaseConfigured) {
           try {
             console.log("[Auth] >>> Trying Supabase Auth...")
             
@@ -114,14 +117,21 @@ export const authOptions: NextAuthOptions = {
                 }
               } catch (prismaError) {
                 console.error("[Auth] >>> Prisma sync ERROR:", prismaError)
-                // DO NOT fallback to Supabase metadata - this is a critical error
-                console.error("[Auth] CRITICAL ERROR: Prisma lookup failed!")
-                console.error("[Auth] Cannot authenticate - Prisma is required for role management")
-                return null
+                // Fallback to Supabase user with temporary role if Prisma fails
+                // This is a degraded mode - user will need to re-login once Prisma is restored
+                console.error("[Auth] WARNING: Prisma lookup failed - using degraded mode")
+                const userEmail = signInData.user.email || normalizedEmail
+                return {
+                  id: signInData.user.id,
+                  email: userEmail,
+                  name: userEmail.split("@")[0],
+                  role: "STUDENT" // Temporary role - should be updated from Prisma when available
+                }
               }
             }
             
             console.log("[Auth] Supabase auth failed:", signInError?.message)
+            console.log("[Auth] Error code:", signInError?.code)
           } catch (supabaseError) {
             console.error("[Auth] Supabase error:", supabaseError)
           }
