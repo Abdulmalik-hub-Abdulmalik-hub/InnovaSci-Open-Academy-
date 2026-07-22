@@ -66,7 +66,10 @@ function LoginForm() {
   // Get redirect URL based on role
   const getRedirectUrl = (role: string | undefined): string => {
     console.log("[Login] ============================================")
-    console.log("[Login] getRedirectUrl() called with role:", role)
+    console.log("[Login] getRedirectUrl() called")
+    console.log("[Login] >>> INPUT role: '" + role + "' <<<")
+    console.log("[Login] >>> typeof role: " + typeof role)
+    console.log("[Login] ============================================")
     
     // Check if callbackUrl is provided and is a valid internal URL
     if (callbackUrl && callbackUrl.startsWith("/")) {
@@ -75,23 +78,63 @@ function LoginForm() {
       return callbackUrl
     }
     
-    // Use role-based portal mapping - role must be explicitly checked
     // CRITICAL: This MUST use the Prisma role from JWT/Session, NOT Supabase role
-    if (role === "ADMIN" || role === "SUPER_ADMIN" || role === "CONTENT_MANAGER" || role === "FINANCE" || role === "SUPPORT_STAFF") {
-      console.log("[Login] Role matches admin - redirecting to /admin")
+    console.log("[Login] Checking role: '" + role + "'")
+    
+    if (role === "ADMIN") {
+      console.log("[Login] >>> ROLE MATCHES ADMIN! Redirecting to /admin")
       console.log("[Login] ============================================")
       return "/admin"
     }
-    if (role === "STUDENT" || role === "INSTRUCTOR" || role === "REVIEWER" || role === "ACADEMIC_DIRECTOR" || role === "ADMISSIONS") {
-      console.log("[Login] Role matches student - redirecting to /dashboard")
+    if (role === "SUPER_ADMIN") {
+      console.log("[Login] >>> ROLE MATCHES SUPER_ADMIN! Redirecting to /admin")
+      console.log("[Login] ============================================")
+      return "/admin"
+    }
+    if (role === "CONTENT_MANAGER") {
+      console.log("[Login] >>> ROLE MATCHES CONTENT_MANAGER! Redirecting to /admin")
+      console.log("[Login] ============================================")
+      return "/admin"
+    }
+    if (role === "FINANCE") {
+      console.log("[Login] >>> ROLE MATCHES FINANCE! Redirecting to /admin")
+      console.log("[Login] ============================================")
+      return "/admin"
+    }
+    if (role === "SUPPORT_STAFF") {
+      console.log("[Login] >>> ROLE MATCHES SUPPORT_STAFF! Redirecting to /admin")
+      console.log("[Login] ============================================")
+      return "/admin"
+    }
+    if (role === "STUDENT") {
+      console.log("[Login] >>> ROLE MATCHES STUDENT! Redirecting to /dashboard")
+      console.log("[Login] ============================================")
+      return "/dashboard"
+    }
+    if (role === "INSTRUCTOR") {
+      console.log("[Login] >>> ROLE MATCHES INSTRUCTOR! Redirecting to /dashboard")
+      console.log("[Login] ============================================")
+      return "/dashboard"
+    }
+    if (role === "REVIEWER") {
+      console.log("[Login] >>> ROLE MATCHES REVIEWER! Redirecting to /dashboard")
+      console.log("[Login] ============================================")
+      return "/dashboard"
+    }
+    if (role === "ACADEMIC_DIRECTOR") {
+      console.log("[Login] >>> ROLE MATCHES ACADEMIC_DIRECTOR! Redirecting to /dashboard")
+      console.log("[Login] ============================================")
+      return "/dashboard"
+    }
+    if (role === "ADMISSIONS") {
+      console.log("[Login] >>> ROLE MATCHES ADMISSIONS! Redirecting to /dashboard")
       console.log("[Login] ============================================")
       return "/dashboard"
     }
     
     // Default fallback - CRITICAL: This should never happen if role is correctly set
-    console.log("[Login] WARNING: Unknown role, defaulting to /dashboard")
-    console.log("[Login] Role received:", role)
-    console.log("[Login] If this is an ADMIN user, this is a BUG!")
+    console.log("[Login] >>> WARNING: Role '" + role + "' did NOT match any admin role!")
+    console.log("[Login] >>> Defaulting to /dashboard (this is likely a BUG if user is ADMIN!)")
     console.log("[Login] ============================================")
     return "/dashboard"
   }
@@ -141,7 +184,9 @@ function LoginForm() {
       
       console.log("[Login] ============================================")
       console.log("[Login] Session API response:", JSON.stringify(data))
-      console.log("[Login] Session user role:", data?.user?.role)
+      console.log("[Login] >>> data?.user:", data?.user)
+      console.log("[Login] >>> data?.user?.role:", data?.user?.role)
+      console.log("[Login] >>> typeof data?.user?.role:", typeof data?.user?.role)
       console.log("[Login] ============================================")
       
       if (data?.user?.role) {
@@ -157,15 +202,17 @@ function LoginForm() {
         }
         
         const redirectUrl = getRedirectUrl(data.user.role)
-        console.log("[Login] FINAL REDIRECT:", redirectUrl)
+        console.log("[Login] ============================================")
+        console.log("[Login] FINAL REDIRECT URL:", redirectUrl)
         console.log("[Login] Expected for ADMIN: /admin")
         console.log("[Login] ============================================")
         router.push(redirectUrl)
         router.refresh()
       } else {
         // Fallback: redirect based on result if session fetch fails
-        // The signIn result doesn't contain user info, so default to dashboard
-        console.log("[Login] WARNING: No role in session, defaulting to /dashboard")
+        console.log("[Login] >>> WARNING: data?.user?.role is falsy (undefined/null)!")
+        console.log("[Login] >>> This means the role was NOT returned from the session API!")
+        console.log("[Login] >>> Defaulting to /dashboard")
         console.log("[Login] ============================================")
         router.push("/dashboard")
         router.refresh()

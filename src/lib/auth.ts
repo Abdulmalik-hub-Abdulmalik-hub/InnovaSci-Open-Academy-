@@ -1,7 +1,16 @@
-import { NextAuthOptions } from "next-auth"
+import NextAuth, { NextAuthOptions } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "@/lib/prisma"
 import bcrypt from "bcryptjs"
+
+// Extend the User type to include role
+interface UserWithRole {
+  id: string
+  email: string
+  name?: string | null
+  image?: string | null
+  role: string
+}
 
 // Debug helper to trace role through the authentication pipeline
 function debugRole(label: string, value: string | undefined, context?: string) {
@@ -17,7 +26,7 @@ export const authOptions: NextAuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<UserWithRole | null> {
         console.log("[Auth] ============================================")
         console.log("[Auth] LOGIN ATTEMPT:", credentials?.email)
         console.log("[Auth] ============================================")
@@ -61,7 +70,7 @@ export const authOptions: NextAuthOptions = {
               // Get Prisma user - CRITICAL: PRESERVE THEIR EXISTING ROLE
               try {
                 console.log("[Auth] >>> Looking up Prisma user by email...")
-                let prismaUser = await prisma.user.findFirst({
+                const prismaUser = await prisma.user.findFirst({
                   where: { email: normalizedEmail },
                   include: { profile: true }
                 })
@@ -72,23 +81,21 @@ export const authOptions: NextAuthOptions = {
                   console.log("[Auth] FOUND Prisma user!")
                   console.log("[Auth] Prisma user ID:", prismaUser.id)
                   console.log("[Auth] Prisma user email:", prismaUser.email)
-                  console.log("[Auth] Prisma user role:", prismaUser.role)
+                  console.log("[Auth] >>> Prisma user role: '" + prismaUser.role + "' <<<")
                   console.log("[Auth] Prisma user status:", prismaUser.status)
-                  console.log("[Auth] ============================================")
-                  console.log("[Auth] DEBUG >>> Storing Prisma role in JWT: '" + prismaUser.role + "'")
                   console.log("[Auth] ============================================")
                   
                   // Return user with their EXISTING Prisma role (preserves ADMIN, SUPER_ADMIN, etc.)
                   // NEVER use Supabase role or metadata role - always use Prisma role
-                  const result = {
+                  const result: UserWithRole = {
                     id: prismaUser.id,
                     email: prismaUser.email,
                     name: prismaUser.profile?.fullName || prismaUser.email.split("@")[0],
-                    role: prismaUser.role as string // CRITICAL: This is the ONLY source of truth for authorization
+                    role: prismaUser.role // CRITICAL: This is the ONLY source of truth for authorization
                   }
                   
+                  console.log("[Auth] >>> RESULT.role = '" + result.role + "' <<<")
                   debugRole("authorize() returning role", result.role, "Supabase path")
-                  console.log("[Auth] ============================================")
                   console.log("[Auth] FINAL RESULT from authorize():", JSON.stringify(result))
                   console.log("[Auth] ============================================")
                   
@@ -96,7 +103,7 @@ export const authOptions: NextAuthOptions = {
                 } else {
                   // New user - create with STUDENT role
                   console.log("[Auth] No Prisma user found - creating new user with STUDENT role")
-                  prismaUser = await prisma.user.create({
+                  const newPrismaUser = await prisma.user.create({
                     data: {
                       email: signInData.user.email!,
                       role: "STUDENT", // New users default to STUDENT
@@ -105,11 +112,11 @@ export const authOptions: NextAuthOptions = {
                     include: { profile: true }
                   })
                   
-                  const result = {
-                    id: prismaUser.id,
-                    email: prismaUser.email,
-                    name: prismaUser.email.split("@")[0],
-                    role: prismaUser.role as string
+                  const result: UserWithRole = {
+                    id: newPrismaUser.id,
+                    email: newPrismaUser.email,
+                    name: newPrismaUser.email.split("@")[0],
+                    role: newPrismaUser.role
                   }
                   
                   console.log("[Auth] New user created:", JSON.stringify(result))
@@ -118,14 +125,13 @@ export const authOptions: NextAuthOptions = {
               } catch (prismaError) {
                 console.error("[Auth] >>> Prisma sync ERROR:", prismaError)
                 // Fallback to Supabase user with temporary role if Prisma fails
-                // This is a degraded mode - user will need to re-login once Prisma is restored
                 console.error("[Auth] WARNING: Prisma lookup failed - using degraded mode")
                 const userEmail = signInData.user.email || normalizedEmail
                 return {
                   id: signInData.user.id,
                   email: userEmail,
                   name: userEmail.split("@")[0],
-                  role: "STUDENT" // Temporary role - should be updated from Prisma when available
+                  role: "STUDENT"
                 }
               }
             }
@@ -136,7 +142,7 @@ export const authOptions: NextAuthOptions = {
             console.error("[Auth] Supabase error:", supabaseError)
           }
         } else {
-          console.log("[Auth] Supabase not configured or using placeholder - using Prisma only")
+          console.log("[Auth] Supabase not configured - using Prisma only")
         }
 
         // FALLBACK: Try Prisma database with bcrypt
@@ -150,21 +156,21 @@ export const authOptions: NextAuthOptions = {
 
           if (prismaUser) {
             console.log("[Auth] Found Prisma user:", prismaUser.id)
-            console.log("[Auth] Prisma user role:", prismaUser.role)
+            console.log("[Auth] >>> Prisma user role: '" + prismaUser.role + "' <<<")
             
             if (prismaUser.passwordHash) {
               const isValid = await bcrypt.compare(credentials.password, prismaUser.passwordHash)
               if (isValid) {
                 console.log("[Auth] >>> Prisma auth SUCCESS!")
-                console.log("[Auth] DEBUG >>> Storing Prisma role in JWT: '" + prismaUser.role + "'")
                 
-                const result = {
+                const result: UserWithRole = {
                   id: prismaUser.id,
                   email: prismaUser.email,
                   name: prismaUser.profile?.fullName || prismaUser.email.split("@")[0],
-                  role: prismaUser.role as string
+                  role: prismaUser.role
                 }
                 
+                console.log("[Auth] >>> RESULT.role = '" + result.role + "' <<<")
                 debugRole("authorize() returning role", result.role, "Prisma path")
                 console.log("[Auth] FINAL RESULT from authorize():", JSON.stringify(result))
                 
@@ -191,21 +197,22 @@ export const authOptions: NextAuthOptions = {
       console.log("[Auth] ============================================")
       console.log("[Auth] JWT CALLBACK INVOKED")
       console.log("[Auth] Token before:", JSON.stringify({ id: token.id, role: token.role }))
-      console.log("[Auth] User object:", user ? JSON.stringify({ id: user.id, role: (user as any).role }) : "none")
       
       if (user) {
-        const incomingRole = (user as any).role
-        console.log("[Auth] DEBUG >>> JWT: User role from authorize(): '" + incomingRole + "'")
+        // Cast user to our extended type
+        const authUser = user as UserWithRole
+        console.log("[Auth] User object received:", JSON.stringify({ id: authUser.id, role: authUser.role }))
+        console.log("[Auth] >>> incomingRole from user.role: '" + authUser.role + "' <<<")
         
-        token.id = user.id
-        token.role = incomingRole // This should be the Prisma role
+        token.id = authUser.id
+        token.role = authUser.role
         
-        console.log("[Auth] DEBUG >>> JWT: Setting token.role = '" + token.role + "'")
+        console.log("[Auth] >>> token.role SET TO: '" + token.role + "' <<<")
         console.log("[Auth] JWT token after:", JSON.stringify({ id: token.id, role: token.role }))
         console.log("[Auth] ============================================")
         
         // CRITICAL: Never let Supabase role override Prisma role
-        if (incomingRole === 'authenticated' || !incomingRole) {
+        if (authUser.role === 'authenticated' || !authUser.role) {
           console.error("[Auth] CRITICAL ERROR: Role is 'authenticated' or undefined!")
           console.error("[Auth] This means Supabase metadata leaked through!")
         }
@@ -222,13 +229,13 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       console.log("[Auth] ============================================")
       console.log("[Auth] SESSION CALLBACK INVOKED")
-      console.log("[Auth] Token role:", token.role)
+      console.log("[Auth] Token role from JWT:", token.role)
       
       if (session.user) {
         session.user.id = token.id as string
-        session.user.role = token.role as string // CRITICAL: Use Prisma role from JWT
+        session.user.role = token.role as string
         
-        console.log("[Auth] DEBUG >>> SESSION: Setting session.user.role = '" + session.user.role + "'")
+        console.log("[Auth] >>> session.user.role SET TO: '" + session.user.role + "' <<<")
         console.log("[Auth] Session user after:", JSON.stringify({ id: session.user.id, role: session.user.role }))
         console.log("[Auth] ============================================")
         
