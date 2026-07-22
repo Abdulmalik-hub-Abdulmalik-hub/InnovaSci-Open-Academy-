@@ -124,15 +124,12 @@ export const authOptions: NextAuthOptions = {
                 }
               } catch (prismaError) {
                 console.error("[Auth] >>> Prisma sync ERROR:", prismaError)
-                // Fallback to Supabase user with temporary role if Prisma fails
-                console.error("[Auth] WARNING: Prisma lookup failed - using degraded mode")
-                const userEmail = signInData.user.email || normalizedEmail
-                return {
-                  id: signInData.user.id,
-                  email: userEmail,
-                  name: userEmail.split("@")[0],
-                  role: "STUDENT"
-                }
+                console.error("[Auth] >>> CRITICAL: Prisma lookup failed during Supabase auth!")
+                console.error("[Auth] >>> Cannot use Supabase role - must use Prisma role!")
+                console.error("[Auth] >>> Returning null - authentication FAILED")
+                // DO NOT fallback to Supabase metadata or STUDENT role
+                // This is a CRITICAL error - we cannot authenticate without Prisma role
+                return null
               }
             }
             
